@@ -5,7 +5,7 @@ __all__ = [
     "test_anomaly_detection",  "test_diagnostics"
 ]
 
-# Exposing specific functions or classes.
+# Exposing specific anomaly_detection functions or classes.
 from .test_anomaly_detection import (
     test_find_outliers_iqr,
     test_anomaly_mad,
