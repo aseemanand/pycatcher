@@ -2,12 +2,11 @@
 outlier_detection
 ------------------
 
-This is an example package that demonstrates best practices for Python packaging.
-It includes several modules and exposes some useful functions.
+This is a package that identifies the anomalies from the given input dataset.
 
 Modules:
-    - anomaly_detection: Basic functions like greeting the world.
-    - diagnostics: Simple mathematical operations.
+    - anomaly_detection: Functions to find the Anomalies within a given dataset.
+    - diagnostics: Functions to run some diagnostics on the data.
 """
 
 # Import functions from the individual modules so they can be accessed directly
