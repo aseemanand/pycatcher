@@ -124,21 +124,6 @@ def get_ssacf(residuals: np.ndarray, df_pandas: pd.DataFrame) -> float:
     return ssacf
 
 
-def get_outliers_today(model_type):
-
-    df = anomaly_mad(model_type)
-    df = df.tail(1)
-
-    latest = df.index[-1].date().strftime('%Y-%m-%d')
-    p = pd.Timestamp.now().to_period('D')
-    current_date = p.to_timestamp().strftime('%Y-%m-%d')
-
-    if latest == current_date:
-        return df
-
-    return "No Outliers Today!"
-
-
 def get_outliers_today(model_type: BaseEstimator) -> Union[pd.DataFrame, str]:
     """
     Get the outliers detected today using the anomaly_mad method.
