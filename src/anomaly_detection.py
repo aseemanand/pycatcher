@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
 from pyod.models.mad import MAD
@@ -54,3 +55,43 @@ def anomaly_mad(model_type: BaseEstimator, df: pd.DataFrame) -> pd.DataFrame:
     outliers = df[is_outlier]
 
     return outliers
+
+
+def get_residuals(model_type: BaseEstimator) -> np.ndarray:
+    """
+    Get the residuals of a fitted model, removing any NaN values.
+
+    Args:
+        model_type (BaseEstimator): A fitted model object that has the attribute `resid`,
+                                    representing the residuals of the model.
+
+    Returns:
+        np.ndarray: An array of residuals with NaN values removed.
+    """
+
+    # Extract residuals from the model and remove NaN values
+    residuals = model_type.resid.values
+    residuals_cleaned = residuals[~np.isnan(residuals)]
+
+    return residuals_cleaned
+
+
+def sum_of_squares(array: np.ndarray) -> float:
+    """
+    Calculates the sum of squares of a NumPy array of any shape.
+
+    Args:
+        array (np.ndarray): A NumPy array of any shape.
+
+    Returns:
+        float: The sum of squares of the array elements.
+    """
+
+    # Flatten the array to a 1D array
+    flattened_array = array.flatten()
+
+    # Calculate the sum of squares of the flattened array
+    sum_of_squares_value = np.sum(flattened_array ** 2)
+
+    return sum_of_squares_value
+
