@@ -1,0 +1,135 @@
+# Python specific files
+__pycache__/
+*.py[cod]
+*.so
+*.pyo
+*.pyd
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Virtual environments
+env/
+venv/
+ENV/
+VENV/
+.pipenv/
+.pyenv/
+.venv/
+.venv/
+
+# Poetry-specific
+poetry.lock
+
+# Distribution / Packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / Coverage reports
+htmlcov/
+.tox/
+.nox/
+coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+pytest_cache/
+test/__pycache__/
+tests/__pycache__/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs
+*.log
+
+# Byte-compiled / Optimized / DLL files
+*.dll
+*.o
+*.pyc
+*.pyd
+
+# Temporary files
+*.tmp
+*.bak
+*.old
+*.orig
+
+# Database and SQLite files
+*.db
+*.sqlite
+*.sqlite3
+
+# Machine-specific settings
+*.sublime*
+*.vscode*
+.env
+*.env
+
+# Images or Binary files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.bmp
+*.tiff
+
+# Other general purpose files
+*.tar.gz
+*.zip
+*.7z
+*.rar
+
+# Ignore logs and other transient files
+*.log
+*.lock
+*.pid
+*.seed
+*.state
+
+# Ignore custom settings and credentials
+*.secret
+*.password
+credentials.json
+
+# Ignore all coverage-related data
+.coverage
+.coverage.*
