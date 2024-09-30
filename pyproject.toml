@@ -2,8 +2,8 @@
 name = "outlier-detection"
 version = "0.1.0"
 description = "This is a project that automatically identifies the outliers from a given dataset"
-authors = ["Assem Anand", "Jagadish Pamarthi"]
-license = "MIT"
+authors = ["Aseem Anand", "Jagadish Pamarthi"]
+license = "GPLv3"
 
 [tool.poetry.dependencies]
 python = "^3.11"
