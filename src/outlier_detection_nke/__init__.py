@@ -1,5 +1,5 @@
 """
-outlier_detection
+outlier_detection_nke
 ------------------
 
 This is a package that identifies the anomalies from the given input dataset.
