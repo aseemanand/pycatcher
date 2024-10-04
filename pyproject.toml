@@ -1,12 +1,12 @@
 [project]
 name = "outlier_detection_nke"
-version = "0.0.1"
+version = "0.0.2"
 authors = [
   { name="Aseem Anand", email="author@example.com" },
 ]
 description = "This is a project that automatically identifies the outliers from a given dataset"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
