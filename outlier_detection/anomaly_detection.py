@@ -1,6 +1,8 @@
 import math
 import numpy as np
 import pandas as pd
+import statsmodels.api as sm
+
 from typing import Union
 from pyod.models.mad import MAD
 from sklearn.base import BaseEstimator
@@ -151,3 +153,82 @@ def get_outliers_today(model_type: BaseEstimator) -> Union[pd.DataFrame, str]:
 
     return "No Outliers Today!"
 
+
+def detect_outliers(df: pd.DataFrame) -> str | pd.DataFrame:
+    """
+    Detect outliers in a time-series dataset using Seasonal Trend Decomposition
+    if there is at least 2 years of data, or Interquartile Range (IQR) for shorter data.
+
+    Args:
+        df: A Pandas DataFrame with time-series data.
+            It must contain 'session_start_dt' and 'count_clickstream' columns.
+
+    Returns:
+        str or pd.DataFrame: A message or a DataFrame with detected outliers.
+    """
+
+    # Calculate the length of the time period in years
+    length_year: float = len(df.index) / 365.25
+    print(f"Time-series data in years: {length_year:.2f}")
+
+    # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
+    if length_year >= 2.0:
+        return _decompose_and_detect(df)
+
+    # If less than 2 years of data, use Inter Quartile Range (IQR) method
+    else:
+        return _detect_outliers_iqr(df)
+
+
+def _decompose_and_detect(df_pandas: pd.DataFrame) -> str | pd.DataFrame:
+    """
+    Helper function to apply Seasonal Decomposition and detect outliers using
+    both additive and multiplicative models.
+
+    Args:
+        df_pandas (pd.DataFrame): The Pandas DataFrame containing time-series data.
+
+    Returns:
+        str or pd.DataFrame: A message or a DataFrame with detected outliers.
+    """
+
+    # Ensure the 'session_start_dt' column is in datetime format and set it as index
+    df_pandas['session_start_dt'] = pd.to_datetime(df_pandas['session_start_dt'])
+    df_pandas = df_pandas.set_index('session_start_dt').asfreq('D').dropna()
+
+    # Decompose the series using both additive and multiplicative models
+    decomposition_add = sm.tsa.seasonal_decompose(df_pandas['count_clickstream'], model='additive')
+    decomposition_mul = sm.tsa.seasonal_decompose(df_pandas['count_clickstream'], model='multiplicative')
+
+    # Get residuals from both decompositions
+    residuals_add: pd.Series = get_residuals(decomposition_add)
+    residuals_mul: pd.Series = get_residuals(decomposition_mul)
+
+    # Calculate Sum of Squares of the ACF for both models
+    ssacf_add: float = get_ssacf(residuals_add, df_pandas)
+    ssacf_mul: float = get_ssacf(residuals_mul, df_pandas)
+
+    # Return the outliers detected by the model with the smaller ACF value
+    if ssacf_add < ssacf_mul:
+        return get_outliers_today(decomposition_add)
+    else:
+        return get_outliers_today(decomposition_mul)
+
+
+def _detect_outliers_iqr(df_pandas: pd.DataFrame) -> pd.DataFrame:
+    """
+    Helper function to detect outliers using the Interquartile Range (IQR) method.
+
+    Args:
+        df_pandas (pd.DataFrame): The Pandas DataFrame containing time-series data.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the detected outliers.
+    """
+    # Ensure the 'count_clickstream' column is numeric
+    df_pandas['count_clickstream'] = pd.to_numeric(df_pandas['count_clickstream'], errors='coerce')
+
+    # Detect outliers using the IQR method
+    df_outliers: pd.DataFrame = find_outliers_iqr(df_pandas)
+    print(f"Record Count: {len(df_outliers)}")
+    return df_outliers
