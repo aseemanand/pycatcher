@@ -1,5 +1,5 @@
 """
-outlier_detection_nke
+catch
 ------------------
 
 This is a package that identifies the anomalies from the given input dataset.
@@ -10,7 +10,7 @@ Modules:
 """
 
 # Import functions from the individual modules so they can be accessed directly
-from .anomaly_detection import *
+from .pycatch import *
 from .diagnostics import *
 
 # Defining a package-level version
