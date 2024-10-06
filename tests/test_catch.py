@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from unittest.mock import MagicMock, patch
-from src.catch.pycatch import find_outliers_iqr, anomaly_mad, get_residuals, \
+from src.pycatch.catch import find_outliers_iqr, anomaly_mad, get_residuals, \
     sum_of_squares, get_ssacf, get_outliers_today
 
 
@@ -96,7 +96,7 @@ def test_get_outliers_today():
     mock_outliers.set_index('Date', inplace=True)
 
     # Patch the anomaly_mad function to return the mock outliers
-    with patch('src.catch.anomaly_detection.anomaly_mad', return_value=mock_outliers):
+    with patch('src.pycatch.catch.anomaly_mad', return_value=mock_outliers):
         result = get_outliers_today(mock_model)
 
     # Assert that the outlier is detected today
@@ -118,7 +118,7 @@ def test_get_outliers_today_no_outliers():
     mock_outliers.set_index('Date', inplace=True)
 
     # Patch the anomaly_mad function to return the mock outliers
-    with patch('src.catch.anomaly_detection.anomaly_mad', return_value=mock_outliers):
+    with patch('src.pycatch.catch.anomaly_mad', return_value=mock_outliers):
         result = get_outliers_today(mock_model)
 
     # Assert that no outliers are detected today
