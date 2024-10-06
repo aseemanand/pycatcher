@@ -1,5 +1,5 @@
 """
-pycatch
+pycatcher
 ------------------
 
 This is a package that identifies the anomalies from the given input dataset.

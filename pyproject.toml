@@ -1,6 +1,6 @@
 [project]
-name = "pycatch"
-version = "0.0.3"
+name = "pycatcher"
+version = "0.0.1"
 authors = [
     {name="Aseem Anand", email="aseemanand@gmail.com"},
     {name="Jagadish Pamarthi", email="jagadish.vrsec@gmail.com"}
