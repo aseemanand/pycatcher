@@ -1,8 +1,9 @@
 [project]
-name = "outlier_detection_nke"
-version = "0.0.2"
+name = "pycatch"
+version = "0.0.3"
 authors = [
-  { name="Aseem Anand", email="author@example.com" },
+    {name="Aseem Anand", email="aseemanand@gmail.com"},
+    {name="Jagadish Pamarthi", email="jagadish.vrsec@gmail.com"}
 ]
 description = "This is a project that automatically identifies the outliers from a given dataset"
 readme = "README.md"
