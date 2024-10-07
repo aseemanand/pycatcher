@@ -161,7 +161,7 @@ def detect_outliers(df: pd.DataFrame) -> str | pd.DataFrame:
 
     Args:
         df: A Pandas DataFrame with time-series data.
-            It must contain 'session_start_dt' and 'count_clickstream' columns.
+            It must contain 'dt' and 'cnt' columns.
 
     Returns:
         str or pd.DataFrame: A message or a DataFrame with detected outliers.
@@ -192,13 +192,13 @@ def _decompose_and_detect(df_pandas: pd.DataFrame) -> str | pd.DataFrame:
         str or pd.DataFrame: A message or a DataFrame with detected outliers.
     """
 
-    # Ensure the 'session_start_dt' column is in datetime format and set it as index
-    df_pandas['session_start_dt'] = pd.to_datetime(df_pandas['session_start_dt'])
-    df_pandas = df_pandas.set_index('session_start_dt').asfreq('D').dropna()
+    # Ensure the 'dt' column is in datetime format and set it as index
+    df_pandas['dt'] = pd.to_datetime(df_pandas['dt'])
+    df_pandas = df_pandas.set_index('dt').asfreq('D').dropna()
 
     # Decompose the series using both additive and multiplicative models
-    decomposition_add = sm.tsa.seasonal_decompose(df_pandas['count_clickstream'], model='additive')
-    decomposition_mul = sm.tsa.seasonal_decompose(df_pandas['count_clickstream'], model='multiplicative')
+    decomposition_add = sm.tsa.seasonal_decompose(df_pandas['cnt'], model='additive')
+    decomposition_mul = sm.tsa.seasonal_decompose(df_pandas['cnt'], model='multiplicative')
 
     # Get residuals from both decompositions
     residuals_add: pd.Series = get_residuals(decomposition_add)
@@ -217,7 +217,7 @@ def _decompose_and_detect(df_pandas: pd.DataFrame) -> str | pd.DataFrame:
 
 def _detect_outliers_iqr(df_pandas: pd.DataFrame) -> pd.DataFrame:
     """
-    Helper function to detect outliers using the Interquartile Range (IQR) method.
+    Helper function to detect outliers using the Inter Quartile Range (IQR) method.
 
     Args:
         df_pandas (pd.DataFrame): The Pandas DataFrame containing time-series data.
@@ -225,8 +225,8 @@ def _detect_outliers_iqr(df_pandas: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: A DataFrame containing the detected outliers.
     """
-    # Ensure the 'count_clickstream' column is numeric
-    df_pandas['count_clickstream'] = pd.to_numeric(df_pandas['count_clickstream'], errors='coerce')
+    # Ensure the 'cnt' column is numeric
+    df_pandas['cnt'] = pd.to_numeric(df_pandas['cnt'], errors='coerce')
 
     # Detect outliers using the IQR method
     df_outliers: pd.DataFrame = find_outliers_iqr(df_pandas)

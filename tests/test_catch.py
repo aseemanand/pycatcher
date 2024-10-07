@@ -1,8 +1,9 @@
+import pytest
 import numpy as np
 import pandas as pd
 from unittest.mock import MagicMock, patch
 from src.pycatcher.catch import find_outliers_iqr, anomaly_mad, get_residuals, \
-    sum_of_squares, get_ssacf, get_outliers_today
+    sum_of_squares, get_ssacf, get_outliers_today, detect_outliers, _decompose_and_detect
 
 
 # Test case for find_outliers_iqr
@@ -123,3 +124,53 @@ def test_get_outliers_today_no_outliers():
 
     # Assert that no outliers are detected today
     assert result == "No Outliers Today!"
+
+
+@pytest.fixture
+def df_more_than_2_years():
+    """Fixture for DataFrame with more than 2 years of data."""
+    data = {
+        'dt': pd.date_range(start='2020-01-01', periods=735, freq='D'),
+        'cnt': [1] * 735
+    }
+    return pd.DataFrame(data)
+
+
+@pytest.fixture
+def df_less_than_2_years():
+    """Fixture for DataFrame with less than 2 years of data."""
+    data = {
+        'dt': pd.date_range(start='2022-01-01', periods=600, freq='D'),
+        'cnt': [1] * 600
+    }
+    return pd.DataFrame(data)
+
+
+def test_detect_outliers_more_than_2_years(mocker, df_more_than_2_years):
+    """Test detect_outliers with more than 2 years of data."""
+    # Mock the _decompose_and_detect function
+    mock_decompose_and_detect = mocker.patch('src.pycatcher.catch._decompose_and_detect')
+    mock_decompose_and_detect.return_value = pd.DataFrame({'outliers': [0, 1]})
+
+    # Call the function
+    result = detect_outliers(df_more_than_2_years)
+
+    # Assert that _decompose_and_detect was called
+    mock_decompose_and_detect.assert_called_once_with(df_more_than_2_years)
+    # Assert that the result is a DataFrame
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_detect_outliers_less_than_2_years(mocker, df_less_than_2_years):
+    """Test detect_outliers with less than 2 years of data."""
+    # Mock the _detect_outliers_iqr function
+    mock_detect_outliers_iqr = mocker.patch('src.pycatcher.catch._detect_outliers_iqr')
+    mock_detect_outliers_iqr.return_value = pd.DataFrame({'outliers': [0, 1]})
+
+    # Call the function
+    result = detect_outliers(df_less_than_2_years)
+
+    # Assert that _detect_outliers_iqr was called
+    mock_detect_outliers_iqr.assert_called_once_with(df_less_than_2_years)
+    # Assert that the result is a DataFrame
+    assert isinstance(result, pd.DataFrame)

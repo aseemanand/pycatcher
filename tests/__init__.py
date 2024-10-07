@@ -2,7 +2,7 @@
 
 # This makes it clear which test modules are included in the test package.
 __all__ = [
-    "test_catch.py", "test_diagnostics"
+    "test_catch", "test_diagnostics"
 ]
 
 # Exposing specific anomaly_detection functions or classes.
@@ -14,4 +14,6 @@ from .test_catch import (
     test_get_ssacf,
     test_get_outliers_today,
     test_get_outliers_today_no_outliers,
+    test_detect_outliers_less_than_2_years,
+    test_detect_outliers_more_than_2_years,
 )

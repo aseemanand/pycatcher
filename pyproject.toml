@@ -30,6 +30,7 @@ dev = [
     "poetry>=1.8.3",
     "setuptools>=75.1.0",
     "pytest>=8.3.3",
+    "pytest-mock>=3.14.0",
 ]
 
 test = [
