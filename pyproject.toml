@@ -7,7 +7,7 @@ authors = [
 maintainers = [
     {name="Jagadish Pamarthi", email="jagadish.vrsec@gmail.com"},
 ]
-description = "This is a project that automatically identifies the outliers from a given dataset"
+description = "This package identifies the day-level time-series outliers for a given dataset"
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [

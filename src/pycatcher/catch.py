@@ -14,8 +14,8 @@ def find_outliers_iqr(df: pd.DataFrame) -> pd.DataFrame:
     Detect outliers using the Interquartile Range (IQR) method.
 
     Args:
-        df (pd.DataFrame): A DataFrame containing the data. The first column should be the identifier,
-                           and the second column should be the feature for which outliers are detected.
+        df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
+                           and the second column should be the feature (count) for which outliers are detected.
 
     Returns:
         pd.DataFrame: A DataFrame containing the rows that are considered outliers.
@@ -56,10 +56,7 @@ def anomaly_mad(model_type: BaseEstimator, df: pd.DataFrame) -> pd.DataFrame:
     # Identify outliers using MAD labels (1 indicates an outlier)
     is_outlier = mad.labels_ == 1
 
-    # Select and return the rows corresponding to outliers
-    outliers = df[is_outlier]
-
-    return outliers
+    return(is_outlier)
 
 
 def get_residuals(model_type: BaseEstimator) -> np.ndarray:
@@ -126,12 +123,13 @@ def get_ssacf(residuals: np.ndarray, df_pandas: pd.DataFrame) -> float:
     return ssacf
 
 
-def get_outliers_today(model_type: BaseEstimator) -> Union[pd.DataFrame, str]:
+def get_outliers_today(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     """
     Get the outliers detected today using the anomaly_mad method.
 
     Args:
-        model_type (BaseEstimator): A fitted model object used to detect outliers.
+         df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
+                           and the second column should be the feature (count) for which outliers are detected.
 
     Returns:
         pd.DataFrame: A DataFrame containing today's outliers if detected.
@@ -139,41 +137,60 @@ def get_outliers_today(model_type: BaseEstimator) -> Union[pd.DataFrame, str]:
     """
 
     # Get the DataFrame of outliers from anomaly_mad and select the latest row
-    df = anomaly_mad(model_type).tail(1)
+    df_all = detect_outliers(df)
+    df_last = df_all.tail(1)
 
     # Extract the latest outlier's date
-    latest_outlier_date = df.index[-1].date().strftime('%Y-%m-%d')
+    last_date = df_last.index[-1].date().strftime('%Y-%m-%d')
+    p = pd.Timestamp.now().to_period('D')
 
     # Get the current date
     current_date = pd.Timestamp.now().strftime('%Y-%m-%d')
 
     # Check if the latest outlier occurred today
-    if latest_outlier_date == current_date:
-        return df
+    if last_date == current_date:
+        return(df_last)
+    else:
+        return "No Outliers Today!"
 
-    return "No Outliers Today!"
+def get_outliers_latest(df: pd.DataFrame) -> -> pd.DataFrame:
+"""
+    Get the last outliers detected using the detect_outlier method.
 
+    Args:
+         df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
+                           and the second column should be the feature (count) for which outliers are detected.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing today's outliers if detected.
+        str: A message indicating no outliers were found today.
+    """
+    df_all = detect_outliers(df)
+    df_latest = df_all.tail(1)
+    return(df_latest)
 
 def detect_outliers(df: pd.DataFrame) -> str | pd.DataFrame:
     """
     Detect outliers in a time-series dataset using Seasonal Trend Decomposition
-    if there is at least 2 years of data, or Interquartile Range (IQR) for shorter data.
+    when there is at least 2 years of data, otherwise use Interquartile Range (IQR) for smaller timeframe.
 
     Args:
         df: A Pandas DataFrame with time-series data.
-            It must contain 'dt' and 'cnt' columns.
+            First column must be a date column ('YYYY-MM-DD') and second a count columns.
 
     Returns:
         str or pd.DataFrame: A message or a DataFrame with detected outliers.
     """
+    # Creating a shallow copy of Pandas dataframe to use for seasonal trend
+    df_pandas = df.copy(deep=False)
 
     # Calculate the length of the time period in years
-    length_year: float = len(df.index) / 365.25
+    length_year: float = len(df_pandas.index) / 365.25
     print(f"Time-series data in years: {length_year:.2f}")
 
     # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
     if length_year >= 2.0:
-        return _decompose_and_detect(df)
+        return _decompose_and_detect(df_pandas)
 
     # If less than 2 years of data, use Inter Quartile Range (IQR) method
     else:
@@ -192,13 +209,13 @@ def _decompose_and_detect(df_pandas: pd.DataFrame) -> str | pd.DataFrame:
         str or pd.DataFrame: A message or a DataFrame with detected outliers.
     """
 
-    # Ensure the 'dt' column is in datetime format and set it as index
-    df_pandas['dt'] = pd.to_datetime(df_pandas['dt'])
-    df_pandas = df_pandas.set_index('dt').asfreq('D').dropna()
+    # Ensure the first column is in datetime format and set it as index
+    df_pandas.iloc[:, 0] = pd.to_datetime(df_pandas.iloc[:, 0])
+    df_pandas = df_pandas.set_index(df_pandas.columns[0]).asfreq('D').dropna()
 
     # Decompose the series using both additive and multiplicative models
-    decomposition_add = sm.tsa.seasonal_decompose(df_pandas['cnt'], model='additive')
-    decomposition_mul = sm.tsa.seasonal_decompose(df_pandas['cnt'], model='multiplicative')
+    decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, 1], model='additive')
+    decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, 1], model='multiplicative')
 
     # Get residuals from both decompositions
     residuals_add: pd.Series = get_residuals(decomposition_add)
@@ -210,9 +227,15 @@ def _decompose_and_detect(df_pandas: pd.DataFrame) -> str | pd.DataFrame:
 
     # Return the outliers detected by the model with the smaller ACF value
     if ssacf_add < ssacf_mul:
-        return get_outliers_today(decomposition_add)
+        #print("Additive Model")
+        is_outlier = anomaly_mad(decomposition_add)
+        df_outliers = df_pandas[is_outlier]
+        return df_outliers
     else:
-        return get_outliers_today(decomposition_mul)
+        print("Multiplicative Model")
+        is_outlier = anomaly_mad(decomposition_mul)
+        df_outliers = df_pandas[is_outlier]
+        return df_outliers
 
 
 def _detect_outliers_iqr(df_pandas: pd.DataFrame) -> pd.DataFrame:
@@ -225,8 +248,8 @@ def _detect_outliers_iqr(df_pandas: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: A DataFrame containing the detected outliers.
     """
-    # Ensure the 'cnt' column is numeric
-    df_pandas['cnt'] = pd.to_numeric(df_pandas['cnt'], errors='coerce')
+    # Ensure the second column is numeric
+    df_pandas.iloc[:,1] = pd.to_numeric(df_pandas.iloc[:,1])
 
     # Detect outliers using the IQR method
     df_outliers: pd.DataFrame = find_outliers_iqr(df_pandas)
