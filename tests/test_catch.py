@@ -36,11 +36,12 @@ def test_anomaly_mad():
     df_pan = pd.DataFrame({"Value": [1, 2, 3, 4, 100]}, index=[0, 1, 2, 3, 4])
 
     # Run the function
-    outliers = anomaly_mad(mock_model, df_pan)
+    is_outlier = anomaly_mad(mock_model)
+    df_pan = df_pan[is_outlier]
 
     # Assert that the outlier is detected
-    assert not outliers.empty
-    assert outliers['Value'].iloc[0] == 100
+    assert not df_pan.empty
+    assert df_pan['Value'].iloc[0] == 100
 
 
 # Test case for get_residuals
@@ -86,8 +87,9 @@ def test_get_ssacf():
 
 # Test case for get_outliers_today
 def test_get_outliers_today():
+    # Mock the detect_outliers function
     # Mock the model_type and anomaly_mad function
-    mock_model = MagicMock()
+    #mock_model = MagicMock()
 
     mock_outliers = pd.DataFrame({
         "Value": [100],
@@ -96,9 +98,9 @@ def test_get_outliers_today():
 
     mock_outliers.set_index('Date', inplace=True)
 
-    # Patch the anomaly_mad function to return the mock outliers
-    with patch('src.pycatcher.catch.anomaly_mad', return_value=mock_outliers):
-        result = get_outliers_today(mock_model)
+    # Patch the detect_outliers function to return the mock outliers
+    with patch('src.pycatcher.catch.detect_outliers', return_value=mock_outliers):
+        result = detect_outliers(mock_outliers)
 
     # Assert that the outlier is detected today
     assert isinstance(result, pd.DataFrame)
@@ -107,8 +109,7 @@ def test_get_outliers_today():
 
 # Test case for get_outliers_today when no outliers are present
 def test_get_outliers_today_no_outliers():
-    # Mock the model_type and anomaly_mad function
-    mock_model = MagicMock()
+    # Mock the detect_outliers function
 
     # Mock df without today's date
     mock_outliers = pd.DataFrame({
@@ -119,8 +120,8 @@ def test_get_outliers_today_no_outliers():
     mock_outliers.set_index('Date', inplace=True)
 
     # Patch the anomaly_mad function to return the mock outliers
-    with patch('src.pycatcher.catch.anomaly_mad', return_value=mock_outliers):
-        result = get_outliers_today(mock_model)
+    with patch('src.pycatcher.catch.detect_outliers', return_value=mock_outliers):
+        result = detect_outliers(mock_outliers)
 
     # Assert that no outliers are detected today
     assert result == "No Outliers Today!"
@@ -149,14 +150,14 @@ def df_less_than_2_years():
 def test_detect_outliers_more_than_2_years(mocker, df_more_than_2_years):
     """Test detect_outliers with more than 2 years of data."""
     # Mock the _decompose_and_detect function
-    mock_decompose_and_detect = mocker.patch('src.pycatcher.catch._decompose_and_detect')
-    mock_decompose_and_detect.return_value = pd.DataFrame({'outliers': [0, 1]})
+    mock_detect_outliers = mocker.patch('src.pycatcher.catch.detect_outliers')
+    mock_detect_outliers.return_value = pd.DataFrame({'outliers': [0, 1]})
 
     # Call the function
     result = detect_outliers(df_more_than_2_years)
 
-    # Assert that _decompose_and_detect was called
-    mock_decompose_and_detect.assert_called_once_with(df_more_than_2_years)
+    # Assert that detect_outliers was called
+    mock_detect_outliers.assert_called_once_with(df_more_than_2_years)
     # Assert that the result is a DataFrame
     assert isinstance(result, pd.DataFrame)
 

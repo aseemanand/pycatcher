@@ -34,14 +34,13 @@ def find_outliers_iqr(df: pd.DataFrame) -> pd.DataFrame:
     return outliers
 
 
-def anomaly_mad(model_type: BaseEstimator, df: pd.DataFrame) -> pd.DataFrame:
+def anomaly_mad(model_type: BaseEstimator) -> pd.DataFrame:
     """
     Detect outliers using the Median Absolute Deviation (MAD) method.
     MAD is a statistical measure that quantifies the dispersion or variability of a dataset.
 
     Args:
         model_type (BaseEstimator): A model object that has been fitted to the data, containing residuals.
-        df (pd.DataFrame): A pandas DataFrame containing the data. The outliers will be selected from this DataFrame.
 
     Returns:
         pd.DataFrame: A DataFrame containing the rows identified as outliers.
@@ -153,8 +152,8 @@ def get_outliers_today(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     else:
         return "No Outliers Today!"
 
-def get_outliers_latest(df: pd.DataFrame) -> -> pd.DataFrame:
-"""
+def get_outliers_latest(df: pd.DataFrame) -> pd.DataFrame:
+    """
     Get the last outliers detected using the detect_outlier method.
 
     Args:
@@ -179,6 +178,7 @@ def detect_outliers(df: pd.DataFrame) -> str | pd.DataFrame:
             First column must be a date column ('YYYY-MM-DD') and second a count columns.
 
     Returns:
+        object: 
         str or pd.DataFrame: A message or a DataFrame with detected outliers.
     """
     # Creating a shallow copy of Pandas dataframe to use for seasonal trend
@@ -214,8 +214,8 @@ def _decompose_and_detect(df_pandas: pd.DataFrame) -> str | pd.DataFrame:
     df_pandas = df_pandas.set_index(df_pandas.columns[0]).asfreq('D').dropna()
 
     # Decompose the series using both additive and multiplicative models
-    decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, 1], model='additive')
-    decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, 1], model='multiplicative')
+    decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='additive')
+    decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='multiplicative')
 
     # Get residuals from both decompositions
     residuals_add: pd.Series = get_residuals(decomposition_add)
