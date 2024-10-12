@@ -76,7 +76,6 @@ def get_residuals(model_type: BaseEstimator) -> np.ndarray:
 
     return residuals_cleaned
 
-
 def sum_of_squares(array: np.ndarray) -> float:
     """
     Calculates the sum of squares of a NumPy array of any shape.
