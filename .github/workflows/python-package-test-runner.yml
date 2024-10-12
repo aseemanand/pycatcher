@@ -30,6 +30,3 @@ jobs:
       run: |
         coverage run -m pytest tests/*.py
         coverage report -m
-    - name: Run Unix command
-      run: | 
-        cat .coverage
