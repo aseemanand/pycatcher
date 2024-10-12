@@ -16,4 +16,5 @@ from .test_catch import (
     test_no_outliers_today,
     test_outliers_latest_detected,
     test_no_outliers_detected,
+    input_data_for_detect_outliers,
 )
