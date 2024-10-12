@@ -30,3 +30,6 @@ jobs:
       run: |
         coverage run -m pytest tests/*.py
         coverage report -m
+    - name: Run ls command
+      run: | 
+        ls -ltra
