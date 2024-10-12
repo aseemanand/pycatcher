@@ -175,7 +175,7 @@ def detect_outliers(df: pd.DataFrame) -> str | pd.DataFrame:
 
     Args:
         df: A Pandas DataFrame with time-series data.
-            First column must be a date column ('YYYY-MM-DD') and second a count columns.
+            First column must be a date column ('YYYY-MM-DD') and second or the last column a count column.
 
     Returns:
         object: 
