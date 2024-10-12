@@ -1,8 +1,11 @@
+import pytest
 import numpy as np
 import pandas as pd
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 from src.pycatcher.catch import find_outliers_iqr, anomaly_mad, get_residuals, \
-    sum_of_squares, get_ssacf, get_outliers_today
+    sum_of_squares, get_ssacf, detect_outliers_today, detect_outliers_latest, \
+    detect_outliers
 
 
 # Test case for find_outliers_iqr
@@ -35,11 +38,12 @@ def test_anomaly_mad():
     df_pan = pd.DataFrame({"Value": [1, 2, 3, 4, 100]}, index=[0, 1, 2, 3, 4])
 
     # Run the function
-    outliers = anomaly_mad(mock_model, df_pan)
+    is_outlier = anomaly_mad(mock_model)
+    df_pan = df_pan[is_outlier]
 
     # Assert that the outlier is detected
-    assert not outliers.empty
-    assert outliers['Value'].iloc[0] == 100
+    assert not df_pan.empty
+    assert df_pan['Value'].iloc[0] == 100
 
 
 # Test case for get_residuals
@@ -83,43 +87,90 @@ def test_get_ssacf():
     assert result >= 0
 
 
-# Test case for get_outliers_today
-def test_get_outliers_today():
-    # Mock the model_type and anomaly_mad function
-    mock_model = MagicMock()
-
-    mock_outliers = pd.DataFrame({
-        "Value": [100],
-        "Date": pd.to_datetime([pd.Timestamp.now().strftime('%Y-%m-%d')])
+@pytest.fixture
+def input_data_for_detect_outliers():
+    """Fixture for sample input DataFrame."""
+    return pd.DataFrame({
+        'date': pd.date_range(start='2022-01-01', periods=5),
+        'value': [10, 20, 30, 40, 50]
     })
 
-    mock_outliers.set_index('Date', inplace=True)
 
-    # Patch the anomaly_mad function to return the mock outliers
-    with patch('src.pycatcher.catch.anomaly_mad', return_value=mock_outliers):
-        result = get_outliers_today(mock_model)
+@patch('src.pycatcher.catch.detect_outliers')
+def test_outliers_detected_today(mock_detect_outliers, input_data_for_detect_outliers):
+    """Test case when outliers are detected today."""
 
-    # Assert that the outlier is detected today
-    assert isinstance(result, pd.DataFrame)
-    assert not result.empty
+    # Mock outliers DataFrame with today's date
+    today = pd.Timestamp(datetime.now().strftime('%Y-%m-%d'))
+
+    df_outliers_today = pd.DataFrame({
+        'date': [today],
+        'value': [100]
+    }).set_index('date')
+
+    mock_detect_outliers.return_value = df_outliers_today
+
+    # Call the function with the sample input data
+    result = detect_outliers_today(input_data_for_detect_outliers)
+
+    # Assert that the result is the DataFrame with today's outliers
+    pd.testing.assert_frame_equal(result, df_outliers_today)
 
 
-# Test case for get_outliers_today when no outliers are present
-def test_get_outliers_today_no_outliers():
-    # Mock the model_type and anomaly_mad function
-    mock_model = MagicMock()
+@patch('src.pycatcher.catch.detect_outliers')
+def test_no_outliers_today(mock_detect_outliers, input_data_for_detect_outliers):
+    """Test case when no outliers are detected today."""
 
-    # Mock df without today's date
-    mock_outliers = pd.DataFrame({
-        "Value": [100],
-        "Date": pd.to_datetime(['2022-01-01'])
-    })
+    # Mock outliers DataFrame with a past date (ensure the index is in datetime format)
+    past_date = pd.Timestamp('2023-10-05')
+    df_outliers_previous_day = pd.DataFrame({
+        'date': [past_date],
+        'value': [100]
+    }).set_index('date')
 
-    mock_outliers.set_index('Date', inplace=True)
+    mock_detect_outliers.return_value = df_outliers_previous_day
 
-    # Patch the anomaly_mad function to return the mock outliers
-    with patch('src.pycatcher.catch.anomaly_mad', return_value=mock_outliers):
-        result = get_outliers_today(mock_model)
+    # Call the function with the sample input data
+    result = detect_outliers_today(input_data_for_detect_outliers)
 
-    # Assert that no outliers are detected today
+    # Assert that the function returns "No Outliers Today!"
     assert result == "No Outliers Today!"
+
+
+@patch('src.pycatcher.catch.detect_outliers')
+def test_outliers_latest_detected(mock_detect_outliers, input_data_for_detect_outliers):
+    """Test case when the latest outlier is detected."""
+
+    # Mock outliers DataFrame with latest outlier
+    latest_outlier_date = pd.Timestamp('2023-10-08')
+    df_outliers = pd.DataFrame({
+        'date': [latest_outlier_date],
+        'value': [100]
+    }).set_index('date')
+
+    mock_detect_outliers.return_value = df_outliers
+
+    # Call the function with the sample input data
+    result = detect_outliers_latest(input_data_for_detect_outliers)
+
+    # Assert that the result is the DataFrame with the latest outlier
+    pd.testing.assert_frame_equal(result, df_outliers.tail(1))
+
+
+@patch('src.pycatcher.catch.detect_outliers')
+def test_no_outliers_detected(mock_detect_outliers, input_data_for_detect_outliers):
+    """Test case when no outliers are detected."""
+
+    # Mock an empty outliers DataFrame (indicating no outliers found)
+    df_no_outliers = pd.DataFrame({
+        'date': [],
+        'value': []
+    }).set_index('date')
+
+    mock_detect_outliers.return_value = df_no_outliers
+
+    # Call the function with the sample input data
+    result = detect_outliers_latest(input_data_for_detect_outliers)
+
+    # Since no outliers are detected, the result should be an empty DataFrame
+    pd.testing.assert_frame_equal(result, df_no_outliers)

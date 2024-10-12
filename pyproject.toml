@@ -1,13 +1,13 @@
 [project]
 name = "pycatcher"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
     {name="Aseem Anand", email="aseemanand@gmail.com"},
 ]
 maintainers = [
     {name="Jagadish Pamarthi", email="jagadish.vrsec@gmail.com"},
 ]
-description = "This is a project that automatically identifies the outliers from a given dataset"
+description = "This package identifies the day-level time-series outliers for a given dataset"
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
@@ -30,6 +30,7 @@ dev = [
     "poetry>=1.8.3",
     "setuptools>=75.1.0",
     "pytest>=8.3.3",
+    "pytest-mock>=3.14.0",
 ]
 
 test = [
