@@ -146,7 +146,6 @@ def df_less_than_2_years():
     }
     return pd.DataFrame(data)
 
-
 def test_detect_outliers_more_than_2_years(mocker, df_more_than_2_years):
     """Test detect_outliers with more than 2 years of data."""
     # Mock the _decompose_and_detect function
