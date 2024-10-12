@@ -85,8 +85,8 @@ def test_get_ssacf():
     assert result >= 0
 
 
-# Test case for get_outliers_today
-def test_get_outliers_today():
+# Test case for detect_outliers_today
+def test_detect_outliers_today():
     # Mock the detect_outliers function
     # Mock the model_type and anomaly_mad function
     #mock_model = MagicMock()
@@ -107,8 +107,8 @@ def test_get_outliers_today():
     assert not result.empty
 
 
-# Test case for get_outliers_today when no outliers are present
-def test_get_outliers_today_no_outliers():
+# Test case for detect_outliers_today when no outliers are present
+def test_detect_outliers_today_no_outliers():
     # Mock the detect_outliers function
 
     # Mock df without today's date

@@ -122,9 +122,9 @@ def get_ssacf(residuals: np.ndarray, df_pandas: pd.DataFrame) -> float:
     return ssacf
 
 
-def get_outliers_today(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
+def detect_outliers_today(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     """
-    Get the outliers detected today using the anomaly_mad method.
+    Detect the outliers detected today using the anomaly_mad method.
 
     Args:
          df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
@@ -152,9 +152,9 @@ def get_outliers_today(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     else:
         return "No Outliers Today!"
 
-def get_outliers_latest(df: pd.DataFrame) -> pd.DataFrame:
+def detect_outliers_latest(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Get the last outliers detected using the detect_outlier method.
+    Detect the last outliers detected using the detect_outlier method.
 
     Args:
          df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
