@@ -99,7 +99,7 @@ def sum_of_squares(array: np.ndarray) -> float:
 
 def get_ssacf(residuals: np.ndarray, df_pandas: pd.DataFrame) -> float:
     """
-    Get the sum of squares of the autocorrelation function (ACF) of the residuals.
+    Get the sum of squares of the Auto Correlation Function (ACF) of the residuals.
 
     Args:
         residuals (np.ndarray): A NumPy array containing the residuals.
@@ -135,7 +135,7 @@ def detect_outliers_today(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
         str: A message indicating no outliers were found today.
     """
 
-    # Get the DataFrame of outliers from anomaly_mad and select the latest row
+    # Get the DataFrame of outliers from detect_outliers and select the latest row
     df_outliers = detect_outliers(df)
     df_last_outlier = df_outliers.tail(1)
 

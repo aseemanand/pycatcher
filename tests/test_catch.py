@@ -174,3 +174,25 @@ def test_no_outliers_detected(mock_detect_outliers, input_data_for_detect_outlie
 
     # Since no outliers are detected, the result should be an empty DataFrame
     pd.testing.assert_frame_equal(result, df_no_outliers)
+
+
+@patch('src.pycatcher.catch._decompose_and_detect')
+@patch('src.pycatcher.catch._detect_outliers_iqr')
+def test_detect_outliers(mock_detect_outliers_iqr, mock_decompose_and_detect):
+    # Create a sample dataset with more than 2 years of data
+    date_range = pd.date_range(start='2020-01-01', periods=750, freq='D')
+    data = pd.DataFrame({
+        'date': date_range,
+        'count': [i for i in range(len(date_range))]
+    })
+
+    # Test case where data has 2+ years (use seasonal decomposition)
+    mock_decompose_and_detect.return_value = pd.DataFrame({'date': date_range[:10], 'count': [1] * 10})
+    result = detect_outliers(data)
+    mock_decompose_and_detect.assert_called_once()
+
+    # Test case where data is less than 2 years (use IQR method)
+    data_short = data.iloc[:300]
+    mock_detect_outliers_iqr.return_value = pd.DataFrame({'date': date_range[:5], 'count': [1] * 5})
+    result_short = detect_outliers(data_short)
+    mock_detect_outliers_iqr.assert_called_once()
