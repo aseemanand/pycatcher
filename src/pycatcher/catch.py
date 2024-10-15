@@ -305,5 +305,7 @@ def _detect_outliers_iqr(df_pandas: pd.DataFrame) -> pd.DataFrame:
 
     # Detect outliers using the IQR method
     df_outliers: pd.DataFrame = find_outliers_iqr(df_pandas)
+
     logging.info(f"Outliers detected using IQR: {len(df_outliers)} rows.")
+
     return df_outliers
