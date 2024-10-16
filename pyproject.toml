@@ -1,6 +1,6 @@
 [project]
 name = "pycatcher"
-version = "0.0.3"
+version = "0.0.4"
 authors = [
     {name="Aseem Anand", email="aseemanand@gmail.com"},
 ]
@@ -20,6 +20,7 @@ dependencies = [
     "pandas==2.2.3",
     "statsmodels==0.14.4",
     "pyod==2.0.2",
+    "seaborn==0.13.2"
 ]
 
 [project.optional-dependencies]
