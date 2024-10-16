@@ -128,7 +128,7 @@ def detect_outliers_today(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
 
     Args:
          df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
-                           and the second column should be the feature (count) for which outliers are detected.
+                           and the second/last column should be the feature (count) for which outliers are detected.
 
     Returns:
         pd.DataFrame: A DataFrame containing today's outliers if detected.
