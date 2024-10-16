@@ -1,3 +1,15 @@
+import logging
+import pandas as pd
+import seaborn as sns
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+from src.pycatcher.catch import get_residuals, get_ssacf
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+
 def plot_seasonal(res, axes, title):
     """
     Args:
@@ -6,6 +18,9 @@ def plot_seasonal(res, axes, title):
         title: Title of the plot
 
     """
+
+    logger.info(f"Plotting seasonal decomposition with title: {title}")
+
     # Plotting Seasonal time series models
     axes[0].title.set_text(title)
     res.observed.plot(ax=axes[0], legend=False)
@@ -28,9 +43,8 @@ def build_plot(df):
              df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
                                and the second/last column should be the feature (count).
     """
-    # Import the necessary libraries
-    import matplotlib.pyplot as plt
-    import seaborn as sns
+
+    logger.info("Building time-series plot for seasonal decomposition.")
 
     # Convert to Pandas dataframe for easy manipulation
     df_pandas = df.toPandas()
@@ -41,7 +55,8 @@ def build_plot(df):
 
     # Find length of time period to decide right outlier algorithm
     length_year = len(df_pandas.index) // 365.25
-    # print('Time-series data in years:',length_year)
+
+    logger.info(f"Time-series data length: {length_year:.2f} years")
 
     if length_year >= 2.0:
 
@@ -65,18 +80,19 @@ def build_plot(df):
         ssacf_add = get_ssacf(residuals_add, df_pandas)
         ssacf_mul = get_ssacf(residuals_mul, df_pandas)
 
-        # print('ssacf_add:',ssacf_add)
-        # print('ssacf_mul:',ssacf_mul)
+        # print('ssacf_add:', ssacf_add)
+        # print('ssacf_mul:', ssacf_mul)
 
         if ssacf_add < ssacf_mul:
-            print("Additive Model")
+            logger.info("Using Additive model for seasonal decomposition.")
             fig, axes = plt.subplots(ncols=1, nrows=4, sharex=False, figsize=(30, 15))
             plot_seasonal(decomposition_add, axes, title="Additive")
         else:
-            print("Multiplicative Model")
+            logger.info("Using Multiplicative model for seasonal decomposition.")
             fig, axes = plt.subplots(ncols=1, nrows=4, sharex=False, figsize=(30, 15))
             plot_seasonal(decomposition_mul, axes, title="Multiplicative")
     else:
+        logger.info("Using boxplot since the data is less than 2 years.")
         df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
         sns.boxplot(x=df_pandas.iloc[:, -1], showmeans=True)
         plt.show()
@@ -89,9 +105,8 @@ def build_monthwise_plot(df):
                  df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
                                    and the second/last column should be the feature (count).
     """
-    # Import the necessary libraries
-    import matplotlib.pyplot as plt
-    import seaborn as sns
+
+    logger.info("Building month-wise box plot.")
 
     # Convert to Pandas dataframe for easy manipulation
     df_pandas = df.toPandas()
@@ -100,4 +115,3 @@ def build_monthwise_plot(df):
     plt.figure(figsize=(30, 4))
     sns.boxplot(x='Month-Year', y='Count', data=df_pandas).set_title("Month-wise Box Plot")
     plt.show()
-
