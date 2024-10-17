@@ -3,7 +3,8 @@ import pandas as pd
 import seaborn as sns
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
-from src.pycatcher.catch import get_residuals, get_ssacf
+
+from .catch import get_residuals, get_ssacf
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

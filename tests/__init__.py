@@ -18,3 +18,8 @@ from .test_catch import (
     test_no_outliers_detected,
     input_data_for_detect_outliers,
 )
+
+from .test_diagnostics import (
+    seasonal_decomposition_mock,
+    test_plot_seasonal,
+)
