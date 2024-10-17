@@ -20,5 +20,6 @@ from .test_catch import (
 )
 
 from .test_diagnostics import (
+    seasonal_decomposition_mock,
     test_plot_seasonal,
 )
