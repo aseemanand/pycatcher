@@ -28,7 +28,7 @@ def find_outliers_iqr(df: pd.DataFrame) -> pd.DataFrame:
 
     logging.info("Detecting outliers using the IQR method.")
 
-    # Calculate Q1 (25th percentile) and Q3 (75th percentile) for the second column
+    # Calculate Q1 (25th percentile) and Q3 (75th percentile) for the last column
     q1 = df.iloc[:, -1].quantile(0.25)
     q3 = df.iloc[:, -1].quantile(0.75)
 
@@ -153,7 +153,7 @@ def detect_outliers_today(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
 
     Args:
          df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
-                           and the second/last column should be the feature (count) for which outliers are detected.
+                           and the last column should be the feature (count) for which outliers are detected.
 
     Returns:
         pd.DataFrame: A DataFrame containing today's outliers if detected.
@@ -187,7 +187,7 @@ def detect_outliers_latest(df: pd.DataFrame) -> pd.DataFrame:
 
     Args:
          df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
-                           and the second column should be the feature (count) for which outliers are detected.
+                           and the last column should be the feature (count) for which outliers are detected.
 
     Returns:
         pd.DataFrame: A DataFrame containing the latest detected outlier.
@@ -211,7 +211,7 @@ def detect_outliers(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     Args:
         df (pd.DataFrame): A Pandas DataFrame with time-series data.
             First column must be a date column ('YYYY-MM-DD')
-            and Second/last column should be a count/feature column.
+            and last column should be a count/feature column.
 
     Returns:
         str or pd.DataFrame: A message with None found or a DataFrame with detected outliers.
