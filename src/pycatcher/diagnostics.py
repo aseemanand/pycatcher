@@ -47,8 +47,12 @@ def build_plot(df):
 
     logger.info("Building time-series plot for seasonal decomposition.")
 
-    # Convert to Pandas dataframe for easy manipulation
-    df_pandas = df.toPandas()
+    # Check whether the argument is Pandas dataframe
+    if not isinstance(df, pd.DataFrame):
+        # Convert to Pandas dataframe for easy manipulation
+        df_pandas = df.toPandas()
+    else:
+        df_pandas = df
 
     # Ensure the first column is in datetime format and set it as index
     df_pandas.iloc[:, 0] = pd.to_datetime(df_pandas.iloc[:, 0])
@@ -104,13 +108,18 @@ def build_monthwise_plot(df):
         Build month-wise plot for a given dataframe
             Args:
                  df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
-                                   and the second/last column should be the feature (count).
+                                   and the last column should be the feature (count).
     """
 
     logger.info("Building month-wise box plot.")
 
-    # Convert to Pandas dataframe for easy manipulation
-    df_pandas = df.toPandas()
+    # Check whether the argument is Pandas dataframe
+    if not isinstance(df, pd.DataFrame):
+        # Convert to Pandas dataframe for easy manipulation
+        df_pandas = df.toPandas()
+    else:
+        df_pandas = df
+
     df_pandas['Month-Year'] = pd.to_datetime(df_pandas.iloc[:, 0]).dt.to_period('M')
     df_pandas['Count'] = pd.to_numeric(df_pandas.iloc[:, 1])
     plt.figure(figsize=(30, 4))
