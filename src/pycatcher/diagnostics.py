@@ -126,12 +126,20 @@ def build_monthwise_plot(df):
     sns.boxplot(x='Month-Year', y='Count', data=df_pandas).set_title("Month-wise Box Plot")
     plt.show()
 
-from statsmodels.tsa.stattools import adfuller
 
 def check_stationarity(series):
-    # Copied from https://machinelearningmastery.com/time-series-data-stationary-python/
 
-    result = adfuller(series.values)
+    """
+    Args:
+        series: Pandas dataframe with feature column
+
+    Returns:
+        ADF statistics, Stationarity check. Time series are stationary if they do not have trend or seasonal effects.
+        Summary statistics calculated on the time series are consistent over time, like the mean or the variance of the observations.
+    """
+    logger.info("Building stationarity check")
+
+    result = sm.tsa.stattools.adfuller(series.values)
 
     print('ADF Statistic: %f' % result[0])
     print('p-value: %f' % result[1])
@@ -144,8 +152,6 @@ def check_stationarity(series):
     else:
         print("\x1b[31mNon-stationary\x1b[0m")
 
-
-from statsmodels.tsa.seasonal import seasonal_decompose
 
 def decomposition(df, column_name):
     """
@@ -168,8 +174,8 @@ def decomposition(df, column_name):
     df_pandas.iloc[:, 0] = pd.to_datetime(df_pandas.iloc[:, 0])
     df_pandas = df_pandas.set_index(df_pandas.columns[0]).asfreq('D').dropna()
 
-    result_mul = seasonal_decompose(df_pandas[column_name], model='multiplicative', extrapolate_trend='freq')
-    result_add = seasonal_decompose(df_pandas[column_name], model='additive', extrapolate_trend='freq')
+    result_mul = sm.tsa.seasonal_decompose(df_pandas[column_name], model='multiplicative', extrapolate_trend='freq')
+    result_add = sm.tsa.seasonal_decompose(df_pandas[column_name], model='additive', extrapolate_trend='freq')
 
     plt.rcParams.update({'figure.figsize': (20, 10)})
     result_mul.plot().suptitle('Multiplicative Decomposition', fontsize=30)
