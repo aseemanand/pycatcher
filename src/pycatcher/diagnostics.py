@@ -37,9 +37,9 @@ def plot_seasonal(res, axes, title):
     axes[3].set_ylabel('Residual')
 
 
-def build_plot(df):
+def build_seasonal_plot(df):
     """
-    Build plot for a given dataframe
+    Build seasonal plot for a given dataframe
         Args:
              df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
                                and the second/last column should be the feature (count).
