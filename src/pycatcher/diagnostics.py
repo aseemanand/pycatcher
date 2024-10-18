@@ -125,3 +125,56 @@ def build_monthwise_plot(df):
     plt.figure(figsize=(30, 4))
     sns.boxplot(x='Month-Year', y='Count', data=df_pandas).set_title("Month-wise Box Plot")
     plt.show()
+
+from statsmodels.tsa.stattools import adfuller
+
+def check_stationarity(series):
+    # Copied from https://machinelearningmastery.com/time-series-data-stationary-python/
+
+    result = adfuller(series.values)
+
+    print('ADF Statistic: %f' % result[0])
+    print('p-value: %f' % result[1])
+    print('Critical Values:')
+    for key, value in result[4].items():
+        print('\t%s: %.3f' % (key, value))
+
+    if (result[1] <= 0.05) & (result[4]['5%'] > result[0]):
+        print("\u001b[32mStationary\u001b[0m")
+    else:
+        print("\x1b[31mNon-stationary\x1b[0m")
+
+
+from statsmodels.tsa.seasonal import seasonal_decompose
+
+def decomposition(df, column_name):
+    """
+    A function that returns the trend, seasonality and residual captured by applying both multiplicative and
+    additive model.
+    df -> DataFrame
+    column_name -> column_name for which trend, seasonality is to be captured
+    """
+
+    logger.info("Building seasonal decomposition model")
+
+    # Check whether the argument is Pandas dataframe
+    if not isinstance(df, pd.DataFrame):
+        # Convert to Pandas dataframe for easy manipulation
+        df_pandas = df.toPandas()
+    else:
+        df_pandas = df
+
+    # Ensure the first column is in datetime format and set it as index
+    df_pandas.iloc[:, 0] = pd.to_datetime(df_pandas.iloc[:, 0])
+    df_pandas = df_pandas.set_index(df_pandas.columns[0]).asfreq('D').dropna()
+
+    result_mul = seasonal_decompose(df_pandas[column_name], model='multiplicative', extrapolate_trend='freq')
+    result_add = seasonal_decompose(df_pandas[column_name], model='additive', extrapolate_trend='freq')
+
+    plt.rcParams.update({'figure.figsize': (20, 10)})
+    result_mul.plot().suptitle('Multiplicative Decomposition', fontsize=30)
+    result_add.plot().suptitle('Additive Decomposition', fontsize=30)
+    plt.show()
+
+    return result_mul, result_add
+
