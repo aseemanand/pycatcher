@@ -184,3 +184,14 @@ def decomposition(df, column_name):
 
     return result_mul, result_add
 
+def decomposition_results(result):
+    """
+        A function that returns the trend, seasonality and residual values for multiplicative and
+        additive model.
+        df -> DataFrame
+    """
+    logger.info("Building result for seasonal decomposition model")
+
+    df_reconstructed = pd.concat([result.seasonal, result.trend, result.resid, result.observed], axis=1)
+    df_reconstructed.columns = ['seasonal', 'trend', 'residuals', 'actual_values']
+    return df_reconstructed
