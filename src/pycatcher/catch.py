@@ -20,7 +20,7 @@ def find_outliers_iqr(df: pd.DataFrame) -> pd.DataFrame:
 
     Args:
         df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
-                           and the second column should be the feature (count) for which outliers are detected.
+                           and the last column should be the feature (count) for which outliers are detected.
 
     Returns:
         pd.DataFrame: A DataFrame containing the rows that are considered outliers.
@@ -28,15 +28,15 @@ def find_outliers_iqr(df: pd.DataFrame) -> pd.DataFrame:
 
     logging.info("Detecting outliers using the IQR method.")
 
-    # Calculate Q1 (25th percentile) and Q3 (75th percentile) for the second column
-    q1 = df.iloc[:, 1].quantile(0.25)
-    q3 = df.iloc[:, 1].quantile(0.75)
+    # Calculate Q1 (25th percentile) and Q3 (75th percentile) for the last column
+    q1 = df.iloc[:, -1].quantile(0.25)
+    q3 = df.iloc[:, -1].quantile(0.75)
 
     # Calculate the Inter Quartile Range (IQR)
     iqr = q3 - q1
 
     # Identify outliers
-    outliers = df[((df.iloc[:, 1] < (q1 - 1.5 * iqr)) | (df.iloc[:, 1] > (q3 + 1.5 * iqr)))]
+    outliers = df[((df.iloc[:, -1] < (q1 - 1.5 * iqr)) | (df.iloc[:, -1] > (q3 + 1.5 * iqr)))]
 
     logging.info(f"Outliers detected: {len(outliers)} rows.")
 
@@ -153,7 +153,7 @@ def detect_outliers_today(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
 
     Args:
          df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
-                           and the second/last column should be the feature (count) for which outliers are detected.
+                           and the last column should be the feature (count) for which outliers are detected.
 
     Returns:
         pd.DataFrame: A DataFrame containing today's outliers if detected.
@@ -187,7 +187,7 @@ def detect_outliers_latest(df: pd.DataFrame) -> pd.DataFrame:
 
     Args:
          df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
-                           and the second column should be the feature (count) for which outliers are detected.
+                           and the last column should be the feature (count) for which outliers are detected.
 
     Returns:
         pd.DataFrame: A DataFrame containing the latest detected outlier.
@@ -211,13 +211,20 @@ def detect_outliers(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     Args:
         df (pd.DataFrame): A Pandas DataFrame with time-series data.
             First column must be a date column ('YYYY-MM-DD')
-            and Second/last column should be a count/feature column.
+            and last column should be a count/feature column.
 
     Returns:
         str or pd.DataFrame: A message with None found or a DataFrame with detected outliers.
     """
 
     logging.info("Starting outlier detection.")
+
+    # Check whether the argument is Pandas dataframe
+    if not isinstance(df, pd.DataFrame):
+        # Convert to Pandas dataframe for easy manipulation
+        df_pandas = df.toPandas()
+    else:
+        df_pandas = df
 
     # Creating a shallow copy of Pandas dataframe to use for seasonal trend
     df_pandas = df.copy(deep=False)
@@ -301,11 +308,15 @@ def _detect_outliers_iqr(df_pandas: pd.DataFrame) -> pd.DataFrame:
 
     logging.info("Detecting outliers using the IQR method.")
 
-    # Ensure the second column is numeric
-    df_pandas.iloc[:, 1] = pd.to_numeric(df_pandas.iloc[:, 1])
+    # Ensure the last column is numeric
+    df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
 
     # Detect outliers using the IQR method
     df_outliers: pd.DataFrame = find_outliers_iqr(df_pandas)
+
+    if df_outliers.empty:
+        logging.info("No outliers found.")
+        return "No outliers found."
 
     logging.info(f"Outliers detected using IQR: {len(df_outliers)} rows.")
 
