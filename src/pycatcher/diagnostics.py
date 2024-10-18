@@ -127,7 +127,7 @@ def build_monthwise_plot(df):
     plt.show()
 
 
-def check_stationarity(series):
+def conduct_stationarity_check(series):
 
     """
     Args:
@@ -153,7 +153,7 @@ def check_stationarity(series):
         print("\x1b[31mNon-stationary\x1b[0m")
 
 
-def decomposition_results(df):
+def build_decomposition_results(df):
     """
         A function that returns the trend, seasonality and residual values for multiplicative and
         additive model.
