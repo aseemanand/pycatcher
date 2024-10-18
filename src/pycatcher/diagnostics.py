@@ -153,15 +153,13 @@ def check_stationarity(series):
         print("\x1b[31mNon-stationary\x1b[0m")
 
 
-def decomposition(df, column_name):
+def decomposition_results(df):
     """
-    A function that returns the trend, seasonality and residual captured by applying both multiplicative and
-    additive model.
-    df -> DataFrame
-    column_name -> column_name for which trend, seasonality is to be captured
+        A function that returns the trend, seasonality and residual values for multiplicative and
+        additive model.
+        df -> DataFrame
     """
-
-    logger.info("Building seasonal decomposition model")
+    logger.info("Building result for seasonal decomposition model")
 
     # Check whether the argument is Pandas dataframe
     if not isinstance(df, pd.DataFrame):
@@ -174,24 +172,44 @@ def decomposition(df, column_name):
     df_pandas.iloc[:, 0] = pd.to_datetime(df_pandas.iloc[:, 0])
     df_pandas = df_pandas.set_index(df_pandas.columns[0]).asfreq('D').dropna()
 
-    result_mul = sm.tsa.seasonal_decompose(df_pandas[column_name], model='multiplicative', extrapolate_trend='freq')
-    result_add = sm.tsa.seasonal_decompose(df_pandas[column_name], model='additive', extrapolate_trend='freq')
+    # Find length of time period to decide right outlier algorithm
+    length_year = len(df_pandas.index) // 365.25
 
-    plt.rcParams.update({'figure.figsize': (20, 10)})
-    result_mul.plot().suptitle('Multiplicative Decomposition', fontsize=30)
-    result_add.plot().suptitle('Additive Decomposition', fontsize=30)
-    plt.show()
+    logger.info(f"Time-series data length: {length_year:.2f} years")
 
-    return result_mul, result_add
+    if length_year >= 2.0:
+        # Building Additive and Multiplicative time series models
+        # In a multiplicative time series, the components multiply together to make the time series.
+        # If there is an increasing trend, the amplitude of seasonal activity increases.
+        # Everything becomes more exaggerated. This is common for web traffic.
 
-def decomposition_results(result):
-    """
-        A function that returns the trend, seasonality and residual values for multiplicative and
-        additive model.
-        df -> DataFrame
-    """
-    logger.info("Building result for seasonal decomposition model")
+        # In an additive time series, the components add together to make the time series.
+        # If there is an increasing trend, we still see roughly the same size peaks and troughs throughout the time series.
+        # This is often seen in indexed time series where the absolute value is growing but changes stay relative.
 
-    df_reconstructed = pd.concat([result.seasonal, result.trend, result.resid, result.observed], axis=1)
-    df_reconstructed.columns = ['seasonal', 'trend', 'residuals', 'actual_values']
-    return df_reconstructed
+        decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='additive')
+        residuals_add = get_residuals(decomposition_add)
+
+        decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='multiplicative')
+        residuals_mul = get_residuals(decomposition_mul)
+
+        # Get ACF values for both Additive and Multiplicative models
+
+        ssacf_add = get_ssacf(residuals_add, df_pandas)
+        ssacf_mul = get_ssacf(residuals_mul, df_pandas)
+
+
+        if ssacf_add < ssacf_mul:
+            df_reconstructed = pd.concat([residuals_add.seasonal, residuals_add.trend, residuals_add.resid, residuals_add.observed], axis=1)
+            df_reconstructed.columns = ['seasonal', 'trend', 'residuals', 'actual_values']
+            return df_reconstructed
+        else:
+            logger.info("Using Multiplicative model for seasonal decomposition.")
+            df_reconstructed = pd.concat([residuals_mul.seasonal, residuals_mul.trend, residuals_mul.resid, residuals_mul.observed], axis=1)
+            df_reconstructed.columns = ['seasonal', 'trend', 'residuals', 'actual_values']
+            return df_reconstructed
+    else:
+        logger.info("Data is less than 2 years.")
+        print ("Data is less than 2 years. No seasonal decomposition")
+
+
