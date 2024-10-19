@@ -198,14 +198,13 @@ def build_decomposition_results(df):
         ssacf_add = get_ssacf(residuals_add, df_pandas)
         ssacf_mul = get_ssacf(residuals_mul, df_pandas)
 
-
         if ssacf_add < ssacf_mul:
-            df_reconstructed = pd.concat([residuals_add.seasonal, residuals_add.trend, residuals_add.resid, residuals_add.observed], axis=1)
+            df_reconstructed = pd.concat([decomposition_add.seasonal, decomposition_add.trend, decomposition_add.resid, decomposition_add.observed], axis=1)
             df_reconstructed.columns = ['seasonal', 'trend', 'residuals', 'actual_values']
             return df_reconstructed
         else:
             logger.info("Using Multiplicative model for seasonal decomposition.")
-            df_reconstructed = pd.concat([residuals_mul.seasonal, residuals_mul.trend, residuals_mul.resid, residuals_mul.observed], axis=1)
+            df_reconstructed = pd.concat([decomposition_mul.seasonal, decomposition_mul.trend, decomposition_mul.resid, decomposition_mul.observed], axis=1)
             df_reconstructed.columns = ['seasonal', 'trend', 'residuals', 'actual_values']
             return df_reconstructed
     else:
