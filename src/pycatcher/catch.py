@@ -115,7 +115,7 @@ def sum_of_squares(array: np.ndarray) -> float:
 
     logging.info(f"Sum of squares calculated: {sum_of_squares_value:.2f}")
 
-    return sum_of_squares_value
+    return float(sum_of_squares_value)
 
 
 def get_ssacf(residuals: np.ndarray, df_pandas: pd.DataFrame) -> float:
@@ -164,10 +164,13 @@ def detect_outliers_today(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
 
     # Get the DataFrame of outliers from detect_outliers and select the latest row
     df_outliers = detect_outliers(df)
-    df_last_outlier = df_outliers.tail(1)
+    print(df_outliers)
+    df_last_outlier = df_outliers.sort_values(by='value', ascending=True).tail(1)
+    print(df_last_outlier)
 
     # Extract the latest outlier's date
     last_outlier_date = df_last_outlier.index[-1].date().strftime('%Y-%m-%d')
+    print(last_outlier_date)
 
     # Get the current date
     current_date = pd.Timestamp.now().strftime('%Y-%m-%d')
@@ -292,7 +295,7 @@ def _decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     return df_outliers
 
 
-def _detect_outliers_iqr(df_pandas: pd.DataFrame) -> pd.DataFrame:
+def _detect_outliers_iqr(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     """
     Helper function to detect outliers using the Inter Quartile Range (IQR) method.
 

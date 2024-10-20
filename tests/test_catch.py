@@ -96,8 +96,38 @@ def input_data_for_detect_outliers():
     })
 
 
-@patch('src.pycatcher.catch.detect_outliers')
-def test_outliers_detected_today(mock_detect_outliers, input_data_for_detect_outliers):
+@pytest.fixture
+def input_data_for_detect_outliers_2years():
+    """Fixture for generating 2 years of daily data for outlier detection."""
+    # Get the current date
+    current_date = pd.Timestamp.now().normalize()
+
+    # Calculate the start date as current date minus 2 years
+    start_date = current_date - pd.DateOffset(years=3)
+
+    # Calculate the number of days between the start date and the current date
+    num_days = (current_date - pd.Timestamp(start_date)).days + 1
+
+    # Generate the date range from the start date up to the current date
+    dates = pd.date_range(start=start_date, periods=num_days, freq='D')
+
+    # Generate random integer values, and use np.clip to keep them between 40 and 50
+    values = np.random.normal(loc=45, scale=3, size=len(dates)).astype(int)
+    values = np.clip(values, 40, 50)
+
+    # Add outliers to simulate anomalies
+    values[-1] = 200  # Another outlier for current date
+
+    # Create DataFrame
+    df = pd.DataFrame({
+        'date': dates,
+        'value': values
+    })
+
+    return df
+
+
+def test_outliers_detected_today(input_data_for_detect_outliers_2years):
     """Test case when outliers are detected today."""
 
     # Mock outliers DataFrame with today's date
@@ -105,14 +135,12 @@ def test_outliers_detected_today(mock_detect_outliers, input_data_for_detect_out
 
     df_outliers_today = pd.DataFrame({
         'date': [today],
-        'value': [100]
+        'value': [200]
     }).set_index('date')
 
-    mock_detect_outliers.return_value = df_outliers_today
-
     # Call the function with the sample input data
-    result = detect_outliers_today(input_data_for_detect_outliers)
-
+    result = detect_outliers_today(input_data_for_detect_outliers_2years)
+    print(result)
     # Assert that the result is the DataFrame with today's outliers
     pd.testing.assert_frame_equal(result, df_outliers_today)
 
