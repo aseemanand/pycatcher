@@ -226,9 +226,6 @@ def detect_outliers(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     else:
         df_pandas = df
 
-    # Creating a shallow copy of Pandas dataframe to use for seasonal trend
-    df_pandas = df.copy(deep=False)
-
     # Calculate the length of the time period in years
     length_year: float = len(df_pandas.index) / 365.25
 
@@ -242,7 +239,7 @@ def detect_outliers(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     # If less than 2 years of data, use Inter Quartile Range (IQR) method
     else:
         logging.info("Using IQR method for outlier detection.")
-        return _detect_outliers_iqr(df)
+        return _detect_outliers_iqr(df_pandas)
 
 
 def _decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
