@@ -4,7 +4,7 @@ import seaborn as sns
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 
-from .catch import get_residuals, get_ssacf
+from pycatcher.catch import get_residuals, get_ssacf
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -15,12 +15,13 @@ def plot_seasonal(res, axes, title):
     """
     Args:
         res: Model type result
-        axes: An Axes typically has a pair of Axis Artists that define the data coordinate system, and include methods to add annotations like x- and y-labels, titles, and legends.
+        axes: An Axes typically has a pair of Axis Artists that define the data coordinate system,
+              and include methods to add annotations like x- and y-labels, titles, and legends.
         title: Title of the plot
 
     """
 
-    logger.info(f"Plotting seasonal decomposition with title: {title}")
+    logger.info("Plotting seasonal decomposition with title: %s", title)
 
     # Plotting Seasonal time series models
     axes[0].title.set_text(title)
@@ -61,7 +62,7 @@ def build_seasonal_plot(df):
     # Find length of time period to decide right outlier algorithm
     length_year = len(df_pandas.index) // 365.25
 
-    logger.info(f"Time-series data length: {length_year:.2f} years")
+    logger.info("Time-series data length: %.2f years", length_year)
 
     if length_year >= 2.0:
 
@@ -71,8 +72,9 @@ def build_seasonal_plot(df):
         # Everything becomes more exaggerated. This is common for web traffic.
 
         # In an additive time series, the components add together to make the time series.
-        # If there is an increasing trend, we still see roughly the same size peaks and troughs throughout the time series.
-        # This is often seen in indexed time series where the absolute value is growing but changes stay relative.
+        # If there is an increasing trend, we still see roughly the same size peaks and troughs
+        # throughout the time series. This is often seen in indexed time series where the
+        # absolute value is growing but changes stay relative.
 
         decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='additive')
         residuals_add = get_residuals(decomposition_add)
@@ -134,8 +136,10 @@ def conduct_stationarity_check(series):
         series: Pandas dataframe with feature column
 
     Returns:
-        ADF statistics, Stationarity check. Time series are stationary if they do not have trend or seasonal effects.
-        Summary statistics calculated on the time series are consistent over time, like the mean or the variance of the observations.
+        ADF statistics, Stationarity check. Time series are stationary if they
+        do not have trend or seasonal effects.
+        Summary statistics calculated on the time series are consistent over time,
+        like the mean or the variance of the observations.
     """
     logger.info("Building stationarity check")
 
@@ -184,8 +188,9 @@ def build_decomposition_results(df):
         # Everything becomes more exaggerated. This is common for web traffic.
 
         # In an additive time series, the components add together to make the time series.
-        # If there is an increasing trend, we still see roughly the same size peaks and troughs throughout the time series.
-        # This is often seen in indexed time series where the absolute value is growing but changes stay relative.
+        # If there is an increasing trend, we still see roughly the same size peaks and troughs
+        # throughout the time series. This is often seen in indexed time series where the absolute value is
+        # growing but changes stay relative.
 
         decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='additive')
         residuals_add = get_residuals(decomposition_add)
@@ -199,16 +204,16 @@ def build_decomposition_results(df):
         ssacf_mul = get_ssacf(residuals_mul, df_pandas)
 
         if ssacf_add < ssacf_mul:
-            df_reconstructed = pd.concat([decomposition_add.seasonal, decomposition_add.trend, decomposition_add.resid, decomposition_add.observed], axis=1)
+            df_reconstructed = pd.concat([decomposition_add.seasonal, decomposition_add.trend,
+                                          decomposition_add.resid, decomposition_add.observed], axis=1)
             df_reconstructed.columns = ['seasonal', 'trend', 'residuals', 'actual_values']
             return df_reconstructed
         else:
             logger.info("Using Multiplicative model for seasonal decomposition.")
-            df_reconstructed = pd.concat([decomposition_mul.seasonal, decomposition_mul.trend, decomposition_mul.resid, decomposition_mul.observed], axis=1)
+            df_reconstructed = pd.concat([decomposition_mul.seasonal, decomposition_mul.trend,
+                                          decomposition_mul.resid, decomposition_mul.observed], axis=1)
             df_reconstructed.columns = ['seasonal', 'trend', 'residuals', 'actual_values']
             return df_reconstructed
     else:
         logger.info("Data is less than 2 years.")
         print ("Data is less than 2 years. No seasonal decomposition")
-
-
