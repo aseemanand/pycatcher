@@ -1,10 +1,10 @@
 import math
 import logging
+from typing import Union
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 
-from typing import Union
 from pyod.models.mad import MAD
 from sklearn.base import BaseEstimator
 from statsmodels.tsa.stattools import acf
@@ -38,7 +38,7 @@ def find_outliers_iqr(df: pd.DataFrame) -> pd.DataFrame:
     # Identify outliers
     outliers = df[((df.iloc[:, -1] < (q1 - 1.5 * iqr)) | (df.iloc[:, -1] > (q3 + 1.5 * iqr)))]
 
-    logging.info(f"Outliers detected: {len(outliers)} rows.")
+    logging.info("Outliers detected: %d rows.", len(outliers))
 
     return outliers
 
@@ -66,7 +66,7 @@ def anomaly_mad(model_type: BaseEstimator) -> pd.DataFrame:
     # Identify outliers using MAD labels (1 indicates an outlier)
     is_outlier = mad.labels_ == 1
 
-    logging.info(f"Outliers detected by MAD")
+    logging.info("Outliers detected by MAD!")
 
     return is_outlier
 
@@ -89,7 +89,7 @@ def get_residuals(model_type: BaseEstimator) -> np.ndarray:
     residuals = model_type.resid.values
     residuals_cleaned = residuals[~np.isnan(residuals)]
 
-    logging.info(f"Number of residuals after NaN removal: {len(residuals_cleaned)}")
+    logging.info("Number of residuals after NaN removal: %d", len(residuals_cleaned))
 
     return residuals_cleaned
 
@@ -113,9 +113,9 @@ def sum_of_squares(array: np.ndarray) -> float:
     # Calculate the sum of squares of the flattened array
     sum_of_squares_value = np.sum(flattened_array ** 2)
 
-    logging.info(f"Sum of squares calculated: {sum_of_squares_value:.2f}")
+    logging.info("Sum of squares calculated: %.2f", sum_of_squares_value)
 
-    return sum_of_squares_value
+    return float(sum_of_squares_value)
 
 
 def get_ssacf(residuals: np.ndarray, df_pandas: pd.DataFrame) -> float:
@@ -142,7 +142,7 @@ def get_ssacf(residuals: np.ndarray, df_pandas: pd.DataFrame) -> float:
     # Calculate the sum of squares of the ACF values
     ssacf = sum_of_squares(acf_array)
 
-    logging.info(f"Sum of squares of ACF: {ssacf:.2f}")
+    logging.info("Sum of squares of ACF: %.2f", ssacf)
 
     return ssacf
 
@@ -229,7 +229,7 @@ def detect_outliers(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     # Calculate the length of the time period in years
     length_year: float = len(df_pandas.index) / 365.25
 
-    logging.info(f"Time-series data in years: {length_year:.2f}")
+    logging.info("Time-series data in years: %.2f", length_year)
 
     # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
     if length_year >= 2.0:
@@ -287,12 +287,12 @@ def _decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
         logging.info("No outliers found.")
         return "No outliers found."
 
-    logging.info(f"Outliers detected: {len(df_outliers)} rows.")
+    logging.info("Outliers detected: %d rows.", len(df_outliers))
 
     return df_outliers
 
 
-def _detect_outliers_iqr(df_pandas: pd.DataFrame) -> pd.DataFrame:
+def _detect_outliers_iqr(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     """
     Helper function to detect outliers using the Inter Quartile Range (IQR) method.
 
@@ -315,6 +315,6 @@ def _detect_outliers_iqr(df_pandas: pd.DataFrame) -> pd.DataFrame:
         logging.info("No outliers found.")
         return "No outliers found."
 
-    logging.info(f"Outliers detected using IQR: {len(df_outliers)} rows.")
+    logging.info("Outliers detected using IQR: %d rows.", len(df_outliers))
 
     return df_outliers
