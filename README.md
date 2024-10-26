@@ -12,7 +12,7 @@ First column in the dataframe must be a date column ('YYYY-MM-DD') and the last 
 * built_seasonal_plot(df): Build seasonal plot (additive, multiplicative, IQR) for a given dataframe.
 * build_monthwise_plot(df): Build month-wise plot for a given dataframe.
 * build_decomposition_results(df): Get seasonal decomposition results for a given dataframe.
-* conduct_stationarity_check(series): Conduct stationarity check for a feature (dataframe column).
+* conduct_stationarity_check(df): Conduct stationarity check (trend) for a feature (dataframe's feature or count column).
 
 
 
