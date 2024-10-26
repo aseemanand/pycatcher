@@ -123,27 +123,39 @@ def build_monthwise_plot(df):
         df_pandas = df
 
     df_pandas['Month-Year'] = pd.to_datetime(df_pandas.iloc[:, 0]).dt.to_period('M')
-    df_pandas['Count'] = pd.to_numeric(df_pandas.iloc[:, 1])
+    df_pandas['Count'] = pd.to_numeric(df_pandas.iloc[:, -1])
     plt.figure(figsize=(30, 4))
     sns.boxplot(x='Month-Year', y='Count', data=df_pandas).set_title("Month-wise Box Plot")
     plt.show()
 
 
-def conduct_stationarity_check(series):
+def conduct_stationarity_check(df):
 
     """
     Args:
-        series: Pandas dataframe with feature column
+        df (pd.DataFrame): A Pandas DataFrame with time-series data.
+            First column must be a date column ('YYYY-MM-DD')
+            and last column should be a count/feature column.
 
     Returns:
-        ADF statistics, Stationarity check. Time series are stationary if they
+        ADF statistics, Stationarity check (trend only). Time series are stationary if they
         do not have trend or seasonal effects.
         Summary statistics calculated on the time series are consistent over time,
         like the mean or the variance of the observations.
     """
+    # Check whether the argument is Pandas dataframe
+    if not isinstance(df, pd.DataFrame):
+        # Convert to Pandas dataframe for easy manipulation
+        df_pandas = df.toPandas()
+    else:
+        df_pandas = df
+
+    # Ensure the last column is numeric
+    df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
+
     logger.info("Building stationarity check")
 
-    result = sm.tsa.stattools.adfuller(series.values)
+    result = sm.tsa.stattools.adfuller(df_pandas.iloc[:, -1].values)
 
     print('ADF Statistic: %f' % result[0])
     print('p-value: %f' % result[1])
