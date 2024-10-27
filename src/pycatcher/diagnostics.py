@@ -99,11 +99,31 @@ def build_seasonal_plot(df):
             fig, axes = plt.subplots(ncols=1, nrows=4, sharex=False, figsize=(30, 15))
             plot_seasonal(decomposition_mul, axes, title="Multiplicative")
     else:
-        logger.info("Using boxplot since the data is less than 2 years.")
-        df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
-        sns.boxplot(x=df_pandas.iloc[:, -1], showmeans=True)
-        plt.show()
+        logger.info("Use boxplot since the data is less than 2 years.")
+        print('Use build_iqr_plot method to see the boxplot with outliers')
 
+def build_iqr_plot(df):
+    """
+        Build IQR plot for a given dataframe
+            Args:
+                 df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
+                                   and the second/last column should be the feature (count).
+        """
+
+    logger.info("Building IQR plot to see outliers")
+
+    # Check whether the argument is Pandas dataframe
+    if not isinstance(df, pd.DataFrame):
+        # Convert to Pandas dataframe for easy manipulation
+        df_pandas = df.toPandas()
+    else:
+        df_pandas = df
+
+    # Ensure the last column is numeric
+    df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
+
+    sns.boxplot(x=df_pandas.iloc[:, -1], showmeans=True)
+    plt.show()
 
 def build_monthwise_plot(df):
     """
