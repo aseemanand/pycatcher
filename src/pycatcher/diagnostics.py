@@ -76,10 +76,10 @@ def build_seasonal_plot(df):
         # throughout the time series. This is often seen in indexed time series where the
         # absolute value is growing but changes stay relative.
 
-        decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='additive')
+        decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='additive', extrapolate_trend='freq')
         residuals_add = get_residuals(decomposition_add)
 
-        decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='multiplicative')
+        decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='multiplicative', extrapolate_trend='freq')
         residuals_mul = get_residuals(decomposition_mul)
 
         # Get ACF values for both Additive and Multiplicative models
@@ -123,7 +123,7 @@ def build_monthwise_plot(df):
         df_pandas = df
 
     df_pandas['Month-Year'] = pd.to_datetime(df_pandas.iloc[:, 0]).dt.to_period('M')
-    df_pandas['Count'] = pd.to_numeric(df_pandas.iloc[:, -1])
+    df_pandas['Count'] = pd.to_numeric(df_pandas.iloc[:, 1])
     plt.figure(figsize=(30, 4))
     sns.boxplot(x='Month-Year', y='Count', data=df_pandas).set_title("Month-wise Box Plot")
     plt.show()
@@ -204,10 +204,10 @@ def build_decomposition_results(df):
         # throughout the time series. This is often seen in indexed time series where the absolute value is
         # growing but changes stay relative.
 
-        decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='additive')
+        decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='additive',extrapolate_trend='freq')
         residuals_add = get_residuals(decomposition_add)
 
-        decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='multiplicative')
+        decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='multiplicative',extrapolate_trend='freq')
         residuals_mul = get_residuals(decomposition_mul)
 
         # Get ACF values for both Additive and Multiplicative models
