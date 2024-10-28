@@ -17,7 +17,7 @@ from .test_catch import (
     test_outliers_latest_detected,
     test_no_outliers_detected,
     input_data_for_detect_outliers,
-    input_data_detect_outliers_iqr,
+    input_data_decompose_and_detect,
     test_decompose_and_detect,
     input_data_detect_outliers_iqr,
     test_detect_outliers_iqr
