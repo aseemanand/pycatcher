@@ -132,12 +132,8 @@ def get_ssacf(residuals: np.ndarray, df_pandas: pd.DataFrame) -> float:
 
     logging.info("Calculating the sum of squares of the ACF of residuals.")
 
-    # Calculate the number of lags based on the square root of the data length
-    range_var = len(df_pandas.index)
-    nlags = math.isqrt(range_var) + 45
-
     # Compute the ACF of the residuals
-    acf_array = acf(residuals, nlags=nlags, fft=True)
+    acf_array = acf(residuals, fft=True)
 
     # Calculate the sum of squares of the ACF values
     ssacf = sum_of_squares(acf_array)

@@ -1,5 +1,6 @@
 ## Outlier Detection for Time-series Data
-This package identifies outlier(s) for a given day-level time-series dataset. 
+This package identifies outlier(s) for a given day-level time-series dataset in simple steps.
+
 #### DataFrame Arguments:
 First column in the dataframe must be a date column ('YYYY-MM-DD') and the last column a count column.
 #### Package Functions:
@@ -14,6 +15,8 @@ First column in the dataframe must be a date column ('YYYY-MM-DD') and the last 
 * build_monthwise_plot(df): Build month-wise plot for a given dataframe.
 * build_decomposition_results(df): Get seasonal decomposition results for a given dataframe.
 * conduct_stationarity_check(df): Conduct stationarity check (trend only) for a feature (dataframe's count column).
+
+
 
 
 
