@@ -76,10 +76,12 @@ def build_seasonal_plot(df):
         # throughout the time series. This is often seen in indexed time series where the
         # absolute value is growing but changes stay relative.
 
-        decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='additive', extrapolate_trend='freq')
+        decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+                                                      model='additive', extrapolate_trend='freq')
         residuals_add = get_residuals(decomposition_add)
 
-        decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='multiplicative', extrapolate_trend='freq')
+        decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+                                                      model='multiplicative', extrapolate_trend='freq')
         residuals_mul = get_residuals(decomposition_mul)
 
         # Get ACF values for both Additive and Multiplicative models
@@ -92,11 +94,11 @@ def build_seasonal_plot(df):
 
         if ssacf_add < ssacf_mul:
             logger.info("Using Additive model for seasonal decomposition.")
-            fig, axes = plt.subplots(ncols=1, nrows=4, sharex=False, figsize=(30, 15))
+            _, axes = plt.subplots(ncols=1, nrows=4, sharex=False, figsize=(30, 15))
             plot_seasonal(decomposition_add, axes, title="Additive")
         else:
             logger.info("Using Multiplicative model for seasonal decomposition.")
-            fig, axes = plt.subplots(ncols=1, nrows=4, sharex=False, figsize=(30, 15))
+            _, axes = plt.subplots(ncols=1, nrows=4, sharex=False, figsize=(30, 15))
             plot_seasonal(decomposition_mul, axes, title="Multiplicative")
     else:
         logger.info("Use boxplot since the data is less than 2 years.")
@@ -177,11 +179,11 @@ def conduct_stationarity_check(df):
 
     result = sm.tsa.stattools.adfuller(df_pandas.iloc[:, -1].values)
 
-    print('ADF Statistic: %f' % result[0])
-    print('p-value: %f' % result[1])
+    print(f'ADF Statistic: {result[0]:.6f}')
+    print(f'p-value: {result[1]:.6f}')
     print('Critical Values:')
     for key, value in result[4].items():
-        print('\t%s: %.3f' % (key, value))
+        print(f'\t{key}: {value:.3f}')
 
     if (result[1] <= 0.05) & (result[4]['5%'] > result[0]):
         print("\u001b[32mStationary\u001b[0m")
@@ -211,7 +213,7 @@ def build_decomposition_results(df):
     # Find length of time period to decide right outlier algorithm
     length_year = len(df_pandas.index) // 365.25
 
-    logger.info(f"Time-series data length: {length_year:.2f} years")
+    logger.info("Time-series data length: %.2f years", length_year)
 
     if length_year >= 2.0:
         # Building Additive and Multiplicative time series models
@@ -224,10 +226,12 @@ def build_decomposition_results(df):
         # throughout the time series. This is often seen in indexed time series where the absolute value is
         # growing but changes stay relative.
 
-        decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='additive',extrapolate_trend='freq')
+        decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+                                                      model='additive',extrapolate_trend='freq')
         residuals_add = get_residuals(decomposition_add)
 
-        decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='multiplicative',extrapolate_trend='freq')
+        decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+                                                      model='multiplicative',extrapolate_trend='freq')
         residuals_mul = get_residuals(decomposition_mul)
 
         # Get ACF values for both Additive and Multiplicative models
