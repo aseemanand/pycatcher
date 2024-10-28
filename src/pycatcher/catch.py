@@ -261,8 +261,10 @@ def _decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     df_pandas = df_pandas.set_index(df_pandas.columns[0]).asfreq('D').dropna()
 
     # Decompose the series using both additive and multiplicative models
-    decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='additive',extrapolate_trend='freq')
-    decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='multiplicative',extrapolate_trend='freq')
+    decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+                                                  model='additive',extrapolate_trend='freq')
+    decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+                                                  model='multiplicative',extrapolate_trend='freq')
 
     # Get residuals from both decompositions
     residuals_add: pd.Series = get_residuals(decomposition_add)
