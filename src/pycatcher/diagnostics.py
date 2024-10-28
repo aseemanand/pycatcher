@@ -104,6 +104,7 @@ def build_seasonal_plot(df):
         logger.info("Use boxplot since the data is less than 2 years.")
         print('Use build_iqr_plot method to see the boxplot with outliers')
 
+
 def build_iqr_plot(df):
     """
         Build IQR plot for a given dataframe
@@ -126,6 +127,7 @@ def build_iqr_plot(df):
 
     sns.boxplot(x=df_pandas.iloc[:, -1], showmeans=True)
     plt.show()
+
 
 def build_monthwise_plot(df):
     """
