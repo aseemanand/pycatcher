@@ -5,7 +5,7 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 from src.pycatcher.catch import find_outliers_iqr, anomaly_mad, get_residuals, \
     sum_of_squares, get_ssacf, detect_outliers_today, detect_outliers_latest, \
-    detect_outliers
+    detect_outliers, decompose_and_detect, detect_outliers_iqr
 
 
 # Test case for find_outliers_iqr
@@ -176,8 +176,8 @@ def test_no_outliers_detected(mock_detect_outliers, input_data_for_detect_outlie
     pd.testing.assert_frame_equal(result, df_no_outliers)
 
 
-@patch('src.pycatcher.catch._decompose_and_detect')
-@patch('src.pycatcher.catch._detect_outliers_iqr')
+@patch('src.pycatcher.catch.decompose_and_detect')
+@patch('src.pycatcher.catch.detect_outliers_iqr')
 def test_detect_outliers(mock_detect_outliers_iqr, mock_decompose_and_detect):
     # Create a sample dataset with more than 2 years of data
     date_range = pd.date_range(start='2020-01-01', periods=750, freq='D')
@@ -196,3 +196,83 @@ def test_detect_outliers(mock_detect_outliers_iqr, mock_decompose_and_detect):
     mock_detect_outliers_iqr.return_value = pd.DataFrame({'date': date_range[:5], 'count': [1] * 5})
     result_short = detect_outliers(data_short)
     mock_detect_outliers_iqr.assert_called_once()
+
+    # Test case where input is a non-Pandas DataFrame and needs conversion
+    mock_spark_df = MagicMock()
+    mock_pandas_df = MagicMock()
+
+    # Mock the toPandas method to simulate conversion
+    mock_spark_df.toPandas.return_value = mock_pandas_df
+    mock_detect_outliers_iqr.reset_mock()
+    mock_decompose_and_detect.reset_mock()
+
+    # Assume mock_pandas_df has less than 2 years of data
+    mock_pandas_df.index = range(300)  # Simulate 300 days of data
+    mock_detect_outliers_iqr.return_value = pd.DataFrame({'date': date_range[:5], 'count': [1] * 5})
+
+    result_conversion = detect_outliers(mock_spark_df)
+    mock_spark_df.toPandas.assert_called_once()  # Check if conversion was called
+    mock_detect_outliers_iqr.assert_called_once()  # Verify the IQR method was used for outlier detection
+
+
+@pytest.fixture
+def input_data_decompose_and_detect():
+    """Fixture to provide sample time-series data."""
+    np.random.seed(0)  # For reproducibility
+    dates = pd.date_range(start='2020-01-01', periods=365, freq='D')
+    values = np.random.normal(loc=50, scale=5, size=len(dates))
+    # Introduce outliers
+    values[100] = 100
+    values[200] = 100
+    df = pd.DataFrame({'date': dates, 'value': values})
+    return df
+
+
+def test_decompose_and_detect(input_data_decompose_and_detect):
+    """Test case for the decompose_and_detect function."""
+    # Call the function with the sample data
+    result = decompose_and_detect(input_data_decompose_and_detect)
+
+    # Check the type of result
+    assert isinstance(result, (pd.DataFrame, str)), "Expected DataFrame or string as output"
+
+    if isinstance(result, pd.DataFrame):
+        # If the result is a DataFrame, check that it has outlier rows
+        assert not result.empty, "Expected some outliers in the DataFrame"
+        assert 'value' in result.columns, "Expected 'value' column in outliers DataFrame"
+    else:
+        # If the result is a string, verify it indicates no outliers
+        assert result == "No outliers found.", "Expected message indicating no outliers found"
+
+
+@pytest.fixture
+def input_data_detect_outliers_iqr():
+    """Fixture to provide sample data with outliers for testing."""
+    np.random.seed(0)  # For reproducibility
+    dates = pd.date_range(start='2020-01-01', periods=365, freq='D')
+    values = np.random.normal(loc=50, scale=5, size=len(dates)).astype(int)
+    # Introduce outliers
+    values[50] = 100
+    values[150] = 150
+    values[300] = 200
+    df = pd.DataFrame({'date': dates, 'value': values})
+    return df
+
+
+def test_detect_outliers_iqr(input_data_detect_outliers_iqr):
+    """Test case for the detect_outliers_iqr function."""
+    # Call the function with sample data
+    result = detect_outliers_iqr(input_data_detect_outliers_iqr)
+
+    # Check the type of result
+    assert isinstance(result, (pd.DataFrame, str)), "Expected DataFrame or string as output"
+
+    if isinstance(result, pd.DataFrame):
+        # If the result is a DataFrame, check that it has outlier rows
+        assert not result.empty, "Expected some outliers in the DataFrame"
+        assert 'value' in result.columns, "Expected 'value' column in outliers DataFrame"
+        # Verify specific known outlier values are detected
+        assert {100, 150, 200}.issubset(result['value'].values), "Expected known outliers in the DataFrame"
+    else:
+        # If the result is a string, verify it indicates no outliers
+        assert result == "No outliers found.", "Expected message indicating no outliers found"

@@ -234,15 +234,15 @@ def detect_outliers(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
     if length_year >= 2.0:
         logging.info("Using seasonal trend decomposition for outlier detection.")
-        return _decompose_and_detect(df_pandas)
+        return decompose_and_detect(df_pandas)
 
     # If less than 2 years of data, use Inter Quartile Range (IQR) method
     else:
         logging.info("Using IQR method for outlier detection.")
-        return _detect_outliers_iqr(df_pandas)
+        return detect_outliers_iqr(df_pandas)
 
 
-def _decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
+def decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     """
     Helper function to apply Seasonal Trend Decomposition and detect outliers using
     both additive and multiplicative models.
@@ -261,8 +261,10 @@ def _decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     df_pandas = df_pandas.set_index(df_pandas.columns[0]).asfreq('D').dropna()
 
     # Decompose the series using both additive and multiplicative models
-    decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='additive',extrapolate_trend='freq')
-    decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1], model='multiplicative',extrapolate_trend='freq')
+    decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+                                                  model='additive',extrapolate_trend='freq')
+    decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+                                                  model='multiplicative',extrapolate_trend='freq')
 
     # Get residuals from both decompositions
     residuals_add: pd.Series = get_residuals(decomposition_add)
@@ -292,7 +294,7 @@ def _decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     return df_outliers
 
 
-def _detect_outliers_iqr(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
+def detect_outliers_iqr(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     """
     Helper function to detect outliers using the Inter Quartile Range (IQR) method.
 
