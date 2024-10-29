@@ -1,12 +1,8 @@
 [project]
 name = "pycatcher"
-version = "0.0.16"
-authors = [
-    {name="Aseem Anand", email="aseemanand@gmail.com"},
-]
-maintainers = [
-    {name="Jagadish Pamarthi", email="jagadish.vrsec@gmail.com"},
-]
+version = "0.0.17"
+authors = ["Aseem Anand <aseemanand@gmail.com>"]
+maintainers = ["Jagadish Pamarthi <jagadish.vrsec@gmail.com>"]
 description = "This package identifies outlier(s) for a given day-level time-series dataset in simple steps."
 readme = "README.md"
 requires-python = ">=3.8"
