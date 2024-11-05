@@ -265,6 +265,7 @@ def detect_outliers(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
                 logging.info("Using IQR method for outlier detection.")
                 return detect_outliers_iqr(df_pandas)
 
+
 def decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     """
     Helper function to apply Seasonal Trend Decomposition and detect outliers using
