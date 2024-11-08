@@ -1,11 +1,11 @@
 ## Outlier Detection for Time-series Data
-This package identifies outlier(s) for a given day-level time-series dataset in simple steps.
+This package identifies outlier(s) for a given time-series dataset in simple steps. It supports day, week, month and quarter level time-series data.
 
 #### DataFrame Arguments:
 First column in the dataframe must be a date column ('YYYY-MM-DD') and the last column a count column.
 #### Package Functions:
 * detect_outliers(df): Detect outliers in a time-series dataframe using seasonal trend decomposition when there is at least 2 years of data, otherwise we can use Interquartile Range (IQR) for smaller timeframe.
-* detect_ouliers_today(df) Detect outliers for the current date in a time-series dataframe.
+* detect_outliers_today(df) Detect outliers for the current date in a time-series dataframe.
 * detect_outliers_latest(df): Detect latest outliers in a time-series dataframe.
 * find_outliers_iqr(df): Detect outliers in a time-series dataframe when there's less than 2 years of data.
 

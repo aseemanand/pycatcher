@@ -3,6 +3,7 @@ import logging
 from typing import Union
 import numpy as np
 import pandas as pd
+import re as regex
 import statsmodels.api as sm
 
 from pyod.models.mad import MAD
@@ -222,20 +223,52 @@ def detect_outliers(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     else:
         df_pandas = df
 
-    # Calculate the length of the time period in years
-    length_year: float = len(df_pandas.index) / 365.25
+    # Ensure the first column is in datetime format and set it as index
+    df_pandas.iloc[:, 0] = pd.to_datetime(df_pandas.iloc[:, 0])
+    df_pandas = df_pandas.set_index(df_pandas.columns[0]).dropna()
 
-    logging.info("Time-series data in years: %.2f", length_year)
+    # Ensure the datetime index is unique (no duplicate dates)
+    if df_pandas.index.is_unique:
+        # Find the time frequency (daily, weekly etc.) and length of the index column
+        inferred_frequency = df_pandas.index.inferred_freq
+        logging.info("Time frequency: ", inferred_frequency)
 
-    # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
-    if length_year >= 2.0:
-        logging.info("Using seasonal trend decomposition for outlier detection.")
-        return decompose_and_detect(df_pandas)
+        length_index = len(df_pandas.index)
+        logging.info("Length of time index: %.2f", length_index)
 
-    # If less than 2 years of data, use Inter Quartile Range (IQR) method
+        # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
+
+        # Set parameter for Week check
+        regex_week_check = r'[W-Za-z]'
+
+        match inferred_frequency:
+            case 'D' if length_index >= 730:
+                logging.info("Using seasonal trend decomposition for for outlier detection in day level time-series.")
+                df_outliers = decompose_and_detect(df_pandas)
+                return df_outliers
+            case 'B' if length_index >= 520:
+                logging.info(
+                    "Using seasonal trend decomposition for outlier detection in business day level time-series.")
+                df_outliers = decompose_and_detect(df_pandas)
+                return df_outliers
+            case 'MS' if length_index >= 24:
+                logging.info("Using seasonal trend decomposition for for outlier detection in month level time-series.")
+                df_outliers = decompose_and_detect(df_pandas)
+                return df_outliers
+            case 'Q' if length_index >= 8:
+                logging.info("Using seasonal trend decomposition for outlier detection in quarter level time-series.")
+                df_outliers = decompose_and_detect(df_pandas)
+                return df_outliers
+            case _:
+                if regex.match(regex_week_check, inferred_frequency) and length_index >= 104:
+                    df_outliers = decompose_and_detect(df_pandas)
+                    return df_outliers
+                else:
+                    # If less than 2 years of data, use Inter Quartile Range (IQR) method
+                    logging.info("Using IQR method for outlier detection.")
+                    return detect_outliers_iqr(df_pandas)
     else:
-        logging.info("Using IQR method for outlier detection.")
-        return detect_outliers_iqr(df_pandas)
+        print("Duplicate date index values. Check your data.")
 
 
 def decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
@@ -251,10 +284,6 @@ def decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     """
 
     logging.info("Decomposing time-series for additive and multiplicative models.")
-
-    # Ensure the first column is in datetime format and set it as index
-    df_pandas.iloc[:, 0] = pd.to_datetime(df_pandas.iloc[:, 0])
-    df_pandas = df_pandas.set_index(df_pandas.columns[0]).asfreq('D').dropna()
 
     # Decompose the series using both additive and multiplicative models
     decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
