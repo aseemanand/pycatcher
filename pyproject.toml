@@ -33,7 +33,7 @@ pytest-pylint = "*"
 pytest-mock = "^3.14.0"
 coverage = "*"
 prospector = "*"
-notebook = "*"
+jupyterlab = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
