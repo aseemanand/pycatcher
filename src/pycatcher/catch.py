@@ -231,7 +231,7 @@ def detect_outliers(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     if df_pandas.index.is_unique:
         # Find the time frequency (daily, weekly etc.) and length of the index column
         inferred_frequency = df_pandas.index.inferred_freq
-        logging.info("Time frequency: %d", inferred_frequency)
+        #logging.info("Time frequency: %d", inferred_frequency)
 
         length_index = len(df_pandas.index)
         logging.info("Length of time index: %.2f", length_index)
