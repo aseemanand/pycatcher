@@ -10,8 +10,8 @@ First column in the dataframe must be a date column ('YYYY-MM-DD') and the last 
 * find_outliers_iqr(df): Detect outliers in a time-series dataframe when there's less than 2 years of data.
 
 #### Diagnostic Plots:
-* built_seasonal_plot(df): Build seasonal plot (additive or multiplicative) for a given dataframe.
-* built_iqr_plot(df): Build IQR plot for a given dataframe (less than 2 years of data).
+* build_seasonal_plot(df): Build seasonal plot (additive or multiplicative) for a given dataframe.
+* build_iqr_plot(df): Build IQR plot for a given dataframe (for less than 2 years of data).
 * build_monthwise_plot(df): Build month-wise plot for a given dataframe.
 * build_decomposition_results(df): Get seasonal decomposition results for a given dataframe.
 * conduct_stationarity_check(df): Conduct stationarity check (trend only) for a feature (dataframe's count column).
