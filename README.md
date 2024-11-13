@@ -1,3 +1,6 @@
+## PyCatcher
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/aseemanand/pycatcher/blob/main/LICENSE) [![Total Downloads](https://pepy.tech/badge/pycatcher)](https://pepy.tech/project/pycatcher) [![Monthly Downloads](https://pepy.tech/badge/pycatcher/month)](https://pepy.tech/project/pycatcher/month) [![Weekly Downloads](https://pepy.tech/badge/pycatcher/week)](https://pepy.tech/project/pycatcher/week) ![PYPI version](https://img.shields.io/pypi/v/pycatcher.svg) ![PYPI - Python Version](https://img.shields.io/pypi/pyversions/pycatcher.svg)
+
 ## Outlier Detection for Time-series Data
 This package identifies outlier(s) for a given time-series dataset in simple steps. It supports day, week, month and quarter level time-series data.
 
@@ -15,10 +18,3 @@ First column in the dataframe must be a date column ('YYYY-MM-DD') and the last 
 * build_monthwise_plot(df): Build month-wise plot for a given dataframe.
 * build_decomposition_results(df): Get seasonal decomposition results for a given dataframe.
 * conduct_stationarity_check(df): Conduct stationarity check (trend only) for a feature (dataframe's count column).
-
-
-
-
-
-
-
