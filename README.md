@@ -1,3 +1,6 @@
+## PyCatcher
+[![Total Downloads](https://pepy.tech/badge/pycatcher)](https://pepy.tech/project/pycatcher) [![Monthly Downloads](https://pepy.tech/badge/pycatcher/month)](https://pepy.tech/project/pycatcher/month) [![Weekly Downloads](https://pepy.tech/badge/pycatcher/week)](https://pepy.tech/project/pycatcher/week)
+
 ## Outlier Detection for Time-series Data
 This package identifies outlier(s) for a given time-series dataset in simple steps. It supports day, week, month and quarter level time-series data.
 
