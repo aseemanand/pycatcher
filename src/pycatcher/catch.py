@@ -14,6 +14,23 @@ from statsmodels.tsa.stattools import acf
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+def check_and_convert_date(df: pd.DataFrame) -> pd.DataFrame:
+    """Checks if the first column of a DataFrame is in date format, and converts it to 'yyyy-mm-dd' format if necessary."""
+
+    first_col_name = df.columns[0]
+
+    # Check if the column is already in datetime format
+    if pd.api.types.is_datetime64_any_dtype(df[first_col_name]):
+        df[df.columns[0]] = df[df.columns[0]].apply(pd.to_datetime)
+        df = df.set_index(df.columns[0]).dropna()
+    else:
+        try:
+            # Attempt to convert the column to datetime
+            df[df.columns[0]] = df[df.columns[0]].apply(pd.to_datetime)
+            df = df.set_index(df.columns[0]).dropna()
+        except ValueError:
+            print("First column is not in a recognizable date format.")
+    return df
 
 def find_outliers_iqr(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -224,8 +241,7 @@ def detect_outliers(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
         df_pandas = df
 
     # Ensure the first column is in datetime format and set it as index
-    df_pandas.iloc[:, 0] = pd.to_datetime(df_pandas.iloc[:, 0])
-    df_pandas = df_pandas.set_index(df_pandas.columns[0]).dropna()
+    df_pandas = check_and_convert_date(df_pandas)
 
     # Ensure the datetime index is unique (no duplicate dates)
     if df_pandas.index.is_unique:
