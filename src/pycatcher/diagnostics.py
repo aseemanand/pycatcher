@@ -185,7 +185,7 @@ def conduct_stationarity_check(df):
     logger.info("p-value: ", round(result[1], 6))
     logger.info("Critical Values:")
     for key, value in result[4].items():
-        logger.info("\t", key,  ":" , round(value, 3))
+        logger.info("\t", key, ":", round(value, 3))
 
 
     if (result[1] <= 0.05) & (result[4]['5%'] > result[0]):
@@ -228,7 +228,7 @@ def build_decomposition_results(df):
         # If there is an increasing trend, we still see roughly the same size peaks and troughs
         # throughout the time series. This is often seen in indexed time series where the absolute value is
         # growing but changes stay relative.
-
+        logger.info("Data is at least 2 years. Picking additive or multiplicative for seasonal decomposition.")
         decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
                                                       model='additive',extrapolate_trend='freq')
         residuals_add = get_residuals(decomposition_add)
@@ -238,7 +238,6 @@ def build_decomposition_results(df):
         residuals_mul = get_residuals(decomposition_mul)
 
         # Get ACF values for both Additive and Multiplicative models
-
         ssacf_add = get_ssacf(residuals_add, df_pandas)
         ssacf_mul = get_ssacf(residuals_mul, df_pandas)
 
