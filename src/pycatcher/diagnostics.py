@@ -3,6 +3,7 @@ import pandas as pd
 import seaborn as sns
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
+from statsmodels.tsa.stattools import (adfuller,kpss)
 
 from .catch import get_residuals, get_ssacf
 
@@ -162,7 +163,7 @@ def conduct_stationarity_check(df):
             and last column should be a count/feature column.
 
     Returns:
-        ADF statistics, Stationarity check (trend only). Time series are stationary if they
+        ADF and KPSS statistics. Time series are stationary if they
         do not have trend or seasonal effects.
         Summary statistics calculated on the time series are consistent over time,
         like the mean or the variance of the observations.
@@ -177,20 +178,40 @@ def conduct_stationarity_check(df):
     # Ensure the last column is numeric
     df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
 
-    logger.info("Building stationarity check")
+    logger.info("Starting ADF stationarity check")
 
-    result = sm.tsa.stattools.adfuller(df_pandas.iloc[:, -1].values)
+    # Perform Augmented Dickey-Fuller test
+    adf_result = adfuller(df_pandas.iloc[:, -1])
 
-    print(f'ADF Statistic: {result[0]:.6f}')
-    print(f'p-value: {result[1]:.6f}')
+    print('ADF Statistic: %f' % adf_result[0])
+    print('p-value: %f' % adf_result[1])
     print('Critical Values:')
-    for key, value in result[4].items():
-        print(f'\t{key}: {value:.3f}')
+    for key, value in adf_result[4].items():
+        print('\t%s: %.3f' % (key, value))
 
-    if (result[1] <= 0.05) & (result[4]['5%'] > result[0]):
-        print("\u001b[32mStationary\u001b[0m")
+    if (adf_result[1] <= 0.05) & (adf_result[4]['5%'] > adf_result[0]):
+        logger.info("Completed ADF stationarity check")
+        print("\u001b[32mADF - The series is Stationary\u001b[0m")
     else:
-        print("\x1b[31mNon-stationary\x1b[0m")
+        logger.info("Completed ADF stationarity check")
+        print("\x1b[31mADF - The series is not Stationary\x1b[0m")
+
+
+    print("\n")
+
+    # Perform KPSS test
+    logger.info("Starting KPSS stationarity check")
+    statistic, p_value, n_lags, critical_values = kpss(df_pandas.iloc[:, -1])
+
+    print('KPSS Statistic: %f' % statistic)
+    print('p-value: %f' % p_value)
+    print('Critical Values:')
+
+    for key, value in critical_values.items():
+        print(f'   {key} : {value}')
+
+    logger.info("Completed KPSS stationarity check")
+    print(f'\u001b[32mKPSS - The series is {"not " if p_value < 0.05 else ""}Stationary\u001b[0m')
 
 
 def build_decomposition_results(df):

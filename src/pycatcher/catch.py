@@ -9,6 +9,8 @@ import statsmodels.api as sm
 from pyod.models.mad import MAD
 from sklearn.base import BaseEstimator
 from statsmodels.tsa.stattools import acf
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.metrics import mean_squared_error
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -361,3 +363,116 @@ def detect_outliers_iqr(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     logging.info("Outliers detected using IQR: %d rows.", len(df_outliers))
 
     return df_outliers
+
+def calculate_rmse(df: pd.DataFrame, window_size: int) -> list:
+    """
+    Calculate RMSE for a given window size
+
+    Args:
+        df (pd.DataFrame): A Pandas DataFrame
+        Last column should be a count/feature column.
+
+    Returns:
+        list: mean of RMSE
+    """
+
+    logging.info("Starting RMSE calculation")
+
+    tscv = TimeSeriesSplit(n_splits=5)
+    rmse_scores = []
+
+    for train_index, test_index in tscv.split(df):
+        train_df = df.iloc[train_index].copy()
+        test_df = df.iloc[test_index].copy()
+
+        train_df['ma'] = train_df.iloc[:, -1].rolling(window=window_size).mean()
+        test_df['ma'] = test_df.iloc[:, -1].rolling(window=window_size).mean()
+
+        # Drop NaN values from the test dataframe
+        test_df = test_df.dropna()
+
+        # Ensure test_df is not empty
+        if not test_df.empty:
+            rmse = np.sqrt(mean_squared_error(test_df.iloc[:, -1], test_df['ma']))
+            rmse_scores.append(rmse)
+    logging.info("RMSE calculation completed")
+    return np.mean(rmse_scores) if rmse_scores else np.nan
+
+
+def calculate_optimal_window_size(df: pd.DataFrame) -> str:
+    """
+    Calculate optimal window size for Moving Average. The window size determines the
+    number of data points used to calculate the moving average. A larger window size
+    results in a smoother moving average but with less responsiveness to short-term changes.
+    A smaller window size results in a more responsive moving average but with more noise.
+    The optimal window size depends on the business context and the goal of the analysis.
+
+    Args:
+        df (pd.DataFrame): A Pandas DataFrame
+        Last column should be a count/feature column.
+
+    Returns:
+        str: optimal window size
+    """
+
+    logging.info("Starting optimal window size calculation")
+
+    # Try different window sizes
+    window_sizes = range(2, 21)
+    rmse_values = []
+
+    for window_size in window_sizes:
+        rmse = calculate_rmse(df, window_size)
+        rmse_values.append(rmse)
+
+    # Check if all rmse_values are NaN
+    if np.all(np.isnan(rmse_values)):
+        raise ValueError("All RMSE values are NaN. Check your data for issues.")
+
+    # Find the window size with the lowest RMSE
+    optimal_window_size = window_sizes[np.nanargmin(rmse_values)]
+    logging.info("Optimal Window Size: %d", optimal_window_size)
+    return optimal_window_size
+
+
+def detect_outliers_moving_average(df: pd.DataFrame) -> str:
+    """
+     Detect outliers using Moving Average method.
+
+     Args:
+         df (pd.DataFrame): A Pandas DataFrame with time-series data.
+             First column must be a date column ('YYYY-MM-DD')
+             and last column should be a count/feature column.
+
+     Returns:
+         str: A message with None found or with detected outliers.
+     """
+
+    logging.info("Starting outlier detection using Moving Average method")
+
+    # Check whether the argument is Pandas dataframe
+    if not isinstance(df, pd.DataFrame):
+        # Convert to Pandas dataframe for easy manipulation
+        df_pandas = df.toPandas()
+    else:
+        df_pandas = df
+
+        # Calculate optimal window size
+    optimal_window_size = calculate_optimal_window_size(df_pandas)
+
+    # Calculate moving average
+    df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
+    df1 = df_pandas.copy()
+    df1['moving_average'] = df_pandas.iloc[:, -1].rolling(window=optimal_window_size).mean()
+
+    # Set a threshold of 2 standard deviations from the moving average
+    threshold = df1['moving_average'].std() * 2
+
+    # Identify values that cross the threshold
+    df1['above_threshold'] = df_pandas.iloc[:, -1] > (df1['moving_average'] + threshold)
+    df1['below_threshold'] = df_pandas.iloc[:, -1] < (df1['moving_average'] - threshold)
+
+    outliers = df1[(df1['above_threshold'] == True) | (df1['below_threshold'] == True)].dropna()
+    return_outliers = outliers.iloc[:, :2].to_string(index=False)
+    logging.info("Outlier detection using Moving Average method completed")
+    return return_outliers
