@@ -23,6 +23,7 @@ pandas = "==2.2.3"
 statsmodels = "==0.14.4"
 pyod = "==2.0.2"
 seaborn = "==0.13.2"
+flask = "^3.1.0"
 
 [tool.poetry.dev-dependencies]
 build = "^1.2.2"
@@ -34,6 +35,9 @@ pytest-mock = "^3.14.0"
 coverage = "*"
 prospector = "*"
 jupyterlab = "*"
+
+[tool.poetry.scripts]
+start-flask = "pycatcher.web_app:app"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
