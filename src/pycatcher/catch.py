@@ -337,18 +337,25 @@ def decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     return df_outliers
 
 
-def detect_outliers_iqr(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
+def detect_outliers_iqr(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     """
     Helper function to detect outliers using the Inter Quartile Range (IQR) method.
 
     Args:
-        df_pandas (pd.DataFrame): The Pandas DataFrame containing time-series data.
+        df (pd.DataFrame): The Pandas DataFrame containing time-series data.
 
     Returns:
         pd.DataFrame: A DataFrame containing the detected outliers.
     """
 
     logging.info("Detecting outliers using the IQR method.")
+
+    # Check whether the argument is Pandas dataframe
+    if not isinstance(df, pd.DataFrame):
+        # Convert to Pandas dataframe for easy manipulation
+        df_pandas = df.toPandas()
+    else:
+        df_pandas = df
 
     # Ensure the last column is numeric
     df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
