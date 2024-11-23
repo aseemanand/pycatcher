@@ -446,7 +446,7 @@ def detect_outliers_moving_average(df: pd.DataFrame) -> str:
 
      Args:
          df (pd.DataFrame): A Pandas DataFrame with time-series data.
-             Last column should be a count/feature column
+          Last column should be a count/feature column
 
      Returns:
          str: A message with None found or with detected outliers.
