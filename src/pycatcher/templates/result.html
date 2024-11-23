@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Results</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Result</h1>
+
+        <!-- Display custom message -->
+        <p class="alert alert-success">{{ message }}</p>
+
+        <!-- Render the table -->
+        <div class="table-responsive">
+            {{ table_html|safe }}
+        </div>
+
+        <!-- Link to go back to the upload page -->
+        <a href="/" class="btn btn-primary mt-3">Upload Another File</a>
+    </div>
+</body>
+</html>
