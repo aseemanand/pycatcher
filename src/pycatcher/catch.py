@@ -383,8 +383,6 @@ def calculate_rmse(df: pd.DataFrame, window_size: int) -> list:
         list: mean of RMSE
     """
 
-    logging.info("Starting RMSE calculation")
-
     tscv = TimeSeriesSplit(n_splits=5)
     rmse_scores = []
 
@@ -402,7 +400,6 @@ def calculate_rmse(df: pd.DataFrame, window_size: int) -> list:
         if not test_df.empty:
             rmse = np.sqrt(mean_squared_error(test_df.iloc[:, -1], test_df['ma']))
             rmse_scores.append(rmse)
-    logging.info("RMSE calculation completed")
     return np.mean(rmse_scores) if rmse_scores else np.nan
 
 
@@ -428,9 +425,11 @@ def calculate_optimal_window_size(df: pd.DataFrame) -> str:
     window_sizes = range(2, 21)
     rmse_values = []
 
+    logging.info("Starting RMSE calculation")
     for window_size in window_sizes:
         rmse = calculate_rmse(df, window_size)
         rmse_values.append(rmse)
+    logging.info("RMSE calculation completed")
 
     # Check if all rmse_values are NaN
     if np.all(np.isnan(rmse_values)):
@@ -441,15 +440,13 @@ def calculate_optimal_window_size(df: pd.DataFrame) -> str:
     logging.info("Optimal Window Size: %d", optimal_window_size)
     return optimal_window_size
 
-
 def detect_outliers_moving_average(df: pd.DataFrame) -> str:
     """
      Detect outliers using Moving Average method.
 
      Args:
          df (pd.DataFrame): A Pandas DataFrame with time-series data.
-             First column must be a date column ('YYYY-MM-DD')
-             and last column should be a count/feature column.
+          Last column should be a count/feature column
 
      Returns:
          str: A message with None found or with detected outliers.
@@ -464,7 +461,7 @@ def detect_outliers_moving_average(df: pd.DataFrame) -> str:
     else:
         df_pandas = df
 
-        # Calculate optimal window size
+    # Calculate optimal window size
     optimal_window_size = calculate_optimal_window_size(df_pandas)
 
     # Calculate moving average
@@ -480,6 +477,7 @@ def detect_outliers_moving_average(df: pd.DataFrame) -> str:
     df1['below_threshold'] = df_pandas.iloc[:, -1] < (df1['moving_average'] - threshold)
 
     outliers = df1[(df1['above_threshold'] == True) | (df1['below_threshold'] == True)].dropna()
-    return_outliers = outliers.iloc[:, :2].to_string(index=False)
+    return_outliers = outliers.iloc[:, :2]
+    return_outliers.reset_index(drop=True, inplace=True)
     logging.info("Outlier detection using Moving Average method completed")
     return return_outliers
