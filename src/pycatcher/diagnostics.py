@@ -183,11 +183,11 @@ def conduct_stationarity_check(df):
     # Perform Augmented Dickey-Fuller test
     adf_result = adfuller(df_pandas.iloc[:, -1])
 
-    print('ADF Statistic: %f' % adf_result[0])
-    print('p-value: %f' % adf_result[1])
-    print('Critical Values:')
+    logger.info("ADF Statistic: ", round(adf_result[0], 6))
+    logger.info("p-value: ", round(adf_result[1], 6))
+    logger.info("Critical Values:")
     for key, value in adf_result[4].items():
-        print('\t%s: %.3f' % (key, value))
+        logger.info("\t", key,  ":", round(value, 3))
 
     if (adf_result[1] <= 0.05) & (adf_result[4]['5%'] > adf_result[0]):
         logger.info("Completed ADF stationarity check")
@@ -203,12 +203,12 @@ def conduct_stationarity_check(df):
     logger.info("Starting KPSS stationarity check")
     statistic, p_value, n_lags, critical_values = kpss(df_pandas.iloc[:, -1])
 
-    print('KPSS Statistic: %f' % statistic)
-    print('p-value: %f' % p_value)
-    print('Critical Values:')
+    logger.info('KPSS Statistic: %f', statistic)
+    logger.info('p-value: %f' % p_value)
+    logger.info('Critical Values:')
 
     for key, value in critical_values.items():
-        print(f'   {key} : {value}')
+        logger.info(f'   {key} : {value}')
 
     logger.info("Completed KPSS stationarity check")
     print(f'\u001b[32mKPSS - The series is {"not " if p_value < 0.05 else ""}Stationary\u001b[0m')
@@ -249,6 +249,8 @@ def build_decomposition_results(df):
         # throughout the time series. This is often seen in indexed time series where the absolute value is
         # growing but changes stay relative.
 
+        logger.info("Time-series data is more than 2 years")
+
         decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
                                                       model='additive',extrapolate_trend='freq')
         residuals_add = get_residuals(decomposition_add)
@@ -263,6 +265,7 @@ def build_decomposition_results(df):
         ssacf_mul = get_ssacf(residuals_mul, df_pandas)
 
         if ssacf_add < ssacf_mul:
+            logger.info("Using Additive model for seasonal decomposition.")
             df_reconstructed = pd.concat([decomposition_add.seasonal, decomposition_add.trend,
                                           decomposition_add.resid, decomposition_add.observed], axis=1)
             df_reconstructed.columns = ['seasonal', 'trend', 'residuals', 'actual_values']
