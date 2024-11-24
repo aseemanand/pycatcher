@@ -13,8 +13,10 @@ classifiers = [
 keywords=["outlier-detection","python","timeseries"]
 readme="README.md"
 packages = [{ include = "pycatcher", from = "src" }]
+include = [
+    "pycatcher/templates/*"
+]
 repository="https://github.com/aseemanand/pycatcher/"
-
 
 [tool.poetry.dependencies]
 pyspark = "^3.0.0"
@@ -38,7 +40,7 @@ prospector = "*"
 jupyterlab = "*"
 
 [tool.poetry.scripts]
-start-flask = "pycatcher.webapp:app"
+start-pycatcher-ui = "pycatcher.webapp:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

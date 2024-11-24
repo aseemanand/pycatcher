@@ -1,77 +1,117 @@
-import os
+from typing import List, Optional
+from pathlib import Path
 import pandas as pd
+from flask import (
+    Flask,
+    request,
+    render_template,
+    redirect,
+    url_for,
+    flash
+)
 from tabulate import tabulate
+from . import create_app
 from .catch import detect_outliers_iqr
-from flask import (Flask, request, render_template,
-                   redirect, url_for, flash)
-
-# Initialize Flask app
-app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')
-app.config['UPLOAD_FOLDER'] = './uploads'
-app.config['ALLOWED_EXTENSIONS'] = {'csv'}
-
-# Ensure upload folder exists
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-
-# Function to check allowed file types
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 
-@app.route("/")
-def index():
-    # return "<h1>Welcome to Your Python Package Web UI</h1>"
-    return render_template('upload.html')
+class FileValidator:
+    """Handles file validation logic."""
+
+    def __init__(self, allowed_extensions: List[str]):
+        self.allowed_extensions = allowed_extensions
+
+    def is_allowed_file(self, filename: str) -> bool:
+        """
+        Check if the given filename has an allowed extension.
+
+        Args:
+            filename (str): Name of the file to check
+
+        Returns:
+            bool: True if file extension is allowed, False otherwise
+        """
+        return ('.' in filename and
+                filename.rsplit('.', 1)[1].lower() in self.allowed_extensions)
 
 
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        flash('No file part')
-        return redirect(request.url)
+class OutlierAnalyzer:
+    """Handles outlier detection and analysis."""
 
-    file = request.files['file']
+    def __init__(self, upload_folder: str):
+        self.upload_folder = upload_folder
 
-    if file.filename == '':
-        flash('No selected file')
-        return redirect(request.url)
+    def process_file(self, file) -> tuple[Optional[str], Optional[str]]:
+        """
+        Process the uploaded file and detect outliers.
 
-    if file and allowed_file(file.filename):
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-        file.save(file_path)
+        Args:
+            file: The uploaded file object
 
-        # Read the CSV file into a Pandas DataFrame
+        Returns:
+            tuple: (message, table_html) or (error_message, None)
+        """
         try:
+            file_path = Path(self.upload_folder) / file.filename
+            file.save(str(file_path))
+
             df = pd.read_csv(file_path)
-            flash(f'File uploaded and read successfully! DataFrame shape: {df.shape}')
+            df_outliers = detect_outliers_iqr(df)
 
-            # Checking if this is an outlier by using IQR
-            df_iqr_outliers = detect_outliers_iqr(df)
+            if not isinstance(df_outliers, pd.DataFrame):
+                return f"File processed: {df_outliers}", None
 
-            if not isinstance(df_iqr_outliers, pd.DataFrame):
-                res = "<h1>File uploaded and read successfully! " + df_iqr_outliers + "!!</h1>"
+            table_html = tabulate(df_outliers, headers='keys', tablefmt='html')
+            message = (f"File '{file.filename}' uploaded successfully! "
+                       f"Found outliers in data shape: {df_outliers.shape}")
 
-                # Return the response
-                return res
-            else:
-                flash(f'Finding Outliers with IQR! DataFrame shape: {df_iqr_outliers.shape}')
-                # Custom message to display with the table
-                message = f"File '{file.filename}' uploaded successfully! Here are the outliers!!"
-
-                res = tabulate(df_iqr_outliers, headers='keys', tablefmt='html')
-
-                # Render the table and message in the template
-                return render_template('result.html', table_html=res, message=message)
+            return message, table_html
 
         except Exception as e:
-            flash(f'Error reading file: {e}')
-            return redirect(url_for('home'))
-
-    else:
-        flash('Invalid file type. Please upload a CSV file to identify the outliers.')
-        return redirect(request.url)
+            return f"Error processing file: {str(e)}", None
 
 
-if __name__ == "__main__":
+def register_routes(app: Flask) -> None:
+    """
+    Register routes for the Flask application.
+
+    Args:
+        app: Flask application instance
+    """
+    file_validator = FileValidator(app.config['ALLOWED_EXTENSIONS'])
+    outlier_analyzer = OutlierAnalyzer(app.config['UPLOAD_FOLDER'])
+
+    @app.route("/")
+    def index():
+        return render_template('upload.html')
+
+    @app.route('/upload', methods=['POST'])
+    def upload_file():
+        if 'file' not in request.files:
+            flash('No file selected')
+            return redirect(request.url)
+
+        file = request.files['file']
+
+        if not file.filename:
+            flash('No file selected')
+            return redirect(request.url)
+
+        if not file_validator.is_allowed_file(file.filename):
+            flash('Invalid file type. Please upload a CSV file.')
+            return redirect(request.url)
+
+        message, table_html = outlier_analyzer.process_file(file)
+
+        if table_html is None:
+            flash(message)
+            return redirect(url_for('index'))
+
+        return render_template('result.html',
+                               table_html=table_html,
+                               message=message)
+
+def main() -> None:
+    """Initialize and run the Flask application."""
+    app = create_app()
+    register_routes(app)
     app.run(debug=True)
