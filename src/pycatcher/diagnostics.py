@@ -228,6 +228,7 @@ def build_decomposition_results(df):
         # If there is an increasing trend, we still see roughly the same size peaks and troughs
         # throughout the time series. This is often seen in indexed time series where the absolute value is
         # growing but changes stay relative.
+        logger.info("Data is more than 2 years.")
 
         decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
                                                       model='additive',extrapolate_trend='freq')
