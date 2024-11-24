@@ -8,7 +8,7 @@ from src.pycatcher.catch import find_outliers_iqr, anomaly_mad, get_residuals, \
     detect_outliers, decompose_and_detect, detect_outliers_iqr
 
 
-# Test case for find_outliers_iqr 11092024
+# Test case for find_outliers_iqr
 def test_find_outliers_iqr():
     # Create a sample DataFrame
     data = {
