@@ -142,6 +142,7 @@ def register_routes(app: Flask) -> None:
                                result=result['data'],
                                message=result['message'])
 
+
 def main() -> None:
     """Initialize and run the Flask application."""
     app = create_app()
