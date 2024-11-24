@@ -1,17 +1,17 @@
-from typing import List, Optional
-from pathlib import Path
 import pandas as pd
+from pathlib import Path
 from flask import (
     Flask,
     request,
     render_template,
     redirect,
     url_for,
+    jsonify,
     flash
 )
-from tabulate import tabulate
 from . import create_app
 from .catch import detect_outliers_iqr
+from typing import List, Dict, Any
 
 
 class FileValidator:
@@ -40,7 +40,7 @@ class OutlierAnalyzer:
     def __init__(self, upload_folder: str):
         self.upload_folder = upload_folder
 
-    def process_file(self, file) -> tuple[Optional[str], Optional[str]]:
+    def process_file(self, file) -> Dict[str, Any]:
         """
         Process the uploaded file and detect outliers.
 
@@ -58,57 +58,89 @@ class OutlierAnalyzer:
             df_outliers = detect_outliers_iqr(df)
 
             if not isinstance(df_outliers, pd.DataFrame):
-                return f"File processed: {df_outliers}", None
+                return {
+                    'success': True,
+                    'message': f"Output: {df_outliers}",
+                    'data': None
+                }
 
-            table_html = tabulate(df_outliers, headers='keys', tablefmt='html')
-            message = (f"File '{file.filename}' uploaded successfully! "
-                       f"Found outliers in data shape: {df_outliers.shape}")
+            # Calculate summary statistics
+            total_rows = len(df)
+            outlier_rows = len(df_outliers)
+            outlier_percentage = (outlier_rows / total_rows) * 100
 
-            return message, table_html
+            # Format table with styling
+            styled_df = df_outliers.style \
+                .set_properties(**{'text-align': 'center'}) \
+                .format(precision=2) \
+                .hide(axis='index') \
+                .to_html()
+
+            return {
+                'success': True,
+                'message': 'Analysis completed successfully',
+                'data': {
+                    'table': styled_df,
+                    'summary': {
+                        'total_rows': total_rows,
+                        'outlier_rows': outlier_rows,
+                        'outlier_percentage': round(outlier_percentage, 2),
+                        'columns_analyzed': list(df.columns)
+                    }
+                }
+            }
 
         except Exception as e:
-            return f"Error processing file: {str(e)}", None
+            return {
+                'success': False,
+                'message': f"Error processing file: {str(e)}",
+                'data': None
+            }
 
 
 def register_routes(app: Flask) -> None:
-    """
-    Register routes for the Flask application.
-
-    Args:
-        app: Flask application instance
-    """
+    """Register routes for the Flask application."""
     file_validator = FileValidator(app.config['ALLOWED_EXTENSIONS'])
     outlier_analyzer = OutlierAnalyzer(app.config['UPLOAD_FOLDER'])
 
     @app.route("/")
     def index():
-        return render_template('upload.html')
+        return render_template('index.html')
 
     @app.route('/upload', methods=['POST'])
     def upload_file():
         if 'file' not in request.files:
-            flash('No file selected')
-            return redirect(request.url)
+            return jsonify({
+                'success': False,
+                'message': 'No file selected'
+            })
 
         file = request.files['file']
 
         if not file.filename:
-            flash('No file selected')
-            return redirect(request.url)
+            return jsonify({
+                'success': False,
+                'message': 'No file selected'
+            })
 
         if not file_validator.is_allowed_file(file.filename):
-            flash('Invalid file type. Please upload a CSV file.')
-            return redirect(request.url)
+            return jsonify({
+                'success': False,
+                'message': 'Invalid file type. Please upload a CSV file.'
+            })
 
-        message, table_html = outlier_analyzer.process_file(file)
+        result = outlier_analyzer.process_file(file)
 
-        if table_html is None:
-            flash(message)
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(result)
+
+        if not result['success']:
+            flash(result['message'], 'error')
             return redirect(url_for('index'))
 
         return render_template('result.html',
-                               table_html=table_html,
-                               message=message)
+                               result=result['data'],
+                               message=result['message'])
 
 def main() -> None:
     """Initialize and run the Flask application."""
