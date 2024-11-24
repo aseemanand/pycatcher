@@ -183,11 +183,11 @@ def conduct_stationarity_check(df):
     # Perform Augmented Dickey-Fuller test
     adf_result = adfuller(df_pandas.iloc[:, -1])
 
-    logger.info("ADF Statistic: ", round(adf_result[0], 6))
-    logger.info("p-value: ", round(adf_result[1], 6))
+    logger.info("ADF Statistic: ", adf_result[0])
+    logger.info("p-value: ", adf_result[1])
     logger.info("Critical Values:")
     for key, value in adf_result[4].items():
-        logger.info("\t", key,  ":", round(value, 3))
+        logger.info("\t", key, ":", round(value, 3))
 
     if (adf_result[1] <= 0.05) & (adf_result[4]['5%'] > adf_result[0]):
         logger.info("Completed ADF stationarity check")
@@ -203,7 +203,7 @@ def conduct_stationarity_check(df):
     logger.info("Starting KPSS stationarity check")
     statistic, p_value, n_lags, critical_values = kpss(df_pandas.iloc[:, -1])
 
-    logger.info('KPSS Statistic: %f', statistic)
+    logger.info('KPSS Statistic: %f' % statistic)
     logger.info('p-value: %f' % p_value)
     logger.info('Critical Values:')
 
