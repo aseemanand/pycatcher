@@ -72,7 +72,10 @@ __all__ = [
     "build_seasonal_plot",
     "build_monthwise_plot",
     "conduct_stationarity_check",
-    "build_decomposition_results"
+    "build_decomposition_results",
+    
+    # Web app
+    "create_app"
 ]
 
 

@@ -112,7 +112,8 @@ def register_routes(app: Flask) -> None:
         if 'file' not in request.files:
             return jsonify({
                 'success': False,
-                'message': 'No file selected'
+                'message': 'No file selected',
+                'data': {}
             })
 
         file = request.files['file']
@@ -120,7 +121,8 @@ def register_routes(app: Flask) -> None:
         if not file.filename:
             return jsonify({
                 'success': False,
-                'message': 'No file selected'
+                'message': 'No file selected',
+                'data': {}
             })
 
         if not file_validator.is_allowed_file(file.filename):
@@ -131,7 +133,7 @@ def register_routes(app: Flask) -> None:
 
         result = outlier_analyzer.process_file(file)
 
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or app.config["TESTING"]:
             return jsonify(result)
 
         if not result['success']:
