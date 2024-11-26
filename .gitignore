@@ -133,3 +133,6 @@ credentials.json
 # Ignore all coverage-related data
 .coverage
 .coverage.*
+
+# Ignore uploads directory
+uploads/

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Outlier Analysis With PyCatcher</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .upload-area {
+            border: 2px dashed #CBD5E1;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #3B82F6;
+        }
+        .loading {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">Data Outlier Analysis With PyCatcher</h1>
+            <p class="text-gray-600 max-w-2xl mx-auto">
+                Please upload your CSV file to detect and analyze outliers in your dataset.
+            </p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-2xl mx-auto">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Upload Form -->
+            <form id="uploadForm" action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" class="space-y-6">
+                <div class="upload-area bg-white rounded-lg p-8 text-center cursor-pointer">
+                    <input type="file" name="file" id="fileInput" accept=".csv" class="hidden">
+                    <div class="space-y-4">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <div class="flex text-sm text-gray-600">
+                            <label for="fileInput" class="relative cursor-pointer rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
+                                <span>Upload a file</span>
+                            </label>
+                            <p class="pl-1">or drag and drop</p>
+                        </div>
+                        <p class="text-xs text-gray-500">CSV files only</p>
+                    </div>
+                </div>
+
+                <!-- Selected File Name -->
+                <div id="selectedFile" class="hidden text-center text-sm text-gray-600"></div>
+
+                <!-- Upload Button -->
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200">
+                    Analyze Data
+                </button>
+            </form>
+
+            <!-- Loading Indicator -->
+            <div class="loading text-center mt-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+                <p class="mt-2 text-gray-600">Processing your data...</p>
+            </div>
+
+            <!-- Results Container -->
+            <div id="results" class="mt-8"></div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        $(document).ready(function() {
+            const form = $('#uploadForm');
+            const fileInput = $('#fileInput');
+            const uploadArea = $('.upload-area');
+            const selectedFile = $('#selectedFile');
+            const loading = $('.loading');
+            const results = $('#results');
+
+            // Handle drag and drop
+            uploadArea.on('dragover', function(e) {
+                e.preventDefault();
+                $(this).addClass('border-blue-600');
+            });
+
+            uploadArea.on('dragleave', function(e) {
+                e.preventDefault();
+                $(this).removeClass('border-blue-600');
+            });
+
+            uploadArea.on('drop', function(e) {
+                e.preventDefault();
+                $(this).removeClass('border-blue-600');
+                const files = e.originalEvent.dataTransfer.files;
+                fileInput.prop('files', files);
+                updateFileName(files[0]);
+            });
+
+            // Handle file selection
+            fileInput.on('change', function() {
+                const file = this.files[0];
+                updateFileName(file);
+            });
+
+            function updateFileName(file) {
+                if (file) {
+                    selectedFile.html(`Selected file: <span class="font-medium">${file.name}</span>`).removeClass('hidden');
+                } else {
+                    selectedFile.addClass('hidden');
+                }
+            }
+
+            // Handle form submission
+            form.on('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+
+                loading.show();
+                results.html('');
+
+                $.ajax({
+                    url: form.attr('action'),
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        loading.hide();
+                        if (response.success) {
+                            if (response.data) {
+                                const summary = response.data.summary;
+                                results.html(`
+                                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                                        <h2 class="text-xl font-semibold mb-4">Analysis Results</h2>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                            <div class="p-4 bg-gray-50 rounded-lg">
+                                                <p class="text-sm text-gray-600">Total Rows</p>
+                                                <p class="text-2xl font-bold">${summary.total_rows}</p>
+                                            </div>
+                                            <div class="p-4 bg-gray-50 rounded-lg">
+                                                <p class="text-sm text-gray-600">Outliers Found</p>
+                                                <p class="text-2xl font-bold">${summary.outlier_rows}</p>
+                                            </div>
+                                            <div class="p-4 bg-gray-50 rounded-lg">
+                                                <p class="text-sm text-gray-600">Outlier Percentage</p>
+                                                <p class="text-2xl font-bold">${summary.outlier_percentage}%</p>
+                                            </div>
+                                            <div class="p-4 bg-gray-50 rounded-lg">
+                                                <p class="text-sm text-gray-600">Columns Analyzed</p>
+                                                <p class="text-sm font-medium">${summary.columns_analyzed.join(', ')}</p>
+                                            </div>
+                                        </div>
+                                        <h2 class="text-xl font-semibold mb-4">Here are the outliers from the given dataset!</h2>
+                                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 mb-6">
+                                            <div class="p-4 bg-gray-300 rounded-lg">
+                                                <p class="text-sm font-medium">${response.data.table}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `);
+                            } else {
+                                results.html(`
+                                    <div class="bg-green-100 text-green-700 p-4 rounded-lg">
+                                        ${response.message}
+                                    </div>
+                                `);
+                            }
+                        } else {
+                            results.html(`
+                                <div class="bg-red-100 text-red-700 p-4 rounded-lg">
+                                    ${response.message}
+                                </div>
+                            `);
+                        }
+                    },
+                    error: function() {
+                        loading.hide();
+                        results.html(`
+                            <div class="bg-red-100 text-red-700 p-4 rounded-lg">
+                                An error occurred while processing your request.
+                            </div>
+                        `);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
