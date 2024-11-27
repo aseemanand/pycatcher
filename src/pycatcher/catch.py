@@ -528,8 +528,7 @@ def generate_outliers_stl(df, type, period) -> pd.DataFrame:
         transformed_data, lambda_ = stats.boxcox(df_mul['count'])
 
         df_mul['count'] = transformed_data
-        df_mul_new = df_mul.copy()
-        stl = STL(df_mul_new.iloc[:,-1], period=period)
+        stl = STL(df_mul['count'], period=period)
         result = stl.fit()
 
         # Back-transform if Box-Cox was applied
@@ -630,10 +629,14 @@ def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
         logging.info("Additive model detected")
         type = 'additive'
         df_outliers = generate_outliers_stl(df_stl, type, detected_period)
-        print(df_outliers)
+        return_outliers = df_outliers.iloc[:, :2]
+        return_outliers.reset_index(drop=True, inplace=True)
+        print (return_outliers)
     else:
         logging.info("Multiplicative model detected")
         type = 'multiplicative'
         df_outliers = generate_outliers_stl(df_stl, type, detected_period)
-        print(df_outliers)
+        return_outliers = df_outliers.iloc[:, :2]
+        return_outliers.reset_index(drop=True, inplace=True)
+        print(return_outliers)
     logging.info("Completing outlier detection using STL")
