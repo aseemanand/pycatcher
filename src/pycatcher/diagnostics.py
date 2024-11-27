@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import (adfuller,kpss)
 from statsmodels.tsa.seasonal import STL
 import statsmodels.api as sm
+import numpy as np
+from datetime import datetime
 
 from .catch import get_residuals, get_ssacf, calculate_optimal_window_size,generate_outliers_stl
 
@@ -58,12 +60,13 @@ def build_seasonal_plot(df):
     else:
         df_pandas = df
 
+    df_season = df_pandas.copy()
     # Ensure the first column is in datetime format and set it as index
-    df_pandas.iloc[:, 0] = pd.to_datetime(df_pandas.iloc[:, 0])
-    df_pandas = df_pandas.set_index(df_pandas.columns[0]).asfreq('D').dropna()
+    df_season.iloc[:, 0] = pd.to_datetime(df_season.iloc[:, 0])
+    df_season = df_season.set_index(df_season.columns[0]).asfreq('D').dropna()
 
     # Find length of time period to decide right outlier algorithm
-    length_year = len(df_pandas.index) // 365.25
+    length_year = len(df_season.index) // 365.25
 
     logger.info("Time-series data length: %.2f years", length_year)
 
@@ -79,18 +82,18 @@ def build_seasonal_plot(df):
         # throughout the time series. This is often seen in indexed time series where the
         # absolute value is growing but changes stay relative.
 
-        decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+        decomposition_add = sm.tsa.seasonal_decompose(df_season.iloc[:, -1],
                                                       model='additive', extrapolate_trend='freq')
         residuals_add = get_residuals(decomposition_add)
 
-        decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+        decomposition_mul = sm.tsa.seasonal_decompose(df_season.iloc[:, -1],
                                                       model='multiplicative', extrapolate_trend='freq')
         residuals_mul = get_residuals(decomposition_mul)
 
         # Get ACF values for both Additive and Multiplicative models
 
-        ssacf_add = get_ssacf(residuals_add, df_pandas)
-        ssacf_mul = get_ssacf(residuals_mul, df_pandas)
+        ssacf_add = get_ssacf(residuals_add, df_season)
+        ssacf_mul = get_ssacf(residuals_mul, df_season)
 
         # print('ssacf_add:', ssacf_add)
         # print('ssacf_mul:', ssacf_mul)
@@ -149,10 +152,11 @@ def build_monthwise_plot(df):
     else:
         df_pandas = df
 
-    df_pandas['Month-Year'] = pd.to_datetime(df_pandas.iloc[:, 0]).dt.to_period('M')
-    df_pandas['Count'] = pd.to_numeric(df_pandas.iloc[:, 1])
+    df_month = df_pandas.copy()
+    df_month['Month-Year'] = pd.to_datetime(df_month.iloc[:, 0]).dt.to_period('M')
+    df_month['Count'] = pd.to_numeric(df_month.iloc[:, 1])
     plt.figure(figsize=(30, 4))
-    sns.boxplot(x='Month-Year', y='Count', data=df_pandas).set_title("Month-wise Box Plot")
+    sns.boxplot(x='Month-Year', y='Count', data=df_month).set_title("Month-wise Box Plot")
     plt.show()
 
 
@@ -310,7 +314,7 @@ def build_moving_average_outliers_plot(df: pd.DataFrame) -> plt:
 
     # Ensure the DataFrame is indexed correctly
     if not isinstance(df_pandas.index, pd.DatetimeIndex):
-        df_pandas = df_pandas.set_index(pd.to_datetime(df.iloc[:, 0]))
+        df_pandas = df_pandas.set_index(pd.to_datetime(df_pandas.iloc[:, 0]))
 
     # Calculate moving average
     df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
@@ -365,7 +369,7 @@ def build_stl_outliers_plot(df) -> plt:
     else:
         df_pandas = df
 
-        # Ensure the first column is in datetime format and set it as index
+    # Ensure the first column is in datetime format and set it as index
     df_stl = df_pandas.copy()
     df_stl.iloc[:, 0] = df_stl.iloc[:, 0].apply(pd.to_datetime)
     df_stl = df_stl.set_index(df_stl.columns[0]).dropna()

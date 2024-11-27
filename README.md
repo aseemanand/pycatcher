@@ -7,7 +7,7 @@ day, week, month and quarter level time-series data.
 
 #### DataFrame Arguments:
 * First column in the dataframe must be a date column ('YYYY-MM-DD') and the last column a numeric column 
-(sum or total count for the time period) to detect outliers using Classical Seasonal Decomposition algorithm.
+(sum or total count for the time period) to detect outliers using Seasonal Decomposition algorithms.
 * Last column must be a numeric column to detect outliers using Moving Average and Z-score algorithm. 
 
 #### Package Functions:

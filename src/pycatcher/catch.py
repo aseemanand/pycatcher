@@ -4,8 +4,9 @@ from typing import Union
 import numpy as np
 import pandas as pd
 import re as regex
-
+import warnings
 from pyod.models.mad import MAD
+from pyspark.sql.connect.functions import column
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import mean_squared_error
@@ -15,9 +16,12 @@ from scipy.special import inv_boxcox
 import statsmodels.api as sm
 from scipy import stats
 
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+#warnings.resetwarnings()
 
 def check_and_convert_date(df: pd.DataFrame) -> pd.DataFrame:
     """Checks if the first column of a DataFrame is in date format, and converts it to 'yyyy-mm-dd' format if necessary."""
@@ -93,7 +97,6 @@ def anomaly_mad(model_type: BaseEstimator) -> pd.DataFrame:
 
     return is_outlier
 
-
 def get_residuals(model_type: BaseEstimator) -> np.ndarray:
     """
     Get the residuals of a fitted model, removing any NaN values.
@@ -115,7 +118,6 @@ def get_residuals(model_type: BaseEstimator) -> np.ndarray:
     logging.info("Number of residuals after NaN removal: %d", len(residuals_cleaned))
 
     return residuals_cleaned
-
 
 def sum_of_squares(array: np.ndarray) -> float:
     """
@@ -520,24 +522,14 @@ def generate_outliers_stl(df, type, period) -> pd.DataFrame:
     else:
         logging.info("Outlier detection using STL Multiplicative Model")
         df_mul = df.copy()
+        df_mul['count'] = df_mul.iloc[:,-1].astype('float64')
 
         # Apply Box-Cox transformation
-        df_box = df_mul.copy()
+        transformed_data, lambda_ = stats.boxcox(df_mul['count'])
 
-        logging.info("Before")
-        print('\n')
-        df_mul.iloc[:, -1] = df_mul.iloc[:, -1].astype('float64')
-        logging.info("df_mul.iloc[:, -1].dtype: %s", df_mul.iloc[:, -1].dtype )
-
-        transformed_data, lambda_ = stats.boxcox(df_mul.iloc[:, -1])
-
-        df_mul.iloc[:, -1] = transformed_data
-
-        logging.info("After")
-        logging.info("transformed_data.dtype: %s", transformed_data.dtype)
-        logging.info("df_mul.iloc[:, -1].dtype: %s", df_mul.iloc[:, -1].dtype)
-
-        stl = STL(df_mul, period=period)
+        df_mul['count'] = transformed_data
+        df_mul_new = df_mul.copy()
+        stl = STL(df_mul_new.iloc[:,-1], period=period)
         result = stl.fit()
 
         # Back-transform if Box-Cox was applied
@@ -574,7 +566,6 @@ def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
     Returns:
         str or pd.DataFrame: A message with None found or a DataFrame with detected outliers.
     """
-
     logging.info("Starting outlier detection using STL")
 
     # Check whether the argument is Pandas dataframe
@@ -586,8 +577,9 @@ def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
 
     # Ensure the first column is in datetime format and set it as index
     df_stl = df_pandas.copy()
-    df_stl.iloc[:, 0] = df_stl.iloc[:, 0].apply(pd.to_datetime)
-    df_stl = df_stl.set_index(df_stl.columns[0]).dropna()
+    # Ensure the DataFrame is indexed correctly
+    if not isinstance(df_stl.index, pd.DatetimeIndex):
+        df_stl = df_stl.set_index(pd.to_datetime(df_stl.iloc[:, 0])).dropna()
 
     # Ensure the datetime index is unique (no duplicate dates)
     if df_stl.index.is_unique:
@@ -642,15 +634,6 @@ def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
     else:
         logging.info("Multiplicative model detected")
         type = 'multiplicative'
-        # Ensure the column is numeric
-        #df_stl.iloc[:, -1] = pd.to_numeric(df_stl.iloc[:, -1])
-        #if pd.api.types.is_integer_dtype(df_stl.iloc[:, -1]):
-        #    df_stl.iloc[:, -1] = df_stl.iloc[:, -1].astype('float64')
-        #elif pd.api.types.is_float_dtype(df_stl.iloc[:, -1]):
-        #    df_stl.iloc[:, -1] = df_stl.iloc[:, -1]
-        #else:
-        #    raise ValueError("Count column is not in a recognizable format")
         df_outliers = generate_outliers_stl(df_stl, type, detected_period)
         print(df_outliers)
-
     logging.info("Completing outlier detection using STL")
