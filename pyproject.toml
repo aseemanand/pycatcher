@@ -25,6 +25,7 @@ pandas = "==2.2.3"
 statsmodels = "==0.14.4"
 pyod = "==2.0.2"
 seaborn = "==0.13.2"
+pyarrow = "^18.1.0"
 flask = "^3.1.0"
 
 [tool.poetry.dev-dependencies]
