@@ -1,7 +1,6 @@
 import pytest
 import numpy as np
 import pandas as pd
-import pyarrow
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 from src.pycatcher.catch import find_outliers_iqr, anomaly_mad, get_residuals, \

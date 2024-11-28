@@ -4,9 +4,7 @@ from typing import Union
 import numpy as np
 import pandas as pd
 import re as regex
-import pyarrow
 from pyod.models.mad import MAD
-from pyspark.sql.connect.functions import column
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import mean_squared_error
