@@ -1,15 +1,18 @@
 import logging
+from datetime import datetime
+import re as regex
 import pandas as pd
 import seaborn as sns
-import statsmodels.api as sm
 import matplotlib.pyplot as plt
-from statsmodels.tsa.stattools import (adfuller,kpss)
+from statsmodels.tsa.stattools import (adfuller, kpss)
 from statsmodels.tsa.seasonal import STL
 import statsmodels.api as sm
 import numpy as np
-from datetime import datetime
 
-from .catch import get_residuals, get_ssacf, calculate_optimal_window_size,generate_outliers_stl
+from .catch import (get_residuals,
+                    get_ssacf,
+                    calculate_optimal_window_size,
+                    generate_outliers_stl)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -92,8 +95,8 @@ def build_seasonal_plot(df):
 
         # Get ACF values for both Additive and Multiplicative models
 
-        ssacf_add = get_ssacf(residuals_add, df_season)
-        ssacf_mul = get_ssacf(residuals_mul, df_season)
+        ssacf_add = get_ssacf(residuals_add)
+        ssacf_mul = get_ssacf(residuals_mul)
 
         # print('ssacf_add:', ssacf_add)
         # print('ssacf_mul:', ssacf_mul)
@@ -202,7 +205,6 @@ def conduct_stationarity_check(df):
         logger.info("Completed ADF stationarity check")
         print("\x1b[31mADF - The series is not Stationary\x1b[0m")
 
-
     print("\n")
 
     # Perform KPSS test
@@ -211,6 +213,7 @@ def conduct_stationarity_check(df):
 
     logger.info('KPSS Statistic: %f', statistic)
     logger.info('p-value: %f', p_value)
+    logger.info('n_lags: %f', n_lags)
     logger.info('Critical Values:')
 
     for key, value in critical_values.items():
@@ -258,17 +261,18 @@ def build_decomposition_results(df):
         logger.info("Time-series data is more than 2 years")
 
         decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
-                                                      model='additive',extrapolate_trend='freq')
+                                                      model='additive',
+                                                      extrapolate_trend='freq')
         residuals_add = get_residuals(decomposition_add)
 
         decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
-                                                      model='multiplicative',extrapolate_trend='freq')
+                                                      model='multiplicative',
+                                                      extrapolate_trend='freq')
         residuals_mul = get_residuals(decomposition_mul)
 
         # Get ACF values for both Additive and Multiplicative models
-
-        ssacf_add = get_ssacf(residuals_add, df_pandas)
-        ssacf_mul = get_ssacf(residuals_mul, df_pandas)
+        ssacf_add = get_ssacf(residuals_add)
+        ssacf_mul = get_ssacf(residuals_mul)
 
         if ssacf_add < ssacf_mul:
             logger.info("Using Additive model for seasonal decomposition.")
@@ -284,7 +288,7 @@ def build_decomposition_results(df):
             return df_reconstructed
     else:
         logger.info("Data is less than 2 years.")
-        print ("Data is less than 2 years. No seasonal decomposition")
+        print("Data is less than 2 years. No seasonal decomposition")
 
 
 def build_moving_average_outliers_plot(df: pd.DataFrame) -> plt:
@@ -333,8 +337,7 @@ def build_moving_average_outliers_plot(df: pd.DataFrame) -> plt:
     lower_bound = df1['moving_average'] - 2 * df_pandas.iloc[:, -1].rolling(window=optimal_window_size).std()
 
     # Identify outliers
-    outliers = df1[(df1['above_threshold'] == True) | (df1['below_threshold'] == True)].dropna()
-    return_outliers = outliers.iloc[:, 1]
+    outliers = df1[(df1['above_threshold']) | (df1['below_threshold'])].dropna()
 
     # Plot the data
     plt.figure(figsize=(20, 8))
@@ -346,6 +349,7 @@ def build_moving_average_outliers_plot(df: pd.DataFrame) -> plt:
     plt.scatter(outliers.index, outliers.iloc[:, 1], color='green', label='Outliers')
     plt.legend()
     logging.info("Completed outliers plotting using Moving Average method")
+
 
 def build_stl_outliers_plot(df) -> plt:
     """
@@ -386,50 +390,57 @@ def build_stl_outliers_plot(df) -> plt:
 
         match inferred_frequency:
             case 'H':
-                # logging.info("Using seasonal trend decomposition for for outlier detection in hour level time-series.")
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # hour level time-series.")
                 detected_period = 24  # Hourly seasonality
             case 'D':
-                # logging.info("Using seasonal trend decomposition for for outlier detection in day level time-series.")
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # day level time-series.")
                 detected_period = 365  # Yearly seasonality
             case 'B':
-                # logging.info("Using seasonal trend decomposition for outlier detection in business day level time-series.")
+                # logging.info("Using seasonal trend decomposition for outlier detection in business
+                # day level time-series.")
                 detected_period = 365  # Yearly seasonality
             case 'MS':
-                # logging.info("Using seasonal trend decomposition for for outlier detection in month level time-series.")
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # month level time-series.")
                 detected_period = 12
             case 'M':
-                # logging.info("Using seasonal trend decomposition for for outlier detection in month level time-series.")
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # month level time-series.")
                 detected_period = 12
             case 'Q':
-                # logging.info("Using seasonal trend decomposition for for outlier detection in quarter level time-series.")
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # quarter level time-series.")
                 detected_period = 4  # Quarterly seasonality
             case 'A':
-                # logging.info("Using seasonal trend decomposition for for outlier detection in annual level time-series.")
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # annual level time-series.")
                 detected_period = 1  # Annual seasonality
             case _:
                 if regex.match(regex_week_check, inferred_frequency):
                     detected_period = 52  # Week level seasonality
                 else:
                     raise ValueError("Could not infer a valid period from the data's frequency.")
+
+        # Try both additive and multiplicative models before selecting the right one
+        stl_additive = STL(df_stl.iloc[:, -1], period=detected_period).fit()
+        stl_multiplicative = STL(df_stl.iloc[:, -1].apply(np.log), period=detected_period).fit()
+
+        # Choose the model with lower variance in residuals
+        if np.var(stl_additive.resid) < np.var(stl_multiplicative.resid):
+            logging.info("Additive Model Detected")
+            type = 'additive'
+            df_outliers = generate_outliers_stl(df_stl, type, detected_period)
+        else:
+            logging.info("Multiplicative model detected")
+            type = 'multiplicative'
+            df_outliers = generate_outliers_stl(df_stl, type, detected_period)
+
+        plt.figure(figsize=(10, 4))
+        plt.plot(df_stl)
+        for date in df_outliers.index:
+            plt.axvline(datetime(date.year, date.month, date.day), color='k', linestyle='--', alpha=0.5)
+        plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='r', marker='D')
     else:
         print("Duplicate date index values. Check your data.")
-
-    # Try both additive and multiplicative models before selecting the right one
-    stl_additive = STL(df_stl.iloc[:, -1], period=detected_period).fit()
-    stl_multiplicative = STL(df_stl.iloc[:, -1].apply(np.log), period=detected_period).fit()
-
-    # Choose the model with lower variance in residuals
-    if np.var(stl_additive.resid) < np.var(stl_multiplicative.resid):
-        logging.info("Additive Model Detected")
-        type = 'additive'
-        df_outliers = generate_outliers_stl(df_stl, type, detected_period)
-    else:
-        logging.info("Multiplicative model detected")
-        type = 'multiplicative'
-        df_outliers = generate_outliers_stl(df_stl, type, detected_period)
-
-    plt.figure(figsize=(10, 4))
-    plt.plot(df_stl)
-    for date in df_outliers.index:
-        plt.axvline(datetime(date.year, date.month, date.day), color='k', linestyle='--', alpha=0.5)
-    plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='r', marker='D')
