@@ -1,5 +1,6 @@
-import pandas as pd
 from pathlib import Path
+from typing import List, Dict, Any
+import pandas as pd
 from flask import (
     Flask,
     request,
@@ -11,7 +12,6 @@ from flask import (
 )
 from . import create_app
 from .catch import detect_outliers_iqr
-from typing import List, Dict, Any
 
 
 class FileValidator:

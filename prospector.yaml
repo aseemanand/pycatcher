@@ -8,13 +8,16 @@ ignore-paths:
   - .eggs
   - .mypy_cache
   - htmlcov
-  - spark_expectations/examples/
   - tests  #commented until test scripts corrected
 
 
 max-line-length: 120
 
 pylint:
+  run: true
+  output-format: text
+  jobs: 1
+  reports: no
   disable:
     - too-many-lines
     - too-many-branches
@@ -37,6 +40,8 @@ pylint:
     - broad-except
     - arguments-differ
     - W0622 # getting error - built-in is being redefined: Redefining built-in 'round' (redefined-builtin).
+  enable-extensions:
+    - all
 
 mccabe:
   disable:

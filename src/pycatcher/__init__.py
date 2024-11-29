@@ -19,8 +19,8 @@ For more information, visit: https://github.com/aseemanand/pycatcher/blob/main/R
 import os
 import logging
 from pathlib import Path
-from flask import Flask
 from logging.handlers import RotatingFileHandler
+from flask import Flask
 
 # Import PyCatcher API functions
 from pycatcher.catch import (
@@ -81,7 +81,7 @@ __all__ = [
     "generate_outliers_stl",
     "detect_outliers_stl",
     "build_stl_outliers_plot",
-    
+
     # Web app
     "create_app"
 ]

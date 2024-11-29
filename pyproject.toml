@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pycatcher"
-version = "0.0.31"
+version = "0.0.32"
 description = "This package identifies outlier(s) for a given time-series dataset in simple steps. It supports day, week, month and quarter level time-series data."
 authors = ["Aseem Anand <aseemanand@gmail.com>"]
 maintainers = ["Jagadish Pamarthi <jagadish.vrsec@gmail.com>"]
@@ -20,7 +20,7 @@ repository="https://github.com/aseemanand/pycatcher/"
 
 [tool.poetry.dependencies]
 pyspark = "^3.0.0"
-python = ">=3.9"
+python = ">=3.9,<4.0"
 pandas = "==2.2.3"
 statsmodels = "==0.14.4"
 pyod = "==2.0.2"
@@ -31,11 +31,11 @@ flask = "^3.1.0"
 build = "^1.2.2"
 setuptools = "^75.1.0"
 pytest = "*"
+pylint = "*"
 pytest-cov = "*"
-pytest-pylint = "*"
 pytest-mock = "^3.14.0"
 coverage = "*"
-prospector = "*"
+prospector = "^1.13.3"
 jupyterlab = "*"
 
 [tool.poetry.scripts]

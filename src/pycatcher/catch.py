@@ -1,28 +1,29 @@
-import math
 import logging
 from typing import Union
+import re as regex
 import numpy as np
 import pandas as pd
-import re as regex
 from pyod.models.mad import MAD
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import mean_squared_error
 from statsmodels.tsa.seasonal import STL
 from statsmodels.tsa.stattools import acf
-from scipy.special import inv_boxcox
 import statsmodels.api as sm
 from scipy import stats
+from scipy.special import inv_boxcox
 
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-#warnings.resetwarnings()
+# warnings.resetwarnings()
+
 
 def check_and_convert_date(df: pd.DataFrame) -> pd.DataFrame:
-    """Checks if the first column of a DataFrame is in date format, and converts it to 'yyyy-mm-dd' format if necessary."""
+    """Checks if the first column of a DataFrame is in date format,
+       and converts it to 'yyyy-mm-dd' format if necessary."""
 
     first_col_name = df.columns[0]
 
@@ -38,6 +39,7 @@ def check_and_convert_date(df: pd.DataFrame) -> pd.DataFrame:
         except ValueError:
             print("First column is not in a recognizable date format.")
     return df
+
 
 def find_outliers_iqr(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -95,6 +97,7 @@ def anomaly_mad(model_type: BaseEstimator) -> pd.DataFrame:
 
     return is_outlier
 
+
 def get_residuals(model_type: BaseEstimator) -> np.ndarray:
     """
     Get the residuals of a fitted model, removing any NaN values.
@@ -116,6 +119,7 @@ def get_residuals(model_type: BaseEstimator) -> np.ndarray:
     logging.info("Number of residuals after NaN removal: %d", len(residuals_cleaned))
 
     return residuals_cleaned
+
 
 def sum_of_squares(array: np.ndarray) -> float:
     """
@@ -141,13 +145,12 @@ def sum_of_squares(array: np.ndarray) -> float:
     return float(sum_of_squares_value)
 
 
-def get_ssacf(residuals: np.ndarray, df_pandas: pd.DataFrame) -> float:
+def get_ssacf(residuals: np.ndarray) -> float:
     """
     Get the sum of squares of the Auto Correlation Function (ACF) of the residuals.
 
     Args:
         residuals (np.ndarray): A NumPy array containing the residuals.
-        df_pandas (pd.DataFrame): A pandas DataFrame containing the data.
 
     Returns:
         float: The sum of squares of the ACF of the residuals.
@@ -308,17 +311,19 @@ def decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
 
     # Decompose the series using both additive and multiplicative models
     decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
-                                                  model='additive',extrapolate_trend='freq')
+                                                  model='additive',
+                                                  extrapolate_trend='freq')
     decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
-                                                  model='multiplicative',extrapolate_trend='freq')
+                                                  model='multiplicative',
+                                                  extrapolate_trend='freq')
 
     # Get residuals from both decompositions
     residuals_add: pd.Series = get_residuals(decomposition_add)
     residuals_mul: pd.Series = get_residuals(decomposition_mul)
 
     # Calculate Sum of Squares of the ACF for both models
-    ssacf_add: float = get_ssacf(residuals_add, df_pandas)
-    ssacf_mul: float = get_ssacf(residuals_mul, df_pandas)
+    ssacf_add: float = get_ssacf(residuals_add)
+    ssacf_mul: float = get_ssacf(residuals_mul)
 
     # Return the outliers detected by the model with the smaller ACF value
     if ssacf_add < ssacf_mul:
@@ -373,6 +378,7 @@ def detect_outliers_iqr(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     logging.info("Outliers detected using IQR: %d rows.", len(df_outliers))
 
     return df_outliers
+
 
 def calculate_rmse(df: pd.DataFrame, window_size: int) -> list:
     """
@@ -443,6 +449,7 @@ def calculate_optimal_window_size(df: pd.DataFrame) -> str:
     logging.info("Optimal Window Size: %d", optimal_window_size)
     return optimal_window_size
 
+
 def detect_outliers_moving_average(df: pd.DataFrame) -> str:
     """
      Detect outliers using Moving Average method.
@@ -479,7 +486,7 @@ def detect_outliers_moving_average(df: pd.DataFrame) -> str:
     df1['above_threshold'] = df_pandas.iloc[:, -1] > (df1['moving_average'] + threshold)
     df1['below_threshold'] = df_pandas.iloc[:, -1] < (df1['moving_average'] - threshold)
 
-    outliers = df1[(df1['above_threshold'] == True) | (df1['below_threshold'] == True)].dropna()
+    outliers = df1[(df1['above_threshold']) | (df1['below_threshold'])].dropna()
     return_outliers = outliers.iloc[:, :2]
     return_outliers.reset_index(drop=True, inplace=True)
     logging.info("Outlier detection using Moving Average method completed")
@@ -495,7 +502,8 @@ def generate_outliers_stl(df, type, period) -> pd.DataFrame:
             First column must be a date column ('YYYY-MM-DD')
             and last column should be a count/feature column.
          type: Additive or Multiplicative: STL model type
-         Period: Period parameter should be set to the amount of times we expect the seasonal cycle to re-occur within a year.
+         Period: Period parameter should be set to the amount of times we expect
+            the seasonal cycle to re-occur within a year.
 
     Returns:
         str or pd.DataFrame: A message with None found or a DataFrame with detected outliers.
@@ -507,7 +515,8 @@ def generate_outliers_stl(df, type, period) -> pd.DataFrame:
         logging.info("Outlier detection using STL Additive Model")
         stl = STL(df, period=period)
         result = stl.fit()
-        seasonal, trend, resid = result.seasonal, result.trend, result.resid
+        # seasonal, trend, resid = result.seasonal, result.trend, result.resid
+        resid = result.resid
         resid_mu = resid.mean()
         resid_dev = resid.std()
 
@@ -520,7 +529,7 @@ def generate_outliers_stl(df, type, period) -> pd.DataFrame:
     else:
         logging.info("Outlier detection using STL Multiplicative Model")
         df_mul = df.copy()
-        df_mul['count'] = df_mul.iloc[:,-1].astype('float64')
+        df_mul['count'] = df_mul.iloc[:, -1].astype('float64')
 
         # Apply Box-Cox transformation
         transformed_data, lambda_ = stats.boxcox(df_mul['count'])
@@ -530,13 +539,13 @@ def generate_outliers_stl(df, type, period) -> pd.DataFrame:
         result = stl.fit()
 
         # Back-transform if Box-Cox was applied
-        trend_transformed = inv_boxcox(result.trend, lambda_)
-        seasonal_transformed = inv_boxcox(result.seasonal, lambda_)
+        # trend_transformed = inv_boxcox(result.trend, lambda_)
+        # seasonal_transformed = inv_boxcox(result.seasonal, lambda_)
         residual_transformed = inv_boxcox(result.resid, lambda_)
 
         # Access the components
-        trend = trend_transformed
-        seasonal = seasonal_transformed
+        # trend = trend_transformed
+        # seasonal = seasonal_transformed
         residual = residual_transformed
 
         resid_mu = residual.mean()
@@ -590,51 +599,59 @@ def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
 
         match inferred_frequency:
             case 'H':
-                # logging.info("Using seasonal trend decomposition for for outlier detection in hour level time-series.")
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # hour level time-series.")
                 detected_period = 24  # Hourly seasonality
             case 'D':
-                # logging.info("Using seasonal trend decomposition for for outlier detection in day level time-series.")
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # day level time-series.")
                 detected_period = 365  # Yearly seasonality
             case 'B':
-                # logging.info("Using seasonal trend decomposition for outlier detection in business day level time-series.")
+                # logging.info("Using seasonal trend decomposition for outlier detection in business
+                # day level time-series.")
                 detected_period = 365  # Yearly seasonality
             case 'MS':
-                # logging.info("Using seasonal trend decomposition for for outlier detection in month level time-series.")
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # month level time-series.")
                 detected_period = 12
             case 'M':
-                # logging.info("Using seasonal trend decomposition for for outlier detection in month level time-series.")
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # month level time-series.")
                 detected_period = 12
             case 'Q':
-                # logging.info("Using seasonal trend decomposition for for outlier detection in quarter level time-series.")
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # quarter level time-series.")
                 detected_period = 4  # Quarterly seasonality
             case 'A':
-                # logging.info("Using seasonal trend decomposition for for outlier detection in annual level time-series.")
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # annual level time-series.")
                 detected_period = 1  # Annual seasonality
             case _:
                 if regex.match(regex_week_check, inferred_frequency):
                     detected_period = 52  # Week level seasonality
                 else:
                     raise ValueError("Could not infer a valid period from the data's frequency.")
+
+        # Try both additive and multiplicative models before selecting the right one
+        stl_additive = STL(df_stl.iloc[:, -1], period=detected_period).fit()
+        stl_multiplicative = STL(df_stl.iloc[:, -1].apply(np.log), period=detected_period).fit()
+
+        # Choose the model with lower variance in residuals
+        if np.var(stl_additive.resid) < np.var(stl_multiplicative.resid):
+            logging.info("Additive model detected")
+            type = 'additive'
+            df_outliers = generate_outliers_stl(df_stl, type, detected_period)
+            return_outliers = df_outliers.iloc[:, :2]
+            return_outliers.reset_index(drop=True, inplace=True)
+            print(return_outliers)
+        else:
+            logging.info("Multiplicative model detected")
+            type = 'multiplicative'
+            df_outliers = generate_outliers_stl(df_stl, type, detected_period)
+            return_outliers = df_outliers.iloc[:, :2]
+            return_outliers.reset_index(drop=True, inplace=True)
+            print(return_outliers)
+
+        logging.info("Completing outlier detection using STL")
     else:
         print("Duplicate date index values. Check your data.")
-
-    # Try both additive and multiplicative models before selecting the right one
-    stl_additive = STL(df_stl.iloc[:, -1], period=detected_period).fit()
-    stl_multiplicative = STL(df_stl.iloc[:, -1].apply(np.log), period=detected_period).fit()
-
-    # Choose the model with lower variance in residuals
-    if np.var(stl_additive.resid) < np.var(stl_multiplicative.resid):
-        logging.info("Additive model detected")
-        type = 'additive'
-        df_outliers = generate_outliers_stl(df_stl, type, detected_period)
-        return_outliers = df_outliers.iloc[:, :2]
-        return_outliers.reset_index(drop=True, inplace=True)
-        print (return_outliers)
-    else:
-        logging.info("Multiplicative model detected")
-        type = 'multiplicative'
-        df_outliers = generate_outliers_stl(df_stl, type, detected_period)
-        return_outliers = df_outliers.iloc[:, :2]
-        return_outliers.reset_index(drop=True, inplace=True)
-        print(return_outliers)
-    logging.info("Completing outlier detection using STL")
