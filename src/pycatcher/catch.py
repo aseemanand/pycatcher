@@ -539,13 +539,9 @@ def generate_outliers_stl(df, type, period) -> pd.DataFrame:
         result = stl.fit()
 
         # Back-transform if Box-Cox was applied
-        # trend_transformed = inv_boxcox(result.trend, lambda_)
-        # seasonal_transformed = inv_boxcox(result.seasonal, lambda_)
         residual_transformed = inv_boxcox(result.resid, lambda_)
 
-        # Access the components
-        # trend = trend_transformed
-        # seasonal = seasonal_transformed
+        # Access the residual component
         residual = residual_transformed
 
         resid_mu = residual.mean()
