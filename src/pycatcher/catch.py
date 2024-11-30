@@ -513,11 +513,8 @@ def generate_outliers_stl(df, type, period) -> pd.DataFrame:
 
     if type == 'additive':
         logging.info("Outlier detection using STL Additive Model")
-        df['count'] = pd.to_numeric(df.iloc[:, -1])
-        df.column
-
-        print("check df:",df)
-        stl = STL(df, period=period)
+        df_add = df.copy()
+        stl = STL(df_add.iloc[:, -1], period=period)
         result = stl.fit()
         resid = result.resid
         resid_mu = resid.mean()
