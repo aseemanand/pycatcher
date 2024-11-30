@@ -8,6 +8,7 @@ from statsmodels.tsa.stattools import (adfuller, kpss)
 from statsmodels.tsa.seasonal import STL
 import statsmodels.api as sm
 import numpy as np
+from scipy import stats
 
 from .catch import (get_residuals,
                     get_ssacf,
@@ -423,24 +424,35 @@ def build_stl_outliers_plot(df) -> plt:
                 else:
                     raise ValueError("Could not infer a valid period from the data's frequency.")
 
+        derived_seasonal = detected_period + ((detected_period % 2) == 0)  # Ensure odd
+        print("Detected Period: ", detected_period)
+        print("Derived Seasonal: ", derived_seasonal)
+
         # Try both additive and multiplicative models before selecting the right one
-        stl_additive = STL(df_stl.iloc[:, -1], period=detected_period).fit()
-        stl_multiplicative = STL(df_stl.iloc[:, -1].apply(np.log), period=detected_period).fit()
+        # Apply Box-Cox transformation for multiplicative model
+        df_box = df_stl.copy()
+        df_box['count'] = df_stl.iloc[:, -1].astype('float64')
+        df_box['transformed_data'], lambda_value = stats.boxcox(df_box['count'])
+        result_mul = STL(df_box['transformed_data'], seasonal=derived_seasonal, period=detected_period).fit()
+
+        result_add = STL(df_stl.iloc[:, -1], seasonal=derived_seasonal, period=detected_period).fit()
 
         # Choose the model with lower variance in residuals
-        if np.var(stl_additive.resid) < np.var(stl_multiplicative.resid):
-            logging.info("Additive Model Detected")
-            type = 'additive'
-            df_outliers = generate_outliers_stl(df_stl, type, detected_period)
-        else:
-            logging.info("Multiplicative model detected")
+        if np.var(result_mul.resid) < np.var(result_add.resid):
+            # logging.info("Multiplicative model detected")
+            print("Multiplicative model detected")
             type = 'multiplicative'
             df_outliers = generate_outliers_stl(df_stl, type, detected_period)
+        else:
+            # logging.info("Additive model detected")
+            print("Additive model detected")
+            type = 'additive'
+            df_outliers = generate_outliers_stl(df_stl, type, detected_period)
 
-        plt.figure(figsize=(10, 4))
-        plt.plot(df_stl)
-        for date in df_outliers.index:
-            plt.axvline(datetime(date.year, date.month, date.day), color='k', linestyle='--', alpha=0.5)
+    plt.figure(figsize=(10, 4))
+    plt.plot(df_stl)
+    for date in df_outliers.index:
+        plt.axvline(datetime(date.year, date.month, date.day), color='k', linestyle='--', alpha=0.5)
         plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='r', marker='D')
     else:
         print("Duplicate date index values. Check your data.")
