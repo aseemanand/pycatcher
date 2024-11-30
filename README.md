@@ -5,45 +5,57 @@
 This package identifies outlier(s) for a given time-series dataset in simple steps. It supports day, week, month and 
 quarter level time-series data.
 
-#### DataFrame Arguments:
+### Installation
+
+```bash
+pip install pycatcher
+```
+
+### DataFrame Arguments
 * First column in the dataframe must be a date column ('YYYY-MM-DD') and the last column a numeric column 
 (sum or total count for the time period) to detect outliers using Seasonal Decomposition algorithms.
 * Last column must be a numeric column to detect outliers using Moving Average and Z-score algorithm. 
 
-#### Package Functions:
-* detect_outliers(df): Detect outliers in a time-series dataframe using seasonal trend decomposition when there 
-is at least 2 years of data, otherwise we can use Interquartile Range (IQR) for smaller timeframe.
-* detect_outliers_today(df) Detect outliers for the current date in a time-series dataframe.
-* detect_outliers_latest(df): Detect latest outliers in a time-series dataframe.
-* detect_outliers_iqr(df): Detect outliers in a time-series dataframe when there's less than 2 years of data.
-* detect_outliers_moving_average(df): Detect outliers using moving average method. 
-* detect_outliers_stl(df): Detect outliers using Seasonal-Trend Decomposition using LOESS (STL).
+### Package Functions
+* `detect_outliers(df):` Detect outliers in a time-series dataframe using seasonal trend decomposition when there 
+is at least 2 years of data, otherwise we can use Inter Quartile Range (IQR) for smaller timeframe.
+* `detect_outliers_today(df):` Detect outliers for the current date in a time-series dataframe.
+* `detect_outliers_latest(df):` Detect latest outliers in a time-series dataframe.
+* `detect_outliers_iqr(df):` Detect outliers in a time-series dataframe when there's less than 2 years of data.
+* `detect_outliers_moving_average(df):` Detect outliers using moving average method. 
+* `detect_outliers_stl(df):` Detect outliers using Seasonal-Trend Decomposition using LOESS (STL).
 
-#### Diagnostic Plots:
-* build_seasonal_plot(df): Build seasonal plot (additive or multiplicative) for a given dataframe.
-* build_iqr_plot(df): Build IQR plot for a given dataframe (for less than 2 years of data).
-* build_monthwise_plot(df): Build month-wise plot for a given dataframe.
-* build_decomposition_results(df): Get seasonal decomposition results for a given dataframe.
-* build_moving_average_outliers_plot(df): Show outliers using Moving Average and Z-score algorithm.
-* build_stl_outliers_plot(df): Show outliers using Seasonal-Trend Decomposition using LOESS (STL).
-* conduct_stationarity_check(df): Conduct stationarity checks for a feature (dataframe's count column).
+### Diagnostic Plots
+* `build_seasonal_plot(df):` Build seasonal plot (additive or multiplicative) for a given dataframe.
+* `build_iqr_plot(df):` Build IQR plot for a given dataframe (for less than 2 years of data).
+* `build_monthwise_plot(df):` Build month-wise plot for a given dataframe.
+* `build_decomposition_results(df):` Get seasonal decomposition results for a given dataframe.
+* `build_moving_average_outliers_plot(df):` Show outliers using Moving Average and Z-score algorithm.
+* `build_stl_outliers_plot(df):` Show outliers using Seasonal-Trend Decomposition using LOESS (STL).
+* `conduct_stationarity_check(df):` Conduct stationarity checks for a feature (dataframe's count column).
 
-#### Highlights:
+### Highlights
  Unlike many open-source packages for outlier detection, PyCatcher provides several distinctive features:
-* Automatic Model Selection: 
+* **Automatic Model Selection:** 
 PyCatcher automatically detects whether to use an additive or multiplicative
 decomposition model, ensuring the most accurate detection of outliers based on the characteristics of your data.
-* Dynamic Method Selection Based on Data Size:
+* **Dynamic Method Selection Based on Data Size:**
 PyCatcher seamlessly switches between Seasonal Trend Decomposition (for datasets spanning at least two years) and
-Interquartile Range (IQR) for shorter time periods, offering flexibility without manual intervention.
-* Wide Time Frequency Support:
+Inter Quartile Range (IQR) for shorter time periods, offering flexibility without manual intervention.
+* **Wide Time Frequency Support:**
 Supports multiple time-series frequencies — including daily, weekly, monthly, and quarterly data—without requiring 
 users to pre-process or adjust their datasets.
-* Choice for Different Seasonal Trend Algorithms: Support for outlier detection using both Classical Seasonal Trend 
+* **Choice for Different Seasonal Trend Algorithms:** Support for outlier detection using both Classical Seasonal Trend 
 Decomposition 
 and Seasonal-Trend Decomposition using LOESS (STL) algorithms.
-* Integrated Diagnostics: PyCatcher includes comprehensive diagnostic tools, enabling users to visualize outliers, 
+* **Integrated Diagnostics:** PyCatcher includes comprehensive diagnostic tools, enabling users to visualize outliers, 
 trends 
 and seasonal patterns, evaluate data stationarity, and analyze decomposition results.
-* User Interface: Availability of a simple user interface for the users to upload file for outlier detection using IQR.
+* **User Interface:** Availability of a simple user interface for the users to upload file for outlier detection using IQR.
 Future versions will include advanced algorithms.
+
+### Example Usage
+
+To see an example of how to use the `pycatcher` package for outlier detection in time-series data, check out the [Example Notebook](https://github.com/aseemanand/pycatcher/blob/main/notebooks/Example%20Notebook.ipynb).
+
+The notebook provides step-by-step guidance and demonstrates the key features of the library.
