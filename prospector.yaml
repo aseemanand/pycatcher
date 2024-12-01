@@ -10,7 +10,6 @@ ignore-paths:
   - htmlcov
   - tests  #commented until test scripts corrected
 
-
 max-line-length: 120
 
 pylint:
@@ -23,26 +22,36 @@ pylint:
     - too-many-branches
     - too-many-statements
     - too-many-instance-attributes
-    - cyclic-import
-    - len-as-condition
-    - invalid-name
-    - no-else-return
-    - no-self-use
-    - protected-access
     - too-many-arguments
     - too-many-locals
-    - inconsistent-return-statements
+    - cyclic-import
+    - broad-except
+    - len-as-condition
     - import-outside-toplevel
+    - inconsistent-return-statements
     - consider-using-set-comprehension
     - useless-object-inheritance
     - unnecessary-pass
     - raise-missing-from
-    - broad-except
+    - invalid-name
+    - no-else-return
+    - no-self-use
+    - protected-access
     - arguments-differ
     - W0622 # getting error - built-in is being redefined: Redefining built-in 'round' (redefined-builtin).
   enable-extensions:
     - all
 
 mccabe:
+  max-complexity: 10  # Enforce McCabe's complexity rule for readability
   disable:
     - MC0001
+
+pep8:
+  max-line-length: 120  # Match the max line length with pylint
+  ignore:
+    - E203  # Whitespace before ':', often conflicting with black
+    - W503  # Line break before a binary operator, conflicting with black
+
+dodgy:
+  run: true  # Detect dangerous code patterns like hardcoded passwords

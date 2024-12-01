@@ -25,6 +25,9 @@ jobs:
       run: |
         pip install poetry
         poetry install --with dev
+    - name: Run Prospector
+      run: |
+        poetry run prospector --no-autodetect --profile prospector.yaml
     - name: Test with pytest coverage
       run: |
         poetry run coverage run -m pytest
