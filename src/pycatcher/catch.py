@@ -513,9 +513,9 @@ def generate_outliers_stl(df, type, period) -> pd.DataFrame:
 
     if type == 'additive':
         logging.info("Outlier detection using STL Additive Model")
-        stl = STL(df, period=period)
+        df_add = df.copy()
+        stl = STL(df_add.iloc[:, -1], period=period)
         result = stl.fit()
-        # seasonal, trend, resid = result.seasonal, result.trend, result.resid
         resid = result.resid
         resid_mu = resid.mean()
         resid_dev = resid.std()
@@ -628,21 +628,30 @@ def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
                 else:
                     raise ValueError("Could not infer a valid period from the data's frequency.")
 
+        derived_seasonal = detected_period + ((detected_period % 2) == 0)  # Ensure odd
+        logging.info("Detected Period: %d", detected_period)
+        logging.info("Derived Seasonal: %d", derived_seasonal)
+
         # Try both additive and multiplicative models before selecting the right one
-        stl_additive = STL(df_stl.iloc[:, -1], period=detected_period).fit()
-        stl_multiplicative = STL(df_stl.iloc[:, -1].apply(np.log), period=detected_period).fit()
+        # Apply Box-Cox transformation for multiplicative model
+        df_box = df_stl.copy()
+        df_box['count'] = df_stl.iloc[:, -1].astype('float64')
+        df_box['transformed_data'], lambda_value = stats.boxcox(df_box['count'])
+        result_mul = STL(df_box['transformed_data'], seasonal=derived_seasonal, period=detected_period).fit()
+
+        result_add = STL(df_stl.iloc[:, -1], seasonal=derived_seasonal, period=detected_period).fit()
 
         # Choose the model with lower variance in residuals
-        if np.var(stl_additive.resid) < np.var(stl_multiplicative.resid):
-            logging.info("Additive model detected")
-            type = 'additive'
+        if np.var(result_mul.resid) < np.var(result_add.resid):
+            logging.info("Multiplicative model detected")
+            type = 'multiplicative'
             df_outliers = generate_outliers_stl(df_stl, type, detected_period)
             return_outliers = df_outliers.iloc[:, :2]
             return_outliers.reset_index(drop=True, inplace=True)
             print(return_outliers)
         else:
-            logging.info("Multiplicative model detected")
-            type = 'multiplicative'
+            logging.info("Additive model detected")
+            type = 'additive'
             df_outliers = generate_outliers_stl(df_stl, type, detected_period)
             return_outliers = df_outliers.iloc[:, :2]
             return_outliers.reset_index(drop=True, inplace=True)
