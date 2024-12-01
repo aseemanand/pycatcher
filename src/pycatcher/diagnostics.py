@@ -365,7 +365,7 @@ def build_stl_outliers_plot(df) -> plt:
         plot: A plot with detected outliers.
     """
 
-    # logging.info("Starting outlier detection using STL")
+    logging.info("Starting outlier detection using STL")
 
     # Check whether the argument is Pandas dataframe
     if not isinstance(df, pd.DataFrame):
@@ -378,6 +378,9 @@ def build_stl_outliers_plot(df) -> plt:
     df_stl = df_pandas.copy()
     df_stl.iloc[:, 0] = df_stl.iloc[:, 0].apply(pd.to_datetime)
     df_stl = df_stl.set_index(df_stl.columns[0]).dropna()
+
+    # Initializing df_outliers to avoid undefined usage
+    df_outliers = pd.DataFrame()
 
     # Ensure the datetime index is unique (no duplicate dates)
     if df_stl.index.is_unique:
@@ -432,7 +435,7 @@ def build_stl_outliers_plot(df) -> plt:
         # Apply Box-Cox transformation for multiplicative model
         df_box = df_stl.copy()
         df_box['count'] = df_stl.iloc[:, -1].astype('float64')
-        df_box['transformed_data'], lambda_value = stats.boxcox(df_box['count'])
+        df_box['transformed_data'], _ = stats.boxcox(df_box['count'])
         result_mul = STL(df_box['transformed_data'], seasonal=derived_seasonal, period=detected_period).fit()
 
         result_add = STL(df_stl.iloc[:, -1], seasonal=derived_seasonal, period=detected_period).fit()
@@ -454,5 +457,9 @@ def build_stl_outliers_plot(df) -> plt:
     for date in df_outliers.index:
         plt.axvline(datetime(date.year, date.month, date.day), color='k', linestyle='--', alpha=0.5)
         plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='r', marker='D')
-    else:
+
+    # If the datetime index is not unique, print a warning
+    if not df_stl.index.is_unique:
         print("Duplicate date index values. Check your data.")
+
+    return plt

@@ -636,7 +636,7 @@ def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
         # Apply Box-Cox transformation for multiplicative model
         df_box = df_stl.copy()
         df_box['count'] = df_stl.iloc[:, -1].astype('float64')
-        df_box['transformed_data'], lambda_value = stats.boxcox(df_box['count'])
+        df_box['transformed_data'], _ = stats.boxcox(df_box['count'])
         result_mul = STL(df_box['transformed_data'], seasonal=derived_seasonal, period=detected_period).fit()
 
         result_add = STL(df_stl.iloc[:, -1], seasonal=derived_seasonal, period=detected_period).fit()
