@@ -100,7 +100,6 @@ def build_seasonal_plot(df):
         ssacf_add = get_ssacf(residuals_add)
         ssacf_mul = get_ssacf(residuals_mul)
 
-
         if ssacf_add < ssacf_mul:
             logger.info("Using Additive model for seasonal decomposition.")
             _, axes = plt.subplots(ncols=1, nrows=4, sharex=False, figsize=(30, 15))
@@ -417,7 +416,7 @@ def build_classical_seasonal_outliers_plot(df) -> plt:
         plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='red', label='Outliers')
         plt.legend()
 
-logging.info("Completing outlier plot using classical seasonal decomposition.")
+    logging.info("Completing outlier plot using classical seasonal decomposition.")
 
 
 def build_stl_outliers_plot(df) -> plt:
