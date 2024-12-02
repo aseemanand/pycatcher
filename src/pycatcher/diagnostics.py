@@ -12,6 +12,7 @@ from scipy import stats
 
 from .catch import (get_residuals,
                     get_ssacf,
+                    anomaly_mad,
                     calculate_optimal_window_size,
                     generate_outliers_stl)
 
@@ -99,8 +100,6 @@ def build_seasonal_plot(df):
         ssacf_add = get_ssacf(residuals_add)
         ssacf_mul = get_ssacf(residuals_mul)
 
-        # print('ssacf_add:', ssacf_add)
-        # print('ssacf_mul:', ssacf_mul)
 
         if ssacf_add < ssacf_mul:
             logger.info("Using Additive model for seasonal decomposition.")
@@ -350,6 +349,75 @@ def build_moving_average_outliers_plot(df: pd.DataFrame) -> plt:
     plt.scatter(outliers.index, outliers.iloc[:, 1], color='green', label='Outliers')
     plt.legend()
     logging.info("Completed outliers plotting using Moving Average method")
+
+
+def build_classical_seasonal_outliers_plot(df) -> plt:
+    """
+        Show outliers in a time-series dataset through Classical Seasonal Decomposition
+
+        Args:
+            df (pd.DataFrame): A Pandas DataFrame with time-series data.
+                First column must be a date column ('YYYY-MM-DD')
+                and last column should be a count/feature column.
+
+        Returns:
+            plot: A plot with detected outliers.
+        """
+
+    logging.info("Building outlier plot using classical seasonal decomposition.")
+
+    # Check whether the argument is Pandas dataframe
+    if not isinstance(df, pd.DataFrame):
+        # Convert to Pandas dataframe for easy manipulation
+        df_pandas = df.toPandas()
+    else:
+        df_pandas = df
+
+    # Ensure the first column is in datetime format and set it as index
+    df_pandas.iloc[:, 0] = df_pandas.iloc[:, 0].apply(pd.to_datetime)
+    df_pandas = df_pandas.set_index(df_pandas.columns[0]).dropna()
+
+    decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+                                                  model='additive',
+                                                  extrapolate_trend='freq')
+    residuals_add = get_residuals(decomposition_add)
+
+    decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+                                                  model='multiplicative',
+                                                  extrapolate_trend='freq')
+    residuals_mul = get_residuals(decomposition_mul)
+
+    # Get ACF values for both Additive and Multiplicative models
+
+    ssacf_add = get_ssacf(residuals_add)
+    ssacf_mul = get_ssacf(residuals_mul)
+
+    if ssacf_add < ssacf_mul:
+        print("Additive Model")
+        is_outlier = anomaly_mad(decomposition_add)
+        df_outliers = df_pandas[is_outlier]
+
+        # Plot the data
+        plt.figure(figsize=(20, 8))
+        plt.plot(df_pandas.iloc[:, -1], label='Original Data')
+
+        # Highlight outliers
+        plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='red', label='Outliers')
+        plt.legend()
+    else:
+        print("Multiplicative Model")
+        is_outlier = anomaly_mad(decomposition_mul)
+        df_outliers = df_pandas[is_outlier]
+
+        # Plot the data
+        plt.figure(figsize=(20, 8))
+        plt.plot(df_pandas.iloc[:, -1], label='Original Data')
+
+        # Highlight outliers
+        plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='red', label='Outliers')
+        plt.legend()
+
+logging.info("Completing outlier plot using classical seasonal decomposition.")
 
 
 def build_stl_outliers_plot(df) -> plt:
