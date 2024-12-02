@@ -48,6 +48,7 @@ from pycatcher.diagnostics import (
     conduct_stationarity_check,
     build_decomposition_results,
     build_moving_average_outliers_plot,
+    build_classical_seasonal_outliers_plot,
     build_stl_outliers_plot
 )
 
@@ -80,6 +81,7 @@ __all__ = [
     "build_moving_average_outliers_plot",
     "generate_outliers_stl",
     "detect_outliers_stl",
+    "build_classical_seasonal_outliers_plot",
     "build_stl_outliers_plot",
 
     # Web app

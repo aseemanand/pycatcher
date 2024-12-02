@@ -30,6 +30,7 @@ is at least 2 years of data, otherwise we can use Inter Quartile Range (IQR) for
 * `build_iqr_plot(df):` Build IQR plot for a given dataframe (for less than 2 years of data).
 * `build_monthwise_plot(df):` Build month-wise plot for a given dataframe.
 * `build_decomposition_results(df):` Get seasonal decomposition results for a given dataframe.
+* `build_classical_seasonal_outliers_plot(df):` Show outliers using Classical Seasonal Decomposition algorithm.
 * `build_moving_average_outliers_plot(df):` Show outliers using Moving Average and Z-score algorithm.
 * `build_stl_outliers_plot(df):` Show outliers using Seasonal-Trend Decomposition using LOESS (STL).
 * `conduct_stationarity_check(df):` Conduct stationarity checks for a feature (dataframe's count column).
