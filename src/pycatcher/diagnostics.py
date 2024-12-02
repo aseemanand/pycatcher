@@ -445,12 +445,12 @@ def build_stl_outliers_plot(df) -> plt:
             # logging.info("Multiplicative model detected")
             print("Multiplicative model detected")
             type = 'multiplicative'
-            df_outliers = generate_outliers_stl(df_stl, type, detected_period)
+            df_outliers = generate_outliers_stl(df_stl, type, derived_seasonal, detected_period)
         else:
             # logging.info("Additive model detected")
             print("Additive model detected")
             type = 'additive'
-            df_outliers = generate_outliers_stl(df_stl, type, detected_period)
+            df_outliers = generate_outliers_stl(df_stl, type, derived_seasonal, detected_period)
 
     plt.figure(figsize=(10, 4))
     plt.plot(df_stl)
