@@ -493,7 +493,7 @@ def detect_outliers_moving_average(df: pd.DataFrame) -> str:
     return return_outliers
 
 
-def generate_outliers_stl(df, type, period) -> pd.DataFrame:
+def generate_outliers_stl(df, type, seasonal, period) -> pd.DataFrame:
     """
     Generate outliers in a time-series dataset through Seasonal-Trend Decomposition using LOESS (STL)
 
@@ -514,7 +514,7 @@ def generate_outliers_stl(df, type, period) -> pd.DataFrame:
     if type == 'additive':
         logging.info("Outlier detection using STL Additive Model")
         df_add = df.copy()
-        stl = STL(df_add.iloc[:, -1], period=period)
+        stl = STL(df_add.iloc[:, -1], seasonal=seasonal, period=period)
         result = stl.fit()
         resid = result.resid
         resid_mu = resid.mean()
@@ -535,7 +535,7 @@ def generate_outliers_stl(df, type, period) -> pd.DataFrame:
         transformed_data, lambda_ = stats.boxcox(df_mul['count'])
 
         df_mul['count'] = transformed_data
-        stl = STL(df_mul['count'], period=period)
+        stl = STL(df_mul['count'], seasonal=seasonal, period=period)
         result = stl.fit()
 
         # Back-transform if Box-Cox was applied
@@ -645,14 +645,14 @@ def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
         if np.var(result_mul.resid) < np.var(result_add.resid):
             logging.info("Multiplicative model detected")
             type = 'multiplicative'
-            df_outliers = generate_outliers_stl(df_stl, type, detected_period)
+            df_outliers = generate_outliers_stl(df_stl, type, derived_seasonal, detected_period)
             return_outliers = df_outliers.iloc[:, :2]
             return_outliers.reset_index(drop=True, inplace=True)
             print(return_outliers)
         else:
             logging.info("Additive model detected")
             type = 'additive'
-            df_outliers = generate_outliers_stl(df_stl, type, detected_period)
+            df_outliers = generate_outliers_stl(df_stl, type, derived_seasonal, detected_period)
             return_outliers = df_outliers.iloc[:, :2]
             return_outliers.reset_index(drop=True, inplace=True)
             print(return_outliers)
