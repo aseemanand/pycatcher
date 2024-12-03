@@ -393,7 +393,7 @@ def build_classical_seasonal_outliers_plot(df) -> plt:
 
     if ssacf_add < ssacf_mul:
         print("Additive Model")
-        is_outlier = anomaly_mad(decomposition_add)
+        is_outlier = anomaly_mad(residuals_add)
         df_outliers = df_pandas[is_outlier]
 
         # Plot the data
@@ -405,7 +405,7 @@ def build_classical_seasonal_outliers_plot(df) -> plt:
         plt.legend()
     else:
         print("Multiplicative Model")
-        is_outlier = anomaly_mad(decomposition_mul)
+        is_outlier = anomaly_mad(residuals_mul)
         df_outliers = df_pandas[is_outlier]
 
         # Plot the data

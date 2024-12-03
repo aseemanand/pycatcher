@@ -32,13 +32,13 @@ def test_anomaly_mad():
     # Mock the model_type object with residuals
     mock_model = MagicMock()
     arr = np.array([1, 2, 3, 4, 100])
-    mock_model.resid = pd.DataFrame(arr, columns=['Values'])
+    mock_model.residuals = pd.DataFrame(arr, columns=['Values'])
 
     # Mock df_pan with index
     df_pan = pd.DataFrame({"Value": [1, 2, 3, 4, 100]}, index=[0, 1, 2, 3, 4])
 
     # Run the function
-    is_outlier = anomaly_mad(mock_model)
+    is_outlier = anomaly_mad(mock_model.residuals)
     df_pan = df_pan[is_outlier]
 
     # Assert that the outlier is detected

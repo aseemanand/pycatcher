@@ -70,13 +70,14 @@ def find_outliers_iqr(df: pd.DataFrame) -> pd.DataFrame:
     return outliers
 
 
-def anomaly_mad(model_type: BaseEstimator) -> pd.DataFrame:
+def anomaly_mad(residuals: BaseEstimator) -> pd.DataFrame:
     """
     Detect outliers using the Median Absolute Deviation (MAD) method.
     MAD is a statistical measure that quantifies the dispersion or variability of a dataset.
+    https://www.sciencedirect.com/science/article/abs/pii/S0022103113000668
 
     Args:
-        model_type (BaseEstimator): A model object that has been fitted to the data, containing residuals.
+        residuals (BaseEstimator): Residuals from seasonal decomposition.
 
     Returns:
         pd.DataFrame: A DataFrame containing the rows identified as outliers.
@@ -85,7 +86,10 @@ def anomaly_mad(model_type: BaseEstimator) -> pd.DataFrame:
     logging.info("Detecting outliers using the MAD method.")
 
     # Reshape residuals from the fitted model
-    residuals = model_type.resid.values.reshape(-1, 1)
+    if isinstance(residuals, np.ndarray):
+        residuals = residuals.reshape(-1, 1)
+    else:
+        residuals = residuals.values.reshape(-1, 1)
 
     # Fit the MAD outlier detection model
     mad = MAD().fit(residuals)
@@ -328,10 +332,10 @@ def decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     # Return the outliers detected by the model with the smaller ACF value
     if ssacf_add < ssacf_mul:
         logging.info("Using the additive model for outlier detection.")
-        is_outlier = anomaly_mad(decomposition_add)
+        is_outlier = anomaly_mad(residuals_add)
     else:
         logging.info("Using the multiplicative model for outlier detection.")
-        is_outlier = anomaly_mad(decomposition_mul)
+        is_outlier = anomaly_mad(residuals_mul)
 
     # Use the aligned boolean Series as the indexer
     df_outliers = df_pandas[is_outlier]
@@ -516,16 +520,10 @@ def generate_outliers_stl(df, type, seasonal, period) -> pd.DataFrame:
         df_add = df.copy()
         stl = STL(df_add.iloc[:, -1], seasonal=seasonal, period=period)
         result = stl.fit()
-        resid = result.resid
-        resid_mu = resid.mean()
-        resid_dev = resid.std()
 
-        lower = resid_mu - 3 * resid_dev
-        upper = resid_mu + 3 * resid_dev
+        # Access the residual component
+        residuals = result.resid
 
-        # Generate anomalies
-        anomalies = df[(resid < lower) | (resid > upper)]
-        return anomalies
     else:
         logging.info("Outlier detection using STL Multiplicative Model")
         df_mul = df.copy()
@@ -542,18 +540,13 @@ def generate_outliers_stl(df, type, seasonal, period) -> pd.DataFrame:
         residual_transformed = inv_boxcox(result.resid, lambda_)
 
         # Access the residual component
-        residual = residual_transformed
+        residuals = residual_transformed
 
-        resid_mu = residual.mean()
-        resid_dev = residual.std()
-
-        lower = resid_mu - 3 * resid_dev
-        upper = resid_mu + 3 * resid_dev
-
-        # Generate anomalies
-        anomalies = df[(residual < lower) | (residual > upper)]
-        logging.info("Generated outlier detection using STL")
-        return anomalies
+    # Using Median Absolute Deviation (MAD) to detect outliers
+    is_outlier = anomaly_mad(residuals)
+    anomalies = df[is_outlier]
+    logging.info("Generated outlier detection using STL")
+    return anomalies
 
 
 def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
