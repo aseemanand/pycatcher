@@ -16,6 +16,14 @@
             {{ table_html|safe }}
         </div>
 
+        <!-- Display the IQR plot -->
+        <h2 class="mt-4">IQR Plot</h2>
+        {% if result.plot %}
+            <img src="data:image/png;base64,{{ result.plot }}" class="img-fluid rounded shadow" alt="IQR Plot">
+        {% else %}
+            <p>No plot available.</p>
+        {% endif %}
+
         <!-- Link to go back to the upload page -->
         <a href="/" class="btn btn-primary mt-3">Upload Another File</a>
     </div>
