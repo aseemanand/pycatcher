@@ -42,11 +42,24 @@ Retrieve the most recent anomalies identified in your time-series data.
 - **Method**: `detect_outliers_latest(df)`
 - **Output**: Details of the latest detected anomalies.
 
+#### **Visualize Outliers with Seasonal Decomposition**
+Show outliers in your data through classical seasonal decomposition.
+
+- **Method**: `build_classical_seasonal_outliers_plot(df)`
+- **Output**: Outlier plot generated using classical seasonal decomposition.
+
 #### **Visualize Seasonal Patterns**
 Understand seasonality in your data by visualizing trends through decomposition.
 
 - **Method**: `build_seasonal_plot(df)`
 - **Output**: Seasonal plots displaying additive or multiplicative trends.
+
+#### **Visualize Monthly Patterns**
+Show month-wise box plot 
+
+- **Method**: `build_monthwise_plot(df)`
+- **Output**: Month-wise box plots showing spread and skewness of data.
+
 
 #### **Detect Outliers Using Seasonal-Trend Decomposition using LOESS (STL)**
 Use the Seasonal-Trend Decomposition method (STL) to detect anomalies.
