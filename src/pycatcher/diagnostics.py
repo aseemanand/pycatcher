@@ -115,12 +115,15 @@ def build_seasonal_plot(df):
 
 def build_iqr_plot(df):
     """
-        Build IQR plot for a given dataframe
-            Args:
-                 df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
-                                   and the second/last column should be the feature (count).
-        """
+    Build IQR plot for a given dataframe.
 
+    Args:
+        df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
+                                   and the second/last column should be the feature (count).
+
+    Returns:
+        matplotlib.figure.Figure: The generated plot.
+    """
     logger.info("Building IQR plot to see outliers")
 
     # Check whether the argument is Pandas dataframe
@@ -130,11 +133,20 @@ def build_iqr_plot(df):
     else:
         df_pandas = df
 
-    # Ensure the last column is numeric
-    df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
+    # Create a new figure and axis
+    fig, ax = plt.subplots(figsize=(10, 6))
+    # Set the background color of the figure to white
+    fig.patch.set_facecolor('white')
 
-    sns.boxplot(x=df_pandas.iloc[:, -1], showmeans=True)
-    plt.show()
+    # Ensure the last column is numeric
+    df.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
+
+    # Create a horizontal boxplot using Seaborn
+    sns.boxplot(x=df.iloc[:, -1], ax=ax, showmeans=True)
+    ax.set_title("Outlier Detection Plot")
+    ax.set_xlabel("Values")
+    plt.close(fig)
+    return fig
 
 
 def build_monthwise_plot(df):

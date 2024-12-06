@@ -1,3 +1,6 @@
+import logging
+import io
+import base64
 from pathlib import Path
 from typing import List, Dict, Any
 import pandas as pd
@@ -10,8 +13,16 @@ from flask import (
     jsonify,
     flash
 )
+import matplotlib.pyplot as plt
+import matplotlib
 from . import create_app
 from .catch import detect_outliers_iqr
+from .diagnostics import build_iqr_plot
+matplotlib.use('Agg')  # Use a non-interactive backend
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class FileValidator:
@@ -69,11 +80,22 @@ class OutlierAnalyzer:
             outlier_rows = len(df_outliers)
             outlier_percentage = (outlier_rows / total_rows) * 100
 
+            # Generate the IQR plot
+            fig = build_iqr_plot(df)
+            img = io.BytesIO()
+            fig.savefig(img, format='png', bbox_inches='tight')
+            img.seek(0)
+            plt.close(fig)
+
+            # Convert the plot to a base64 string for embedding in HTML
+            plot_base64 = base64.b64encode(img.getvalue()).decode('utf-8')
+
             # Format table with styling
             styled_df = df_outliers.style \
-                .set_properties(**{'text-align': 'center'}) \
-                .format(precision=2) \
+                .set_table_styles([{'selector': 'tr:hover', 'props': [('background-color', '#f1f1f1')]}]) \
+                .set_properties(**{'border': '1px solid #ddd', 'padding': '8px', 'text-align': 'center'}) \
                 .hide(axis='index') \
+                .format(precision=2) \
                 .to_html()
 
             return {
@@ -86,7 +108,8 @@ class OutlierAnalyzer:
                         'outlier_rows': outlier_rows,
                         'outlier_percentage': round(outlier_percentage, 2),
                         'columns_analyzed': list(df.columns)
-                    }
+                    },
+                    'plot': plot_base64  # Include the plot in base64 format
                 }
             }
 
