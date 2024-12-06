@@ -83,7 +83,7 @@ class OutlierAnalyzer:
             # Generate the IQR plot
             fig = build_iqr_plot(df)
             img = io.BytesIO()
-            fig.savefig(img, format='png', bbox_inches='tight')
+            fig.savefig(img, format='png', bbox_inches='tight', transparent=False)
             img.seek(0)
             plt.close(fig)
 

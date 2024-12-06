@@ -145,6 +145,11 @@ def build_iqr_plot(df):
     sns.boxplot(x=df.iloc[:, -1], ax=ax, showmeans=True)
     ax.set_title("Outlier Detection Plot")
     ax.set_xlabel("Values")
+    ax.set_ylabel("")
+
+    # Adjust layout to avoid clipping of labels
+    plt.tight_layout()
+
     plt.close(fig)
     return fig
 
