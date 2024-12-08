@@ -639,17 +639,14 @@ def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
             logging.info("Multiplicative model detected")
             type = 'multiplicative'
             df_outliers = generate_outliers_stl(df_stl, type, derived_seasonal, detected_period)
-            return_outliers = df_outliers.iloc[:, :2]
-            return_outliers.reset_index(drop=True, inplace=True)
-            print(return_outliers)
         else:
             logging.info("Additive model detected")
             type = 'additive'
             df_outliers = generate_outliers_stl(df_stl, type, derived_seasonal, detected_period)
-            return_outliers = df_outliers.iloc[:, :2]
-            return_outliers.reset_index(drop=True, inplace=True)
-            print(return_outliers)
 
+        return_outliers = df_outliers.iloc[:, :2]
+        return_outliers.reset_index(drop=True, inplace=True)
         logging.info("Completing outlier detection using STL")
+        return return_outliers
     else:
         print("Duplicate date index values. Check your data.")

@@ -16,7 +16,7 @@ from flask import (
 import matplotlib.pyplot as plt
 import matplotlib
 from . import create_app
-from .catch import detect_outliers_iqr
+from .catch import detect_outliers, detect_outliers_moving_average, detect_outliers_stl
 from .diagnostics import build_iqr_plot
 matplotlib.use('Agg')  # Use a non-interactive backend
 
@@ -51,28 +51,58 @@ class OutlierAnalyzer:
     def __init__(self, upload_folder: str):
         self.upload_folder = upload_folder
 
-    def process_file(self, file) -> Dict[str, Any]:
+    def process_file(self, file, method: str = 'comprehensive') -> Dict[str, Any]:
         """
         Process the uploaded file and detect outliers.
 
         Args:
             file: The uploaded file object
+            method: Outlier detection method to use
 
         Returns:
-            tuple: (message, table_html) or (error_message, None)
+            dict: Results of outlier analysis
         """
         try:
             file_path = Path(self.upload_folder) / file.filename
             file.save(str(file_path))
 
             df = pd.read_csv(file_path)
-            df_outliers = detect_outliers_iqr(df)
+            plot_base64 = None
+
+            # Select outlier detection method
+            if method == 'comprehensive':
+                df_outliers = detect_outliers(df)
+
+                # Generate the plot
+                fig = build_iqr_plot(df)
+                img = io.BytesIO()
+                fig.savefig(img, format='png', bbox_inches='tight', transparent=False)
+                img.seek(0)
+                plt.close(fig)
+
+                # Convert the plot to a base64 string for embedding in HTML
+                plot_base64 = base64.b64encode(img.getvalue()).decode('utf-8')
+            elif method == 'stl':
+                df_outliers = detect_outliers_stl(df)
+            elif method == 'moving_average':
+                df_outliers = detect_outliers_moving_average(df)
+            else:
+                raise ValueError("Invalid analysis method selected.")
 
             if not isinstance(df_outliers, pd.DataFrame):
                 return {
                     'success': True,
-                    'message': f"Output: {df_outliers}",
-                    'data': None
+                    'message': 'Analysis completed successfully',
+                    'data': {
+                        'table': 'No outliers found',
+                        'summary': {
+                            'total_rows': len(df),
+                            'outlier_rows': 0,
+                            'outlier_percentage': 0,
+                            'columns_analyzed': list(df.columns)
+                        },
+                        'plot': None
+                    }
                 }
 
             # Calculate summary statistics
@@ -80,20 +110,23 @@ class OutlierAnalyzer:
             outlier_rows = len(df_outliers)
             outlier_percentage = (outlier_rows / total_rows) * 100
 
-            # Generate the IQR plot
-            fig = build_iqr_plot(df)
-            img = io.BytesIO()
-            fig.savefig(img, format='png', bbox_inches='tight', transparent=False)
-            img.seek(0)
-            plt.close(fig)
-
-            # Convert the plot to a base64 string for embedding in HTML
-            plot_base64 = base64.b64encode(img.getvalue()).decode('utf-8')
+            # Resetting the index for pretty formatting
+            df_outliers.reset_index(inplace=True)
 
             # Format table with styling
             styled_df = df_outliers.style \
-                .set_table_styles([{'selector': 'tr:hover', 'props': [('background-color', '#f1f1f1')]}]) \
-                .set_properties(**{'border': '1px solid #ddd', 'padding': '8px', 'text-align': 'center'}) \
+                .set_table_styles([
+                    # Header row style
+                    {'selector': 'thead th',
+                     'props': [('background-color', '#343a40'), ('color', 'white'), ('font-weight', 'bold')]},
+                    # Hover effect for rows
+                    {'selector': 'tr:hover', 'props': [('background-color', '#f1f1f1')]}
+                ]) \
+                .set_properties(**{
+                    'border': '1px solid #ddd',
+                    'padding': '8px',
+                    'text-align': 'center'
+                }) \
                 .hide(axis='index') \
                 .format(precision=2) \
                 .to_html()
@@ -140,6 +173,7 @@ def register_routes(app: Flask) -> None:
             })
 
         file = request.files['file']
+        method = request.form.get('method', 'comprehensive')
 
         if not file.filename:
             return jsonify({
@@ -154,7 +188,7 @@ def register_routes(app: Flask) -> None:
                 'message': 'Invalid file type. Please upload a CSV file.'
             })
 
-        result = outlier_analyzer.process_file(file)
+        result = outlier_analyzer.process_file(file, method)
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or app.config["TESTING"]:
             return jsonify(result)
