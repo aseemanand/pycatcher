@@ -651,5 +651,6 @@ def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
             print(return_outliers)
 
         logging.info("Completing outlier detection using STL")
+        return return_outliers
     else:
         print("Duplicate date index values. Check your data.")

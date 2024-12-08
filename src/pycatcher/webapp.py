@@ -87,11 +87,7 @@ class OutlierAnalyzer:
             elif method == 'moving_average':
                 df_outliers = detect_outliers_moving_average(df)
             else:
-                return {
-                    'success': False,
-                    'message': f"Invalid method: {method}",
-                    'data': None
-                }
+                raise ValueError("Invalid analysis method selected.")
 
             if not isinstance(df_outliers, pd.DataFrame):
                 return {
@@ -126,14 +122,14 @@ class OutlierAnalyzer:
                     # Hover effect for rows
                     {'selector': 'tr:hover', 'props': [('background-color', '#f1f1f1')]}
                 ]) \
-                    .set_properties(**{
+                .set_properties(**{
                     'border': '1px solid #ddd',
                     'padding': '8px',
                     'text-align': 'center'
                 }) \
-                    .hide(axis='index') \
-                    .format(precision=2) \
-                    .to_html()
+                .hide(axis='index') \
+                .format(precision=2) \
+                .to_html()
 
             return {
                 'success': True,
