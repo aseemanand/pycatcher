@@ -718,14 +718,14 @@ def build_seasonal_plot_mstl(df) -> plt:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # hour level time-series.")
                 period_hourly = 24
-                period_weekly = (period_hourly * 7)
-                derived_period = (period_hourly, period_weekly) # Daily and Weekly Seasonality
+                period_weekly = period_hourly * 7
+                derived_period = (period_hourly, period_weekly)     # Daily and Weekly Seasonality
             case 'D':
-                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # logging.info("Using seasonal trend decomposition for outlier detection in
                 # day level time-series.")
                 period_weekly = 7
                 period_yearly = 365
-                derived_period = (period_weekly, period_yearly)  # Weekly and Yearly seasonality
+                derived_period = (period_weekly, period_yearly)    # Weekly and Yearly seasonality
             case 'B':
                 # logging.info("Using seasonal trend decomposition for outlier detection in business
                 # day level time-series.")
