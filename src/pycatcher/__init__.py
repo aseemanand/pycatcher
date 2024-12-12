@@ -36,6 +36,7 @@ from pycatcher.catch import (
     calculate_optimal_window_size,
     calculate_rmse,
     generate_outliers_stl,
+    generate_outliers_mstl,
     detect_outliers_stl,
     detect_outliers_mstl
 )

@@ -530,14 +530,14 @@ def generate_outliers_stl(df, type, seasonal, period) -> pd.DataFrame:
         df_mul['count'] = df_mul.iloc[:, -1].astype('float64')
 
         # Apply Box-Cox transformation
-        transformed_data, lambda_ = stats.boxcox(df_mul['count'])
+        transformed_data, _ = stats.boxcox(df_mul['count'])
 
         df_mul['count'] = transformed_data
         stl = STL(df_mul['count'], seasonal=seasonal, period=period)
         result = stl.fit()
 
         # Back-transform if Box-Cox was applied
-        residual_transformed = inv_boxcox(result.resid, lambda_)
+        residual_transformed = inv_boxcox(result.resid, _)
 
         # Access the residual component
         residuals = residual_transformed
@@ -796,14 +796,14 @@ def generate_outliers_mstl(df, type, period) -> pd.DataFrame:
         df_mul['count'] = df_mul.iloc[:, -1].astype('float64')
 
         # Apply Box-Cox transformation
-        transformed_data, lambda_ = stats.boxcox(df_mul['count'])
+        transformed_data, _ = stats.boxcox(df_mul['count'])
 
         df_mul['count'] = transformed_data
         mstl = MSTL(df_mul['count'], periods=period)
         result = mstl.fit()
 
         # Back-transform if Box-Cox was applied
-        residual_transformed = inv_boxcox(result.resid, lambda_)
+        residual_transformed = inv_boxcox(result.resid, _)
 
         # Access the residual component
         residuals = residual_transformed
