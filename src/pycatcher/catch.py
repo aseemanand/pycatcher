@@ -813,4 +813,3 @@ def generate_outliers_mstl(df, type, period) -> pd.DataFrame:
     anomalies = df[is_outlier]
     logging.info("Generated outlier detection using MSTL")
     return anomalies
-
