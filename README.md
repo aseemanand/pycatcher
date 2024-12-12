@@ -161,9 +161,8 @@ Inter Quartile Range (IQR) for shorter time periods, offering flexibility withou
 * **Wide Time Frequency Support:**
 Supports multiple time-series frequencies — including daily, weekly, monthly, and quarterly data—without requiring 
 users to pre-process or adjust their datasets.
-* **Choice for Different Seasonal Trend Algorithms:** Support for outlier detection using both Classical Seasonal Trend 
-Decomposition 
-and Seasonal-Trend Decomposition using LOESS (STL) algorithms.
+* **Choice of Different Seasonal Trend Algorithms:** Support for outlier detection using various Seasonal Trend 
+Decomposition algorithms (Classic; STL; MSTL).
 * **Integrated Diagnostics:** PyCatcher includes comprehensive diagnostic tools, enabling users to visualize outliers, 
 trends 
 and seasonal patterns, evaluate data stationarity, and analyze decomposition results.
