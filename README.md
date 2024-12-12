@@ -48,8 +48,8 @@ Show outliers in your data through classical seasonal decomposition.
 - **Method**: `build_classical_seasonal_outliers_plot(df)`
 - **Output**: Outlier plot generated using classical seasonal decomposition.
 
-#### **Visualize Seasonal Patterns**
-Understand seasonality in your data by visualizing trends through decomposition.
+#### **Visualize Seasonal Decomposition**
+Understand seasonality in your data by visualizing classic seasonal decomposition.
 
 - **Method**: `build_seasonal_plot(df)`
 - **Output**: Seasonal plots displaying additive or multiplicative trends.
@@ -72,6 +72,25 @@ Show outliers using the Seasonal-Trend Decomposition using LOESS (STL).
 
 - **Method**: `build_stl_outliers_plot(df)`
 - **Output**: Outlier plot generated using STL.
+
+#### **Detect Outliers Using Multiple Seasonal-Trend decomposition using LOESS (MSTL)**
+Use the Multiple Seasonal-Trend Decomposition method (MSTL) to detect anomalies. 
+
+- **Method**: `detect_outliers_mstl(df)`
+- **Output**: Rows flagged as outliers using MSTL.
+
+#### **Visualize MSTL Outliers**
+Show outliers using the Multiple Seasonal-Trend Decomposition using LOESS (MSTL).
+
+- **Method**: `build_mstl_outliers_plot(df)`
+- **Output**: Outlier plot generated using MSTL.
+
+#### **Visualize Multiple Seasonal Decomposition**
+Understand seasonality in your data by visualizing Multiple Seasonal-Trend Decomposition using LOESS (MSTL).
+
+- **Method**: `build_seasonal_plot_mstl(df)`
+- **Output**: Seasonal plot to decompose a time series into a trend component, multiple seasonal components, 
+and a residual component.
 
 ***
 
@@ -113,6 +132,7 @@ is at least 2 years of data, otherwise we can use Inter Quartile Range (IQR) for
 * `detect_outliers_iqr(df):` Detect outliers in a time-series dataframe when there's less than 2 years of data.
 * `detect_outliers_moving_average(df):` Detect outliers using moving average method. 
 * `detect_outliers_stl(df):` Detect outliers using Seasonal-Trend Decomposition using LOESS (STL).
+* `detect_outliers_mstl(df):` Detect outliers using Multiple Seasonal-Trend Decomposition using LOESS (MSTL).
 
 <hr style="border:1.25px solid gray">
 
@@ -124,6 +144,8 @@ is at least 2 years of data, otherwise we can use Inter Quartile Range (IQR) for
 * `build_classical_seasonal_outliers_plot(df):` Show outliers using Classical Seasonal Decomposition algorithm.
 * `build_moving_average_outliers_plot(df):` Show outliers using Moving Average and Z-score algorithm.
 * `build_stl_outliers_plot(df):` Show outliers using Seasonal-Trend Decomposition using LOESS (STL).
+* `build_mstl_outliers_plot(df):` Show outliers using Multiple Seasonal-Trend Decomposition using LOESS (MSTL).
+* `build_seasonal_plot_mstl(df):` Build multiple seasonal plots using LOESS for a given dataframe.
 * `conduct_stationarity_check(df):` Conduct stationarity checks for a feature (dataframe's count column).
 
 <hr style="border:1.25px solid gray">
@@ -139,9 +161,8 @@ Inter Quartile Range (IQR) for shorter time periods, offering flexibility withou
 * **Wide Time Frequency Support:**
 Supports multiple time-series frequencies — including daily, weekly, monthly, and quarterly data—without requiring 
 users to pre-process or adjust their datasets.
-* **Choice for Different Seasonal Trend Algorithms:** Support for outlier detection using both Classical Seasonal Trend 
-Decomposition 
-and Seasonal-Trend Decomposition using LOESS (STL) algorithms.
+* **Choice of Different Seasonal Trend Algorithms:** Support for outlier detection using various Seasonal Trend 
+Decomposition algorithms (Classic; STL; MSTL).
 * **Integrated Diagnostics:** PyCatcher includes comprehensive diagnostic tools, enabling users to visualize outliers, 
 trends 
 and seasonal patterns, evaluate data stationarity, and analyze decomposition results.
