@@ -36,7 +36,8 @@ from pycatcher.catch import (
     calculate_optimal_window_size,
     calculate_rmse,
     generate_outliers_stl,
-    detect_outliers_stl
+    detect_outliers_stl,
+    detect_outliers_mstl
 )
 from pycatcher.diagnostics import (
     get_residuals,
@@ -49,7 +50,9 @@ from pycatcher.diagnostics import (
     build_decomposition_results,
     build_moving_average_outliers_plot,
     build_classical_seasonal_outliers_plot,
-    build_stl_outliers_plot
+    build_stl_outliers_plot,
+    build_mstl_outliers_plot,
+    build_seasonal_plot_mstl
 )
 
 # Public API definition
@@ -81,8 +84,12 @@ __all__ = [
     "build_moving_average_outliers_plot",
     "generate_outliers_stl",
     "detect_outliers_stl",
+    "detect_outliers_mstl",
+    "generate_outliers_mstl",
     "build_classical_seasonal_outliers_plot",
     "build_stl_outliers_plot",
+    "build_mstl_outliers_plot",
+    "build_seasonal_plot_mstl",
 
     # Web app
     "create_app"

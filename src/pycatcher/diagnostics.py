@@ -5,7 +5,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import (adfuller, kpss)
-from statsmodels.tsa.seasonal import STL
+from statsmodels.tsa.seasonal import STL, MSTL
 import statsmodels.api as sm
 import numpy as np
 from scipy import stats
@@ -14,7 +14,8 @@ from .catch import (get_residuals,
                     get_ssacf,
                     anomaly_mad,
                     calculate_optimal_window_size,
-                    generate_outliers_stl)
+                    generate_outliers_stl,
+                    generate_outliers_mstl)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -547,3 +548,237 @@ def build_stl_outliers_plot(df) -> plt:
         print("Duplicate date index values. Check your data.")
 
     return plt
+
+
+def build_mstl_outliers_plot(df) -> plt:
+    """
+    Show outliers in a time-series dataset using Multiple Seasonal-Trend decomposition using Loess (MSTL).
+    MSTL can model seasonality which changes with time.
+
+    Args:
+        df (pd.DataFrame): A Pandas DataFrame with time-series data.
+            First column must be a date column ('YYYY-MM-DD')
+            and last column should be a count/feature column.
+
+    Returns:
+        plot: A plot with detected outliers.
+    """
+
+    logging.info("Starting outlier detection using MSTL")
+
+    # Check whether the argument is Pandas dataframe
+    if not isinstance(df, pd.DataFrame):
+        # Convert to Pandas dataframe for easy manipulation
+        df_pandas = df.toPandas()
+    else:
+        df_pandas = df
+
+    # Ensure the first column is in datetime format and set it as index
+    df_mstl = df_pandas.copy()
+    df_mstl.iloc[:, 0] = df_mstl.iloc[:, 0].apply(pd.to_datetime)
+    df_mstl = df_mstl.set_index(df_mstl.columns[0]).dropna()
+
+    # Initializing df_outliers to avoid undefined usage
+    df_outliers = pd.DataFrame()
+
+    # Ensure the datetime index is unique (no duplicate dates)
+    if df_mstl.index.is_unique:
+        # Find the time frequency (daily, weekly etc.) and length of the index column
+        inferred_frequency = df_mstl.index.inferred_freq
+        logging.info("Time frequency: %s", inferred_frequency)
+
+        # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
+        # Set parameter for Week check
+        regex_week_check = r'[W-Za-z]'
+
+        match inferred_frequency:
+            case 'H':
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # hour level time-series.")
+                period_hourly = 24
+                period_weekly = period_hourly * 7
+                derived_period = (period_hourly, period_weekly)  # Daily and Weekly Seasonality
+            case 'D':
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # day level time-series.")
+                period_weekly = 7
+                period_yearly = 365
+                derived_period = (period_weekly, period_yearly)  # Weekly and Yearly seasonality
+            case 'B':
+                # logging.info("Using seasonal trend decomposition for outlier detection in business
+                # day level time-series.")
+                period_weekly = 5
+                period_yearly = 365
+                derived_period = (period_weekly, period_yearly)
+            case 'MS':
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # month level time-series.")
+                period_monthly = 12
+                derived_period = period_monthly
+            case 'M':
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # month level time-series.")
+                period_monthly = 12
+                derived_period = period_monthly
+            case 'Q':
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # quarter level time-series.")
+                period_quarterly = 4
+                period_yearly = 12
+                derived_period = (period_quarterly, period_yearly)
+            case 'A':
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # annual level time-series.")
+                derived_period = 1  # Annual seasonality
+            case _:
+                if regex.match(regex_week_check, inferred_frequency):
+                    derived_period = 52  # Week level seasonality
+                else:
+                    raise ValueError("Could not infer a valid period from the data's frequency.")
+
+        logging.info("Derived Period: %d", derived_period)
+
+        # Try both additive and multiplicative models before selecting the right one
+        # Apply Box-Cox transformation for multiplicative model
+        df_box = df_mstl.copy()
+        df_box['count'] = df_mstl.iloc[:, -1].astype('float64')
+        df_box['transformed_data'], _ = stats.boxcox(df_box['count'])
+        result_mul = MSTL(df_box['transformed_data'], periods=derived_period).fit()
+        result_add = MSTL(df_mstl.iloc[:, -1], periods=derived_period).fit()
+
+        # Choose the model with lower variance in residuals
+        if np.var(result_mul.resid) < np.var(result_add.resid):
+            logging.info("Multiplicative model detected")
+            type = 'multiplicative'
+            df_outliers = generate_outliers_mstl(df_mstl, type, derived_period)
+        else:
+            logging.info("Additive model detected")
+            type = 'additive'
+            df_outliers = generate_outliers_mstl(df_mstl, type, derived_period)
+
+        print("Outliers:", df_outliers)
+        logging.info("Completing outlier detection using MSTL")
+    else:
+        print("Duplicate date index values. Check your data.")
+
+    plt.figure(figsize=(10, 4))
+    plt.plot(df_mstl)
+
+    for date in df_outliers.index:
+        plt.axvline(datetime(date.year, date.month, date.day), color='k', linestyle='--', alpha=0.5)
+        plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='r', marker='D')
+
+    # If the datetime index is not unique, print a warning
+    if not df_mstl.index.is_unique:
+        print("Duplicate date index values. Check your data.")
+
+    return plt
+
+
+def build_seasonal_plot_mstl(df) -> plt:
+    """
+    Build a seasonal plot for time-series dataset using Multiple Seasonal-Trend decomposition using Loess (MSTL).
+    MSTL can model seasonality which changes with time.
+
+    Args:
+        df (pd.DataFrame): A Pandas DataFrame with time-series data.
+            First column must be a date column ('YYYY-MM-DD')
+            and last column should be a count/feature column.
+
+    Returns:
+        str or pd.DataFrame: A message with None found or a DataFrame with detected outliers.
+    """
+    logging.info("Starting outlier detection using MSTL")
+
+    # Check whether the argument is Pandas dataframe
+    if not isinstance(df, pd.DataFrame):
+        # Convert to Pandas dataframe for easy manipulation
+        df_pandas = df.toPandas()
+    else:
+        df_pandas = df
+
+    # Ensure the first column is in datetime format and set it as index
+    df_mstl = df_pandas.copy()
+    # Ensure the DataFrame is indexed correctly
+    if not isinstance(df_mstl.index, pd.DatetimeIndex):
+        df_mstl = df_mstl.set_index(pd.to_datetime(df_mstl.iloc[:, 0])).dropna()
+
+    # Ensure the datetime index is unique (no duplicate dates)
+    if df_mstl.index.is_unique:
+        # Find the time frequency (daily, weekly etc.) and length of the index column
+        inferred_frequency = df_mstl.index.inferred_freq
+        logging.info("Time frequency: %s", inferred_frequency)
+
+        # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
+        # Set parameter for Week check
+        regex_week_check = r'[W-Za-z]'
+
+        match inferred_frequency:
+            case 'H':
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # hour level time-series.")
+                period_hourly = 24
+                period_weekly = period_hourly*7
+                derived_period = (period_hourly, period_weekly) # Daily and Weekly Seasonality
+            case 'D':
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # day level time-series.")
+                period_weekly = 7
+                period_yearly = 365
+                derived_period = (period_weekly, period_yearly)  # Weekly and Yearly seasonality
+            case 'B':
+                # logging.info("Using seasonal trend decomposition for outlier detection in business
+                # day level time-series.")
+                period_weekly = 5
+                period_yearly = 365
+                derived_period = (period_weekly, period_yearly)
+            case 'MS':
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # month level time-series.")
+                period_monthly = 12
+                derived_period = period_monthly
+            case 'M':
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # month level time-series.")
+                period_monthly = 12
+                derived_period = period_monthly
+            case 'Q':
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # quarter level time-series.")
+                period_quarterly = 4
+                period_yearly = 12
+                derived_period = (period_quarterly, period_yearly)
+            case 'A':
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # annual level time-series.")
+                derived_period = 1  # Annual seasonality
+            case _:
+                if regex.match(regex_week_check, inferred_frequency):
+                    derived_period = 52  # Week level seasonality
+                else:
+                    raise ValueError("Could not infer a valid period from the data's frequency.")
+
+        logging.info("Derived Period: %d", derived_period)
+
+        # Try both additive and multiplicative models before selecting the right one
+        # Apply Box-Cox transformation for multiplicative model
+        df_box = df_mstl.copy()
+        df_box['count'] = df_mstl.iloc[:, -1].astype('float64')
+        df_box['transformed_data'], _ = stats.boxcox(df_box['count'])
+        result_mul = MSTL(df_box['transformed_data'], periods=derived_period).fit()
+        result_add = MSTL(df_mstl.iloc[:, -1], periods=derived_period).fit()
+
+        plt.rc("figure", figsize=(16, 20))
+        plt.rc("font", size=12)
+
+        # Choose the model with lower variance in residuals
+        if np.var(result_mul.resid) < np.var(result_add.resid):
+            logging.info("Multiplicative model detected")
+            result_mul.plot()
+        else:
+            logging.info("Additive model detected")
+            result_add.plot()
+
+        logging.info("Completing seasonal decomposition plot using MSTL")
+    else:
+        print("Duplicate date index values. Check your data.")
