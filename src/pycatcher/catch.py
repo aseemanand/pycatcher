@@ -173,7 +173,7 @@ def get_ssacf(residuals: np.ndarray) -> float:
     return ssacf
 
 
-def detect_outliers_today(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
+def detect_outliers_today_classic(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     """
     Detect the outliers detected today using the anomaly_mad method.
 
@@ -189,7 +189,7 @@ def detect_outliers_today(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     logging.info("Detecting today's outliers.")
 
     # Get the DataFrame of outliers from detect_outliers and select the latest row
-    df_outliers = detect_outliers(df)
+    df_outliers = detect_outliers_classic(df)
     df_last_outlier = df_outliers.tail(1)
 
     # Extract the latest outlier's date
@@ -207,7 +207,7 @@ def detect_outliers_today(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
         return "No Outliers Today!"
 
 
-def detect_outliers_latest(df: pd.DataFrame) -> pd.DataFrame:
+def detect_outliers_latest_classic(df: pd.DataFrame) -> pd.DataFrame:
     """
     Detect the last outliers detected using the detect_outlier method.
 
@@ -221,7 +221,7 @@ def detect_outliers_latest(df: pd.DataFrame) -> pd.DataFrame:
 
     logging.info("Detecting the latest outliers.")
 
-    df_outliers = detect_outliers(df)
+    df_outliers = detect_outliers_classic(df)
     df_latest_outlier = df_outliers.tail(1)
 
     logging.info("Detected the latest outlier!")
@@ -229,7 +229,7 @@ def detect_outliers_latest(df: pd.DataFrame) -> pd.DataFrame:
     return df_latest_outlier
 
 
-def detect_outliers(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
+def detect_outliers_classic(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     """
     Detect outliers in a time-series dataset using Seasonal Trend Decomposition
     when there is at least 2 years of data, otherwise use Inter Quartile Range (IQR) for smaller timeframes.
@@ -872,3 +872,115 @@ def generate_outliers_mstl(df, type, period) -> pd.DataFrame:
     anomalies = df[is_outlier]
     logging.info("Generated outlier detection using MSTL")
     return anomalies
+
+
+def detect_outliers_today_stl(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
+    """
+    Detect the outliers detected today using STL seasonal decomposition method
+
+    Args:
+         df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
+                           and the last column should be the feature (count) for which outliers are detected.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing today's outliers if detected.
+        str: A message indicating no outliers were found today.
+    """
+
+    logging.info("Detecting today's outliers.")
+
+    # Get the DataFrame of outliers from detect_outliers and select the latest row
+    df_outliers = detect_outliers_stl(df)
+    df_last_outlier = df_outliers.tail(1)
+
+    # Extract the latest outlier's date
+    last_outlier_date = df_last_outlier.index[-1].date().strftime('%Y-%m-%d')
+
+    # Get the current date
+    current_date = pd.Timestamp.now().strftime('%Y-%m-%d')
+
+    # Check if the latest outlier occurred today
+    if last_outlier_date == current_date:
+        logging.info("Outliers detected today.")
+        return df_last_outlier
+    else:
+        logging.info("No outliers detected today.")
+        return "No Outliers Today!"
+
+
+def detect_outliers_latest_stl(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Detect the last outliers detected using the detect_outlier_stl method.
+
+    Args:
+         df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
+                           and the last column should be the feature (count) for which outliers are detected.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the latest detected outlier.
+    """
+
+    logging.info("Detecting the latest outliers.")
+
+    df_outliers = detect_outliers_stl(df)
+    df_latest_outlier = df_outliers.tail(1)
+
+    logging.info("Detected the latest outlier!")
+
+    return df_latest_outlier
+
+def detect_outliers_today_mstl(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
+    """
+    Detect the outliers detected today using MSTL seasonal decomposition method
+
+    Args:
+         df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
+                           and the last column should be the feature (count) for which outliers are detected.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing today's outliers if detected.
+        str: A message indicating no outliers were found today.
+    """
+
+    logging.info("Detecting today's outliers.")
+
+    # Get the DataFrame of outliers from detect_outliers and select the latest row
+    df_outliers = detect_outliers_mstl(df)
+    df_last_outlier = df_outliers.tail(1)
+
+    # Extract the latest outlier's date
+    last_outlier_date = df_last_outlier.index[-1].date().strftime('%Y-%m-%d')
+
+    # Get the current date
+    current_date = pd.Timestamp.now().strftime('%Y-%m-%d')
+
+    # Check if the latest outlier occurred today
+    if last_outlier_date == current_date:
+        logging.info("Outliers detected today.")
+        return df_last_outlier
+    else:
+        logging.info("No outliers detected today.")
+        return "No Outliers Today!"
+
+
+def detect_outliers_latest_mstl(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Detect the last outliers detected using the detect_outlier_stl method.
+
+    Args:
+         df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
+                           and the last column should be the feature (count) for which outliers are detected.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the latest detected outlier.
+    """
+
+    logging.info("Detecting the latest outliers.")
+
+    df_outliers = detect_outliers_mstl(df)
+    df_latest_outlier = df_outliers.tail(1)
+
+    logging.info("Detected the latest outlier!")
+
+    return df_latest_outlier
+

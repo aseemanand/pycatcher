@@ -49,9 +49,9 @@ def plot_seasonal(res, axes, title):
     axes[3].set_ylabel('Residual')
 
 
-def build_seasonal_plot(df):
+def build_seasonal_plot_classic(df):
     """
-    Build seasonal plot for a given dataframe
+    Build seasonal plot for a given dataframe using classic seasonal decomposition
         Args:
              df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
                                and the second/last column should be the feature (count).
@@ -368,7 +368,7 @@ def build_moving_average_outliers_plot(df: pd.DataFrame) -> plt:
     logging.info("Completed outliers plotting using Moving Average method")
 
 
-def build_classical_seasonal_outliers_plot(df) -> plt:
+def build_seasonal_outliers_plot_classic(df) -> plt:
     """
         Show outliers in a time-series dataset through Classical Seasonal Decomposition
 
@@ -437,7 +437,7 @@ def build_classical_seasonal_outliers_plot(df) -> plt:
     logging.info("Completing outlier plot using classical seasonal decomposition.")
 
 
-def build_stl_outliers_plot(df) -> plt:
+def build_outliers_plot_stl(df) -> plt:
     """
     Show outliers in a time-series dataset through Seasonal-Trend Decomposition using LOESS (STL)
 
@@ -704,7 +704,7 @@ def generate_seasonal_plot_stl(df, detected_period) -> plt:
     logging.info("Completing seasonal decomposition plot using STL")
 
 
-def build_mstl_outliers_plot(df) -> plt:
+def build_outliers_plot_mstl(df) -> plt:
     """
     Show outliers in a time-series dataset using Multiple Seasonal-Trend decomposition using Loess (MSTL).
     MSTL can model seasonality which changes with time.

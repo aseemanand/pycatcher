@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 import matplotlib.pyplot as plt
 from unittest.mock import patch, MagicMock
-from src.pycatcher.diagnostics import plot_seasonal, build_seasonal_plot
+from src.pycatcher.diagnostics import plot_seasonal, build_seasonal_plot_classic
 
 
 @pytest.fixture
