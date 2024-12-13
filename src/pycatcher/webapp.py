@@ -71,7 +71,7 @@ class OutlierAnalyzer:
 
             # Select outlier detection method
             if method == 'comprehensive':
-                df_outliers = detect_outliers(df)
+                df_outliers = detect_outliers_classic(df)
 
                 # Generate the plot
                 fig = build_iqr_plot(df)
