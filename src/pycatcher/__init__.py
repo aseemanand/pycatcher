@@ -60,8 +60,6 @@ from pycatcher.diagnostics import (
     build_outliers_plot_mstl,
     build_seasonal_plot_mstl,
     build_seasonal_plot_stl,
-    generate_seasonal_plot_stl,
-
 
 )
 
