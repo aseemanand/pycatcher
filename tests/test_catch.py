@@ -3,9 +3,11 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 from unittest.mock import MagicMock, patch
+
+from pycatcher.catch import detect_outliers_today_classic
 from src.pycatcher.catch import find_outliers_iqr, anomaly_mad, get_residuals, \
-    sum_of_squares, get_ssacf, detect_outliers_today, detect_outliers_latest, \
-    detect_outliers, decompose_and_detect, detect_outliers_iqr
+    sum_of_squares, get_ssacf, detect_outliers_today_classic, detect_outliers_latest_classic, \
+    detect_outliers_classic, decompose_and_detect, detect_outliers_iqr
 
 
 # Test case for find_outliers_iqr
@@ -96,8 +98,8 @@ def input_data_for_detect_outliers():
     })
 
 
-@patch('src.pycatcher.catch.detect_outliers')
-def test_outliers_detected_today(mock_detect_outliers, input_data_for_detect_outliers):
+@patch('src.pycatcher.catch.detect_outliers_classic')
+def test_outliers_detected_today(mock_detect_outliers_classic, input_data_for_detect_outliers):
     """Test case when outliers are detected today."""
 
     # Mock outliers DataFrame with today's date
@@ -108,17 +110,17 @@ def test_outliers_detected_today(mock_detect_outliers, input_data_for_detect_out
         'value': [100]
     }).set_index('date')
 
-    mock_detect_outliers.return_value = df_outliers_today
+    mock_detect_outliers_classic.return_value = df_outliers_today
 
     # Call the function with the sample input data
-    result = detect_outliers_today(input_data_for_detect_outliers)
+    result = detect_outliers_today_classic(input_data_for_detect_outliers)
 
     # Assert that the result is the DataFrame with today's outliers
     pd.testing.assert_frame_equal(result, df_outliers_today)
 
 
-@patch('src.pycatcher.catch.detect_outliers')
-def test_no_outliers_today(mock_detect_outliers, input_data_for_detect_outliers):
+@patch('src.pycatcher.catch.detect_outliers_classic')
+def test_no_outliers_today(mock_detect_outliers_classic, input_data_for_detect_outliers):
     """Test case when no outliers are detected today."""
 
     # Mock outliers DataFrame with a past date (ensure the index is in datetime format)
@@ -128,17 +130,17 @@ def test_no_outliers_today(mock_detect_outliers, input_data_for_detect_outliers)
         'value': [100]
     }).set_index('date')
 
-    mock_detect_outliers.return_value = df_outliers_previous_day
+    mock_detect_outliers_classic.return_value = df_outliers_previous_day
 
     # Call the function with the sample input data
-    result = detect_outliers_today(input_data_for_detect_outliers)
+    result = detect_outliers_today_classic(input_data_for_detect_outliers)
 
     # Assert that the function returns "No Outliers Today!"
     assert result == "No Outliers Today!"
 
 
-@patch('src.pycatcher.catch.detect_outliers')
-def test_outliers_latest_detected(mock_detect_outliers, input_data_for_detect_outliers):
+@patch('src.pycatcher.catch.detect_outliers_classic')
+def test_outliers_latest_detected(mock_detect_outliers_classic, input_data_for_detect_outliers):
     """Test case when the latest outlier is detected."""
 
     # Mock outliers DataFrame with latest outlier
@@ -148,17 +150,17 @@ def test_outliers_latest_detected(mock_detect_outliers, input_data_for_detect_ou
         'value': [100]
     }).set_index('date')
 
-    mock_detect_outliers.return_value = df_outliers
+    mock_detect_outliers_classic.return_value = df_outliers
 
     # Call the function with the sample input data
-    result = detect_outliers_latest(input_data_for_detect_outliers)
+    result = detect_outliers_latest_classic(input_data_for_detect_outliers)
 
     # Assert that the result is the DataFrame with the latest outlier
     pd.testing.assert_frame_equal(result, df_outliers.tail(1))
 
 
-@patch('src.pycatcher.catch.detect_outliers')
-def test_no_outliers_detected(mock_detect_outliers, input_data_for_detect_outliers):
+@patch('src.pycatcher.catch.detect_outliers_classic')
+def test_no_outliers_detected(mock_detect_outliers_classic, input_data_for_detect_outliers):
     """Test case when no outliers are detected."""
 
     # Mock an empty outliers DataFrame (indicating no outliers found)
@@ -167,10 +169,10 @@ def test_no_outliers_detected(mock_detect_outliers, input_data_for_detect_outlie
         'value': []
     }).set_index('date')
 
-    mock_detect_outliers.return_value = df_no_outliers
+    mock_detect_outliers_classic.return_value = df_no_outliers
 
     # Call the function with the sample input data
-    result = detect_outliers_latest(input_data_for_detect_outliers)
+    result = detect_outliers_latest_classic(input_data_for_detect_outliers)
 
     # Since no outliers are detected, the result should be an empty DataFrame
     pd.testing.assert_frame_equal(result, df_no_outliers)
@@ -184,7 +186,7 @@ def test_detect_outliers(mock_detect_outliers_iqr, mock_decompose_and_detect):
     df_daily = pd.DataFrame({'date': date_range_daily, 'count': range(750)})
     mock_decompose_and_detect.return_value = pd.DataFrame({'date': date_range_daily[:10], 'count': [1] * 10})
 
-    result_daily = detect_outliers(df_daily)
+    result_daily = detect_outliers_classic(df_daily)
     mock_decompose_and_detect.assert_called_once()
     assert isinstance(result_daily, pd.DataFrame)
     assert result_daily.equals(mock_decompose_and_detect.return_value)
@@ -195,7 +197,7 @@ def test_detect_outliers(mock_detect_outliers_iqr, mock_decompose_and_detect):
     mock_decompose_and_detect.reset_mock()  # Reset mock for separate assertions
     mock_decompose_and_detect.return_value = pd.DataFrame({'date': date_range_business[:10], 'count': [1] * 10})
 
-    result_business = detect_outliers(df_business)
+    result_business = detect_outliers_classic(df_business)
     mock_decompose_and_detect.assert_called_once()
     assert isinstance(result_business, pd.DataFrame)
     assert result_business.equals(mock_decompose_and_detect.return_value)
@@ -206,7 +208,7 @@ def test_detect_outliers(mock_detect_outliers_iqr, mock_decompose_and_detect):
     mock_decompose_and_detect.reset_mock()
     mock_decompose_and_detect.return_value = pd.DataFrame({'date': date_range_weekly[:10], 'count': [1] * 10})
 
-    result_weekly = detect_outliers(df_weekly)
+    result_weekly = detect_outliers_classic(df_weekly)
     mock_decompose_and_detect.assert_called_once()
     assert isinstance(result_weekly, pd.DataFrame)
     assert result_weekly.equals(mock_decompose_and_detect.return_value)
@@ -216,7 +218,7 @@ def test_detect_outliers(mock_detect_outliers_iqr, mock_decompose_and_detect):
     df_short = pd.DataFrame({'date': date_range_short, 'count': range(300)})
     mock_detect_outliers_iqr.return_value = pd.DataFrame({'date': date_range_short[:5], 'count': [1] * 5})
 
-    result_short = detect_outliers(df_short)
+    result_short = detect_outliers_classic(df_short)
     mock_detect_outliers_iqr.assert_called_once()
     assert isinstance(result_short, pd.DataFrame)
     assert result_short.equals(mock_detect_outliers_iqr.return_value)
@@ -227,7 +229,7 @@ def test_detect_outliers(mock_detect_outliers_iqr, mock_decompose_and_detect):
     mock_spark_df.toPandas.return_value = mock_pandas_df
     mock_detect_outliers_iqr.reset_mock()
 
-    result_conversion = detect_outliers(mock_spark_df)
+    result_conversion = detect_outliers_classic(mock_spark_df)
     mock_spark_df.toPandas.assert_called_once()
     mock_detect_outliers_iqr.assert_called_once()
     assert isinstance(result_conversion, pd.DataFrame)

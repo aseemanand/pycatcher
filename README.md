@@ -24,22 +24,26 @@ Below are the available techniques for anomaly detection, each optimized for dif
 
 ### **1. Seasonal-Decomposition Based Anomaly Detection**
 
-#### **Detect Outliers Using Classical Seasonal Decomposition**
-For datasets with at least two years of data, PyCatcher automatically determines whether the data follows an additive or multiplicative model to detect anomalies.
+Seasonal decomposition algorithms (Classical; STL; MSTL) requires at least 2 years of data, otherwise we 
+can use simpler methods (Inter Quartile Range (IQR); Moving Average method) to detect outliers.
 
-- **Method**: `detect_outliers(df)`
+#### **Detect Outliers Using Classical Seasonal Decomposition**
+For datasets with at least two years of data, PyCatcher automatically determines whether the data follows 
+an additive or multiplicative model to detect anomalies.
+
+- **Method**: `detect_outliers_classic(df)`
 - **Output**: DataFrame of detected anomalies or a message indicating no anomalies.
 
 #### **Detect Today's Outliers**
 Quickly identify if there are any anomalies specifically for the current date.
 
-- **Method**: `detect_outliers_today(df)`
+- **Method**: `detect_outliers_today_classic(df)`
 - **Output**: Anomaly details for today or a message indicating no outliers.
 
 #### **Detect the Latest Anomalies**
 Retrieve the most recent anomalies identified in your time-series data.
 
-- **Method**: `detect_outliers_latest(df)`
+- **Method**: `detect_outliers_latest_classic(df)`
 - **Output**: Details of the latest detected anomalies.
 
 #### **Visualize Outliers with Seasonal Decomposition**
@@ -67,17 +71,48 @@ Use the Seasonal-Trend Decomposition method (STL) to detect anomalies.
 - **Method**: `detect_outliers_stl(df)`
 - **Output**: Rows flagged as outliers using STL.
 
+#### **Detect Today's Outliers**
+Quickly identify if there are any anomalies specifically for the current date.
+
+- **Method**: `detect_outliers_today_stl(df)`
+- **Output**: Anomaly details for today or a message indicating no outliers.
+
+#### **Detect the Latest Anomalies**
+Retrieve the most recent anomalies identified in your time-series data.
+
+- **Method**: `detect_outliers_latest_stl(df)`
+- **Output**: Details of the latest detected anomalies.
+
 #### **Visualize STL Outliers**
 Show outliers using the Seasonal-Trend Decomposition using LOESS (STL).
 
 - **Method**: `build_stl_outliers_plot(df)`
 - **Output**: Outlier plot generated using STL.
 
+#### **Visualize Seasonal Decomposition using STL**
+Understand seasonality in your data by visualizing Seasonal-Trend Decomposition using LOESS (STL).
+
+- **Method**: `build_seasonal_plot_stl(df)`
+- **Output**: Seasonal plot to decompose a time series into a trend component, seasonal components, 
+and a residual component.
+
 #### **Detect Outliers Using Multiple Seasonal-Trend decomposition using LOESS (MSTL)**
 Use the Multiple Seasonal-Trend Decomposition method (MSTL) to detect anomalies. 
 
 - **Method**: `detect_outliers_mstl(df)`
 - **Output**: Rows flagged as outliers using MSTL.
+
+#### **Detect Today's Outliers**
+Quickly identify if there are any anomalies specifically for the current date.
+
+- **Method**: `detect_outliers_today_mstl(df)`
+- **Output**: Anomaly details for today or a message indicating no outliers.
+
+#### **Detect the Latest Anomalies**
+Retrieve the most recent anomalies identified in your time-series data.
+
+- **Method**: `detect_outliers_latest_mstl(df)`
+- **Output**: Details of the latest detected anomalies.
 
 #### **Visualize MSTL Outliers**
 Show outliers using the Multiple Seasonal-Trend Decomposition using LOESS (MSTL).
@@ -125,27 +160,31 @@ Build an IQR plot for a given dataframe (for less than 2 years of data).
 <hr style="border:1.25px solid gray">
 
 ### Summary of Package Functions
-* `detect_outliers(df):` Detect outliers in a time-series dataframe using seasonal trend decomposition when there 
-is at least 2 years of data, otherwise we can use Inter Quartile Range (IQR) for smaller timeframe.
-* `detect_outliers_today(df):` Detect outliers for the current date in a time-series dataframe.
-* `detect_outliers_latest(df):` Detect latest outliers in a time-series dataframe.
+* `detect_outliers_classic(df):` Detect outliers in a time-series dataframe using classic seasonal trend decomposition. 
+* `detect_outliers_today_classic(df):` Detect outliers for the current date using classic seasonal trend decomposition.
+* `detect_outliers_latest_classic(df):` Detect latest outliers using classic seasonal trend decomposition.
+* `detect_outliers_stl(df):` Detect outliers using Seasonal-Trend Decomposition using LOESS (STL).
+* `detect_outliers_today_stl(df):` Detect outliers for the current date using STL.
+* `detect_outliers_latest_stl(df):` Detect latest outliers using STL.
+* `detect_outliers_mstl(df):` Detect outliers using Multiple Seasonal-Trend Decomposition using LOESS (MSTL).
+* `detect_outliers_today_mstl(df):` Detect outliers for the current date using MSTL.
+* `detect_outliers_latest_mstl(df):` Detect latest outliers using MSTL.
 * `detect_outliers_iqr(df):` Detect outliers in a time-series dataframe when there's less than 2 years of data.
 * `detect_outliers_moving_average(df):` Detect outliers using moving average method. 
-* `detect_outliers_stl(df):` Detect outliers using Seasonal-Trend Decomposition using LOESS (STL).
-* `detect_outliers_mstl(df):` Detect outliers using Multiple Seasonal-Trend Decomposition using LOESS (MSTL).
 
 <hr style="border:1.25px solid gray">
 
 ### Summary of Diagnostic Plots
-* `build_seasonal_plot(df):` Build seasonal plot (additive or multiplicative) for a given dataframe.
+* `build_seasonal_outliers_plot_classic(df):` Show outliers using Classical Seasonal Decomposition algorithm.
+* `build_seasonal_plot_classic(df):` Build seasonal plot using classic seasonal trend decomposition.
+* `build_outliers_plot_stl(df):` Show outliers using Seasonal-Trend Decomposition using LOESS (STL).
+* `build_seasonal_plot_stl(df):` Build seasonal plots using STL for a given dataframe.
+* `build_outliers_plot_mstl(df):` Show outliers using Multiple Seasonal-Trend Decomposition using LOESS (MSTL).
+* `build_seasonal_plot_mstl(df):` Build multiple seasonal plots using MSTL for a given dataframe.
+* `build_moving_average_outliers_plot(df):` Show outliers using Moving Average and Z-score algorithm.
 * `build_iqr_plot(df):` Build IQR plot for a given dataframe (for less than 2 years of data).
 * `build_monthwise_plot(df):` Build month-wise plot for a given dataframe.
 * `build_decomposition_results(df):` Get seasonal decomposition results for a given dataframe.
-* `build_classical_seasonal_outliers_plot(df):` Show outliers using Classical Seasonal Decomposition algorithm.
-* `build_moving_average_outliers_plot(df):` Show outliers using Moving Average and Z-score algorithm.
-* `build_stl_outliers_plot(df):` Show outliers using Seasonal-Trend Decomposition using LOESS (STL).
-* `build_mstl_outliers_plot(df):` Show outliers using Multiple Seasonal-Trend Decomposition using LOESS (MSTL).
-* `build_seasonal_plot_mstl(df):` Build multiple seasonal plots using LOESS for a given dataframe.
 * `conduct_stationarity_check(df):` Conduct stationarity checks for a feature (dataframe's count column).
 
 <hr style="border:1.25px solid gray">

@@ -16,7 +16,7 @@ from flask import (
 import matplotlib.pyplot as plt
 import matplotlib
 from . import create_app
-from .catch import detect_outliers, detect_outliers_moving_average, detect_outliers_stl
+from .catch import detect_outliers_classic, detect_outliers_moving_average, detect_outliers_stl
 from .diagnostics import build_iqr_plot
 matplotlib.use('Agg')  # Use a non-interactive backend
 
@@ -71,7 +71,7 @@ class OutlierAnalyzer:
 
             # Select outlier detection method
             if method == 'comprehensive':
-                df_outliers = detect_outliers(df)
+                df_outliers = detect_outliers_classic(df)
 
                 # Generate the plot
                 fig = build_iqr_plot(df)

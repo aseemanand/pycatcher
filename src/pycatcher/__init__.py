@@ -27,9 +27,9 @@ from pycatcher.catch import (
     find_outliers_iqr,
     anomaly_mad,
     sum_of_squares,
-    detect_outliers_today,
-    detect_outliers_latest,
-    detect_outliers,
+    detect_outliers_today_classic,
+    detect_outliers_latest_classic,
+    detect_outliers_classic,
     decompose_and_detect,
     detect_outliers_iqr,
     detect_outliers_moving_average,
@@ -38,22 +38,29 @@ from pycatcher.catch import (
     generate_outliers_stl,
     generate_outliers_mstl,
     detect_outliers_stl,
-    detect_outliers_mstl
+    detect_outliers_mstl,
+    detect_outliers_today_stl,
+    detect_outliers_latest_stl,
+    detect_outliers_today_mstl,
+    detect_outliers_latest_mstl,
+
 )
 from pycatcher.diagnostics import (
     get_residuals,
     get_ssacf,
     plot_seasonal,
     build_iqr_plot,
-    build_seasonal_plot,
+    build_seasonal_plot_classic,
     build_monthwise_plot,
     conduct_stationarity_check,
     build_decomposition_results,
     build_moving_average_outliers_plot,
-    build_classical_seasonal_outliers_plot,
-    build_stl_outliers_plot,
-    build_mstl_outliers_plot,
-    build_seasonal_plot_mstl
+    build_seasonal_outliers_plot_classic,
+    build_outliers_plot_stl,
+    build_outliers_plot_mstl,
+    build_seasonal_plot_mstl,
+    build_seasonal_plot_stl,
+
 )
 
 # Public API definition
@@ -61,11 +68,15 @@ __all__ = [
     # Anomaly detection functions
     "find_outliers_iqr",
     "anomaly_mad",
-    "detect_outliers_today",
-    "detect_outliers_latest",
-    "detect_outliers",
+    "detect_outliers_today_classic",
+    "detect_outliers_latest_classic",
+    "detect_outliers_classic",
     "detect_outliers_iqr",
     "detect_outliers_moving_average",
+    "detect_outliers_today_stl",
+    "detect_outliers_latest_stl",
+    "detect_outliers_today_mstl",
+    "detect_outliers_latest_mstl",
 
     # Statistical functions
     "sum_of_squares",
@@ -78,7 +89,7 @@ __all__ = [
     "get_ssacf",
     "plot_seasonal",
     "build_iqr_plot",
-    "build_seasonal_plot",
+    "build_seasonal_plot_classic",
     "build_monthwise_plot",
     "conduct_stationarity_check",
     "build_decomposition_results",
@@ -87,9 +98,10 @@ __all__ = [
     "detect_outliers_stl",
     "detect_outliers_mstl",
     "generate_outliers_mstl",
-    "build_classical_seasonal_outliers_plot",
-    "build_stl_outliers_plot",
-    "build_mstl_outliers_plot",
+    "build_seasonal_outliers_plot_classic",
+    "build_outliers_plot_stl",
+    "build_outliers_plot_mstl",
+    "build_seasonal_plot_stl",
     "build_seasonal_plot_mstl",
 
     # Web app
