@@ -989,4 +989,3 @@ def generate_seasonal_plot_mstl(df, derived_period) -> plt:
         result_add.plot()
 
     logging.info("Completing seasonal decomposition plot using MSTL")
-

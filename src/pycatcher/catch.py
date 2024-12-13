@@ -929,6 +929,7 @@ def detect_outliers_latest_stl(df: pd.DataFrame) -> pd.DataFrame:
 
     return df_latest_outlier
 
+
 def detect_outliers_today_mstl(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     """
     Detect the outliers detected today using MSTL seasonal decomposition method
@@ -981,6 +982,4 @@ def detect_outliers_latest_mstl(df: pd.DataFrame) -> pd.DataFrame:
     df_latest_outlier = df_outliers.tail(1)
 
     logging.info("Detected the latest outlier!")
-
     return df_latest_outlier
-

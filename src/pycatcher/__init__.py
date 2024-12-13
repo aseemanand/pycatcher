@@ -37,9 +37,7 @@ from pycatcher.catch import (
     calculate_rmse,
     generate_outliers_stl,
     generate_outliers_mstl,
-    detect_outliers_mstl_extended,
     detect_outliers_stl,
-    detect_outliers_stl_extended,
     detect_outliers_mstl,
     detect_outliers_today_stl,
     detect_outliers_latest_stl,
@@ -62,8 +60,6 @@ from pycatcher.diagnostics import (
     build_outliers_plot_mstl,
     build_seasonal_plot_mstl,
     build_seasonal_plot_stl,
-    generate_outlier_plot_mstl,
-    generate_outlier_plot_stl,
     generate_seasonal_plot_mstl,
     generate_seasonal_plot_stl,
 
