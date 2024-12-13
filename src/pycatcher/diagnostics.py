@@ -483,45 +483,38 @@ def build_outliers_plot_stl(df) -> plt:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # hour level time-series.")
                 detected_period = 24  # Hourly seasonality
-                return generate_outlier_plot_stl(df_stl, detected_period)
             case 'D' if length_index >= 730:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # day level time-series.")
                 detected_period = 365  # Yearly seasonality
-                return generate_outlier_plot_stl(df_stl, detected_period)
             case 'B' if length_index >= 520:
                 # logging.info("Using seasonal trend decomposition for outlier detection in business
                 # day level time-series.")
                 detected_period = 365  # Yearly seasonality
-                return generate_outlier_plot_stl(df_stl, detected_period)
             case 'MS' if length_index >= 24:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # month level time-series.")
                 detected_period = 12
-                return generate_outlier_plot_stl(df_stl, detected_period)
             case 'M' if length_index >= 24:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # month level time-series.")
                 detected_period = 12
-                return generate_outlier_plot_stl(df_stl, detected_period)
             case 'Q' if length_index >= 8:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # quarter level time-series.")
                 detected_period = 4  # Quarterly seasonality
-                return generate_outlier_plot_stl(df_stl, detected_period)
             case 'A' if length_index >= 2:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # annual level time-series.")
                 detected_period = 1  # Annual seasonality
-                return generate_outlier_plot_stl(df_stl, detected_period)
             case _:
                 if regex.match(regex_week_check, inferred_frequency) and length_index >= 104:
                     detected_period = 52  # Week level seasonality
-                    return generate_outlier_plot_stl(df_stl, detected_period)
                 else:
                     # If less than 2 years of data, Use Inter Quartile Range (IQR) method
                     logging.info("Less than 2 years of data - Using IQR method for outlier detection")
                     return build_iqr_plot(df_pandas)
+        return generate_outlier_plot_stl(df_stl, detected_period)
     else:
         print("Duplicate date index values. Check your data.")
 
@@ -621,45 +614,38 @@ def build_seasonal_plot_stl(df) -> plt:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # hour level time-series.")
                 detected_period = 24  # Hourly seasonality
-                return generate_seasonal_plot_stl(df_stl, detected_period)
             case 'D' if length_index >= 730:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # day level time-series.")
                 detected_period = 365  # Yearly seasonality
-                return generate_seasonal_plot_stl(df_stl, detected_period)
             case 'B' if length_index >= 520:
                 # logging.info("Using seasonal trend decomposition for outlier detection in business
                 # day level time-series.")
                 detected_period = 365  # Yearly seasonality
-                return generate_seasonal_plot_stl(df_stl, detected_period)
             case 'MS' if length_index >= 24:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # month level time-series.")
                 detected_period = 12
-                return generate_seasonal_plot_stl(df_stl, detected_period)
             case 'M' if length_index >= 24:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # month level time-series.")
                 detected_period = 12
-                return generate_seasonal_plot_stl(df_stl, detected_period)
             case 'Q' if length_index >= 8:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # quarter level time-series.")
                 detected_period = 4  # Quarterly seasonality
-                return generate_seasonal_plot_stl(df_stl, detected_period)
             case 'A' if length_index >= 2:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # annual level time-series.")
                 detected_period = 1  # Annual seasonality
-                return generate_seasonal_plot_stl(df_stl, detected_period)
             case _:
                 if regex.match(regex_week_check, inferred_frequency) and length_index >= 104:
                     detected_period = 52  # Week level seasonality
-                    return generate_seasonal_plot_stl(df_stl, detected_period)
                 else:
                     # If less than 2 years of data, Use Month-wise box plot method
                     logging.info("Less than 2 years of data - Month-wise box plot method")
                     return build_monthwise_plot(df_pandas)
+        return generate_seasonal_plot_stl(df_stl, detected_period)
     else:
         print("Duplicate date index values. Check your data.")
 
@@ -752,53 +738,46 @@ def build_outliers_plot_mstl(df) -> plt:
                 period_hourly = 24
                 period_weekly = period_hourly * 7
                 derived_period = (period_hourly, period_weekly)  # Daily and Weekly Seasonality
-                return generate_outlier_plot_mstl(df_mstl, derived_period)
             case 'D' if length_index >= 730:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # day level time-series.")
                 period_weekly = 7
                 period_yearly = 365
                 derived_period = (period_weekly, period_yearly)  # Weekly and Yearly seasonality
-                return generate_outlier_plot_mstl(df_mstl, derived_period)
             case 'B' if length_index >= 520:
                 # logging.info("Using seasonal trend decomposition for outlier detection in business
                 # day level time-series.")
                 period_weekly = 5
                 period_yearly = 365
                 derived_period = (period_weekly, period_yearly)  # Weekly and Yearly seasonality
-                return generate_outlier_plot_mstl(df_mstl, derived_period)
             case 'MS' if length_index >= 24:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # month level time-series.")
                 period_monthly = 12
                 derived_period = period_monthly  # Monthly seasonality
-                return generate_outlier_plot_mstl(df_mstl, derived_period)
             case 'M' if length_index >= 24:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # month level time-series.")
                 period_monthly = 12
                 derived_period = period_monthly  # Monthly seasonality
-                return generate_outlier_plot_mstl(df_mstl, derived_period)
             case 'Q' if length_index >= 8:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # quarter level time-series.")
                 period_quarterly = 4
                 period_yearly = 12
                 derived_period = (period_quarterly, period_yearly)  # Quarterly and Yearly seasonality
-                return generate_outlier_plot_mstl(df_mstl, derived_period)
             case 'A' if length_index >= 2:
                 # logging.info("Using seasonal trend decomposition for outlier detection in
                 # annual level time-series.")
                 derived_period = 1  # Annual seasonality
-                return generate_outlier_plot_mstl(df_mstl, derived_period)
             case _:
                 if regex.match(regex_week_check, inferred_frequency) and length_index >= 104:
                     derived_period = 52  # Week level seasonality
-                    return generate_outlier_plot_mstl(df_mstl, derived_period)
                 else:
                     # If less than 2 years of data, Use Inter Quartile Range (IQR) method
                     logging.info("Less than 2 years of data - Using IQR method for outlier detection")
                     return build_iqr_plot(df_pandas)
+        return generate_outlier_plot_mstl(df_mstl, derived_period)
     else:
         print("Duplicate date index values. Check your data.")
 
@@ -901,54 +880,47 @@ def build_seasonal_plot_mstl(df) -> plt:
                 period_hourly = 24
                 period_weekly = period_hourly * 7
                 derived_period = (period_hourly, period_weekly)  # Daily and Weekly Seasonality
-                return generate_seasonal_plot_mstl(df_mstl, derived_period)
             case 'D' if length_index >= 730:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # day level time-series.")
                 period_weekly = 7
                 period_yearly = 365
                 derived_period = (period_weekly, period_yearly)  # Weekly and Yearly seasonality
-                return generate_seasonal_plot_mstl(df_mstl, derived_period)
             case 'B' if length_index >= 520:
                 # logging.info("Using seasonal trend decomposition for outlier detection in business
                 # day level time-series.")
                 period_weekly = 5
                 period_yearly = 365
                 derived_period = (period_weekly, period_yearly)   # Weekly and Yearly seasonality
-                return generate_seasonal_plot_mstl(df_mstl, derived_period)
             case 'MS' if length_index >= 24:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # month level time-series.")
                 period_monthly = 12
                 derived_period = period_monthly           # Monthly seasonality
-                return generate_seasonal_plot_mstl(df_mstl, derived_period)
             case 'M' if length_index >= 24:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # month level time-series.")
                 period_monthly = 12
                 derived_period = period_monthly           # Monthly seasonality
-                return generate_seasonal_plot_mstl(df_mstl, derived_period)
             case 'Q' if length_index >= 8:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # quarter level time-series.")
                 period_quarterly = 4
                 period_yearly = 12
                 derived_period = (period_quarterly, period_yearly)    # Quarterly and Yearly seasonality
-                return generate_seasonal_plot_mstl(df_mstl, derived_period)
             case 'A' if length_index >= 2:
                 # logging.info("Using seasonal trend decomposition for outlier detection in
                 # annual level time-series.")
                 derived_period = 1  # Annual seasonality
-                return generate_seasonal_plot_mstl(df_mstl, derived_period)
             case _:
                 if regex.match(regex_week_check, inferred_frequency) and length_index >= 104:
                     derived_period = 52  # Week level seasonality
-                    return generate_seasonal_plot_mstl(df_mstl, derived_period)
                 else:
                     # If less than 2 years of data, Use Month-Wise or Inter Quartile Range (IQR) method
                     logging.info("Less than 2 years of data - Use Month-wise or Moving Average Method")
                     logging.info("Default - Using Month-wise box plot")
                     return build_monthwise_plot(df_pandas)
+        return generate_seasonal_plot_mstl(df_mstl, derived_period)
     else:
         print("Duplicate date index values. Check your data.")
 

@@ -543,48 +543,39 @@ def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # hour level time-series.")
                 detected_period = 24  # Hourly seasonality
-                return detect_outliers_stl_extended(df_stl, detected_period)
             case 'D' if length_index >= 730:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # day level time-series.")
                 detected_period = 365  # Yearly seasonality
-                return detect_outliers_stl_extended(df_stl, detected_period)
             case 'B' if length_index >= 520:
                 # logging.info("Using seasonal trend decomposition for outlier detection in business
                 # day level time-series.")
                 detected_period = 365  # Yearly seasonality
-                return detect_outliers_stl_extended(df_stl, detected_period)
             case 'MS' if length_index >= 24:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # month level time-series.")
                 detected_period = 12
-                return detect_outliers_stl_extended(df_stl, detected_period)
             case 'M' if length_index >= 24:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # month level time-series.")
                 detected_period = 12
-                return detect_outliers_stl_extended(df_stl, detected_period)
             case 'Q' if length_index >= 8:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # quarter level time-series.")
                 detected_period = 4  # Quarterly seasonality
-                return detect_outliers_stl_extended(df_stl, detected_period)
             case 'A' if length_index >= 2:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # annual level time-series.")
                 detected_period = 1  # Annual seasonality
-                return detect_outliers_stl_extended(df_stl, detected_period)
             case _:
                 if regex.match(regex_week_check, inferred_frequency) and length_index >= 104:
                     detected_period = 52  # Week level seasonality
-                    return detect_outliers_stl_extended(df_stl, detected_period)
-                #else:
-                #    raise ValueError("Could not infer a valid period from the data's frequency.")
                 else:
                     # If less than 2 years of data, Use Inter Quartile Range (IQR) or Moving Average method
                     logging.info("Less than 2 years of data - Use Moving Average or IQR Method")
                     logging.info("Default - Using IQR method for outlier detection.")
                     return detect_outliers_iqr(df_pandas)
+        return detect_outliers_stl_extended(df_stl, detected_period)
     else:
         print("Duplicate date index values. Check your data.")
 
@@ -731,54 +722,47 @@ def detect_outliers_mstl(df) -> Union[pd.DataFrame, str]:
                 period_hourly = 24
                 period_weekly = period_hourly * 7
                 derived_period = (period_hourly, period_weekly)  # Daily and Weekly Seasonality
-                return detect_outliers_mstl_extended(df_mstl, derived_period)
             case 'D' if length_index >= 730:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # day level time-series.")
                 period_weekly = 7
                 period_yearly = 365
                 derived_period = (period_weekly, period_yearly)  # Weekly and Yearly seasonality
-                return detect_outliers_mstl_extended(df_mstl, derived_period)
             case 'B' if length_index >= 520:
                 # logging.info("Using seasonal trend decomposition for outlier detection in business
                 # day level time-series.")
                 period_weekly = 5
                 period_yearly = 365
                 derived_period = (period_weekly, period_yearly)
-                return detect_outliers_mstl_extended(df_mstl, derived_period)
             case 'MS' if length_index >= 24:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # month level time-series.")
                 period_monthly = 12
                 derived_period = period_monthly
-                return detect_outliers_mstl_extended(df_mstl, derived_period)
             case 'M' if length_index >= 24:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # month level time-series.")
                 period_monthly = 12
                 derived_period = period_monthly
-                return detect_outliers_mstl_extended(df_mstl, derived_period)
             case 'Q' if length_index >= 8:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # quarter level time-series.")
                 period_quarterly = 4
                 period_yearly = 12
                 derived_period = (period_quarterly, period_yearly)
-                return detect_outliers_mstl_extended(df_mstl, derived_period)
             case 'A' if length_index >= 2:
                 # logging.info("Using seasonal trend decomposition for for outlier detection in
                 # annual level time-series.")
                 derived_period = 1  # Annual seasonality
-                return detect_outliers_mstl_extended(df_mstl, derived_period)
             case _:
                 if regex.match(regex_week_check, inferred_frequency) and length_index >= 104:
                     derived_period = 52  # Week level seasonality
-                    return detect_outliers_mstl_extended(df_mstl, derived_period)
                 else:
                     # If less than 2 years of data, Use Moving Average or Inter Quartile Range (IQR) method
                     logging.info("Less than 2 years of data - Use IQR or Moving Average Method")
                     logging.info("Default - Using IQR method for outlier detection.")
                     return detect_outliers_iqr(df_pandas)
+        return detect_outliers_mstl_extended(df_mstl, derived_period)
     else:
         print("Duplicate date index values. Check your data.")
 
