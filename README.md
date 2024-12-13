@@ -24,6 +24,9 @@ Below are the available techniques for anomaly detection, each optimized for dif
 
 ### **1. Seasonal-Decomposition Based Anomaly Detection**
 
+Seasonal decomposition algorithms (Classical; STL; MSTL) requires at least 2 years of data, otherwise we 
+can use simpler methods (Inter Quartile Range (IQR); Moving Average method) to detect outliers.
+
 #### **Detect Outliers Using Classical Seasonal Decomposition**
 For datasets with at least two years of data, PyCatcher automatically determines whether the data follows an additive or multiplicative model to detect anomalies.
 
@@ -72,6 +75,13 @@ Show outliers using the Seasonal-Trend Decomposition using LOESS (STL).
 
 - **Method**: `build_stl_outliers_plot(df)`
 - **Output**: Outlier plot generated using STL.
+
+#### **Visualize Seasonal Decomposition using STL**
+Understand seasonality in your data by visualizing Seasonal-Trend Decomposition using LOESS (STL).
+
+- **Method**: `build_seasonal_plot_stl(df)`
+- **Output**: Seasonal plot to decompose a time series into a trend component, seasonal components, 
+and a residual component.
 
 #### **Detect Outliers Using Multiple Seasonal-Trend decomposition using LOESS (MSTL)**
 Use the Multiple Seasonal-Trend Decomposition method (MSTL) to detect anomalies. 
@@ -125,8 +135,7 @@ Build an IQR plot for a given dataframe (for less than 2 years of data).
 <hr style="border:1.25px solid gray">
 
 ### Summary of Package Functions
-* `detect_outliers(df):` Detect outliers in a time-series dataframe using seasonal trend decomposition when there 
-is at least 2 years of data, otherwise we can use Inter Quartile Range (IQR) for smaller timeframe.
+* `detect_outliers(df):` Detect outliers in a time-series dataframe using seasonal trend decomposition. 
 * `detect_outliers_today(df):` Detect outliers for the current date in a time-series dataframe.
 * `detect_outliers_latest(df):` Detect latest outliers in a time-series dataframe.
 * `detect_outliers_iqr(df):` Detect outliers in a time-series dataframe when there's less than 2 years of data.
@@ -144,6 +153,7 @@ is at least 2 years of data, otherwise we can use Inter Quartile Range (IQR) for
 * `build_classical_seasonal_outliers_plot(df):` Show outliers using Classical Seasonal Decomposition algorithm.
 * `build_moving_average_outliers_plot(df):` Show outliers using Moving Average and Z-score algorithm.
 * `build_stl_outliers_plot(df):` Show outliers using Seasonal-Trend Decomposition using LOESS (STL).
+* `build_seasonal_plot_stl(df):` Build seasonal plots using LOESS for a given dataframe.
 * `build_mstl_outliers_plot(df):` Show outliers using Multiple Seasonal-Trend Decomposition using LOESS (MSTL).
 * `build_seasonal_plot_mstl(df):` Build multiple seasonal plots using LOESS for a given dataframe.
 * `conduct_stationarity_check(df):` Conduct stationarity checks for a feature (dataframe's count column).
