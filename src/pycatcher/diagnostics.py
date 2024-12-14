@@ -416,13 +416,6 @@ def build_seasonal_outliers_plot_classic(df) -> plt:
         is_outlier = anomaly_mad(residuals_add)
         df_outliers = df_pandas[is_outlier]
 
-        # Plot the data
-        #plt.figure(figsize=(20, 8))
-        #plt.plot(df_pandas.iloc[:, -1], label='Original Data')
-
-        # Highlight outliers
-        #plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='red', label='Outliers')
-        #plt.legend()
     else:
         print("Multiplicative Model")
         is_outlier = anomaly_mad(residuals_mul)
