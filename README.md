@@ -86,7 +86,7 @@ Retrieve the most recent anomalies identified in your time-series data.
 #### **Visualize STL Outliers**
 Show outliers using the Seasonal-Trend Decomposition using LOESS (STL).
 
-- **Method**: `build_stl_outliers_plot(df)`
+- **Method**: `build_outliers_plot_stl(df)`
 - **Output**: Outlier plot generated using STL.
 
 #### **Visualize Seasonal Decomposition using STL**
@@ -117,7 +117,7 @@ Retrieve the most recent anomalies identified in your time-series data.
 #### **Visualize MSTL Outliers**
 Show outliers using the Multiple Seasonal-Trend Decomposition using LOESS (MSTL).
 
-- **Method**: `build_mstl_outliers_plot(df)`
+- **Method**: `build_outliers_plot_mstl(df)`
 - **Output**: Outlier plot generated using MSTL.
 
 #### **Visualize Multiple Seasonal Decomposition**

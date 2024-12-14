@@ -356,6 +356,8 @@ def build_moving_average_outliers_plot(df: pd.DataFrame) -> plt:
     # Identify outliers
     outliers = df1[(df1['above_threshold']) | (df1['below_threshold'])].dropna()
 
+    print("Outliers:", outliers)
+
     # Plot the data
     plt.figure(figsize=(20, 8))
     plt.plot(df_pandas.iloc[:, -1], label='Original Data')
@@ -415,24 +417,27 @@ def build_seasonal_outliers_plot_classic(df) -> plt:
         df_outliers = df_pandas[is_outlier]
 
         # Plot the data
-        plt.figure(figsize=(20, 8))
-        plt.plot(df_pandas.iloc[:, -1], label='Original Data')
+        #plt.figure(figsize=(20, 8))
+        #plt.plot(df_pandas.iloc[:, -1], label='Original Data')
 
         # Highlight outliers
-        plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='red', label='Outliers')
-        plt.legend()
+        #plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='red', label='Outliers')
+        #plt.legend()
     else:
         print("Multiplicative Model")
         is_outlier = anomaly_mad(residuals_mul)
         df_outliers = df_pandas[is_outlier]
 
-        # Plot the data
-        plt.figure(figsize=(20, 8))
-        plt.plot(df_pandas.iloc[:, -1], label='Original Data')
+    print("Outliers:", df_outliers)
+    logging.info("Completing outlier detection using classical seasonal decomposition")
 
-        # Highlight outliers
-        plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='red', label='Outliers')
-        plt.legend()
+    # Plot the data
+    plt.figure(figsize=(20, 8))
+    plt.plot(df_pandas.iloc[:, -1], label='Original Data')
+
+    # Highlight outliers
+    plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='red', label='Outliers')
+    plt.legend()
 
     logging.info("Completing outlier plot using classical seasonal decomposition.")
 
@@ -559,6 +564,9 @@ def generate_outlier_plot_stl(df, detected_period) -> plt:
         type = 'additive'
         df_outliers = generate_outliers_stl(df, type, derived_seasonal, detected_period)
 
+    print("Outliers:", df_outliers)
+    logging.info("Completing outlier detection using STL")
+
     plt.figure(figsize=(10, 4))
     plt.plot(df)
     for date in df_outliers.index:
@@ -676,7 +684,7 @@ def generate_seasonal_plot_stl(df, detected_period) -> plt:
     result_mul = STL(df_box['transformed_data'], seasonal=derived_seasonal, period=detected_period).fit()
     result_add = STL(df.iloc[:, -1], seasonal=derived_seasonal, period=detected_period).fit()
 
-    plt.rc("figure", figsize=(16, 20))
+    plt.rc("figure", figsize=(14, 16))
     plt.rc("font", size=12)
 
     # Choose the model with lower variance in residuals
@@ -949,7 +957,7 @@ def generate_seasonal_plot_mstl(df, derived_period) -> plt:
     result_mul = MSTL(df_box['transformed_data'], periods=derived_period).fit()
     result_add = MSTL(df.iloc[:, -1], periods=derived_period).fit()
 
-    plt.rc("figure", figsize=(16, 20))
+    plt.rc("figure", figsize=(14, 16))
     plt.rc("font", size=12)
 
     # Choose the model with lower variance in residuals

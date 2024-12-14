@@ -3,6 +3,7 @@ from typing import Union
 import re as regex
 import numpy as np
 import pandas as pd
+from datetime import datetime
 from pyod.models.mad import MAD
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import TimeSeriesSplit
@@ -780,7 +781,7 @@ def detect_outliers_mstl_extended(df, derived_period) -> Union[pd.DataFrame, str
                 str or pd.DataFrame: A message with None found or a DataFrame with detected outliers.
      """
 
-    logging.info("Derived Period: %d", derived_period)
+    logging.info("Derived Period: %s", derived_period)
 
     # Try both additive and multiplicative models before selecting the right one
     # Apply Box-Cox transformation for multiplicative model
