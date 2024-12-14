@@ -3,7 +3,6 @@ from typing import Union
 import re as regex
 import numpy as np
 import pandas as pd
-from datetime import datetime
 from pyod.models.mad import MAD
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import TimeSeriesSplit
@@ -878,6 +877,9 @@ def detect_outliers_today_stl(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     df_outliers = detect_outliers_stl(df)
     df_last_outlier = df_outliers.tail(1)
 
+    # Ensure the index is a datetime object
+    df_last_outlier.index = pd.to_datetime(df_last_outlier.index)
+
     # Extract the latest outlier's date
     last_outlier_date = df_last_outlier.index[-1].date().strftime('%Y-%m-%d')
 
@@ -933,6 +935,9 @@ def detect_outliers_today_mstl(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     # Get the DataFrame of outliers from detect_outliers and select the latest row
     df_outliers = detect_outliers_mstl(df)
     df_last_outlier = df_outliers.tail(1)
+
+    # Ensure the index is a datetime object
+    df_last_outlier.index = pd.to_datetime(df_last_outlier.index)
 
     # Extract the latest outlier's date
     last_outlier_date = df_last_outlier.index[-1].date().strftime('%Y-%m-%d')
