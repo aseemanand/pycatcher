@@ -780,7 +780,7 @@ def detect_outliers_mstl_extended(df, derived_period) -> Union[pd.DataFrame, str
                 str or pd.DataFrame: A message with None found or a DataFrame with detected outliers.
      """
 
-    logging.info("Derived Period: %d", derived_period)
+    logging.info("Derived Period: %s", derived_period)
 
     # Try both additive and multiplicative models before selecting the right one
     # Apply Box-Cox transformation for multiplicative model
@@ -877,6 +877,9 @@ def detect_outliers_today_stl(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     df_outliers = detect_outliers_stl(df)
     df_last_outlier = df_outliers.tail(1)
 
+    # Ensure the index is a datetime object
+    df_last_outlier.index = pd.to_datetime(df_last_outlier.index)
+
     # Extract the latest outlier's date
     last_outlier_date = df_last_outlier.index[-1].date().strftime('%Y-%m-%d')
 
@@ -932,6 +935,9 @@ def detect_outliers_today_mstl(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     # Get the DataFrame of outliers from detect_outliers and select the latest row
     df_outliers = detect_outliers_mstl(df)
     df_last_outlier = df_outliers.tail(1)
+
+    # Ensure the index is a datetime object
+    df_last_outlier.index = pd.to_datetime(df_last_outlier.index)
 
     # Extract the latest outlier's date
     last_outlier_date = df_last_outlier.index[-1].date().strftime('%Y-%m-%d')
