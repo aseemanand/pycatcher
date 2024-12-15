@@ -18,7 +18,7 @@ pip install pycatcher
 
 <hr style="border:1.25px solid gray">
 
-## Summary of features 
+### Summary of features 
 PyCatcher provides an efficient solution for detecting anomalies in time-series data using various statistical methods.
 Below are the available techniques for anomaly detection, each optimized for different data characteristics.
 
