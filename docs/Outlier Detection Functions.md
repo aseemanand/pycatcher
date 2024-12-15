@@ -1,7 +1,7 @@
 ### Summary of Package Functions
-* `detect_outliers_classic(df):` Detect outliers in a time-series dataframe using classic seasonal trend decomposition. 
-* `detect_outliers_today_classic(df):` Detect outliers for the current date using classic seasonal trend decomposition.
-* `detect_outliers_latest_classic(df):` Detect latest outliers using classic seasonal trend decomposition.
+* `detect_outliers_classic(df):` Detect outliers in a time-series dataframe using classical seasonal trend decomposition. 
+* `detect_outliers_today_classic(df):` Detect outliers for the current date using classical seasonal trend decomposition.
+* `detect_outliers_latest_classic(df):` Detect latest outliers using classical seasonal trend decomposition.
 * `detect_outliers_stl(df):` Detect outliers using Seasonal-Trend Decomposition using LOESS (STL).
 * `detect_outliers_today_stl(df):` Detect outliers for the current date using STL.
 * `detect_outliers_latest_stl(df):` Detect latest outliers using STL.

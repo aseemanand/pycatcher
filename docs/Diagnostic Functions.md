@@ -1,6 +1,6 @@
 ### Summary of Diagnostic Functions
-* `build_seasonal_outliers_plot_classic(df):` Show outliers using Classical Seasonal Decomposition algorithm.
-* `build_seasonal_plot_classic(df):` Build seasonal plot using classic seasonal trend decomposition.
+* `build_outliers_plot_classic(df):` Show outliers using Classical Seasonal Decomposition algorithm.
+* `build_seasonal_plot_classic(df):` Build seasonal plot using Classical seasonal trend decomposition.
 * `build_outliers_plot_stl(df):` Show outliers using Seasonal-Trend Decomposition using LOESS (STL).
 * `build_seasonal_plot_stl(df):` Build seasonal plots using STL for a given dataframe.
 * `build_outliers_plot_mstl(df):` Show outliers using Multiple Seasonal-Trend Decomposition using LOESS (MSTL).

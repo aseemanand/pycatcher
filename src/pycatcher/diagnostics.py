@@ -370,7 +370,7 @@ def build_moving_average_outliers_plot(df: pd.DataFrame) -> plt:
     logging.info("Completed outliers plotting using Moving Average method")
 
 
-def build_seasonal_outliers_plot_classic(df) -> plt:
+def build_outliers_plot_classic(df) -> plt:
     """
         Show outliers in a time-series dataset through Classical Seasonal Decomposition
 
@@ -548,7 +548,7 @@ def generate_outlier_plot_stl(df, detected_period) -> plt:
     result_add = STL(df.iloc[:, -1], seasonal=derived_seasonal, period=detected_period).fit()
 
     # Choose the model with lower variance in residuals
-    if np.var(result_mul.resid) < np.var(result_add.resid):
+    if np.var(result_mul.resid) > np.var(result_add.resid):
         logging.info("Multiplicative model detected")
         type = 'multiplicative'
         df_outliers = generate_outliers_stl(df, type, derived_seasonal, detected_period)
@@ -681,7 +681,7 @@ def generate_seasonal_plot_stl(df, detected_period) -> plt:
     plt.rc("font", size=12)
 
     # Choose the model with lower variance in residuals
-    if np.var(result_mul.resid) < np.var(result_add.resid):
+    if np.var(result_mul.resid) > np.var(result_add.resid):
         logging.info("Multiplicative model detected")
         result_mul.plot()
     else:
@@ -811,7 +811,7 @@ def generate_outlier_plot_mstl(df, derived_period) -> plt:
     result_add = MSTL(df.iloc[:, -1], periods=derived_period).fit()
 
     # Choose the model with lower variance in residuals
-    if np.var(result_mul.resid) < np.var(result_add.resid):
+    if np.var(result_mul.resid) > np.var(result_add.resid):
         logging.info("Multiplicative model detected")
         type = 'multiplicative'
         df_outliers = generate_outliers_mstl(df, type, derived_period)
@@ -954,7 +954,7 @@ def generate_seasonal_plot_mstl(df, derived_period) -> plt:
     plt.rc("font", size=12)
 
     # Choose the model with lower variance in residuals
-    if np.var(result_mul.resid) < np.var(result_add.resid):
+    if np.var(result_mul.resid) > np.var(result_add.resid):
         logging.info("Multiplicative model detected")
         result_mul.plot()
     else:
