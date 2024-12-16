@@ -607,7 +607,7 @@ def detect_outliers_stl_extended(df, detected_period) -> Union[pd.DataFrame, str
     result_add = STL(df.iloc[:, -1], seasonal=derived_seasonal, period=detected_period).fit()
 
     # Choose the model with lower variance in residuals
-    if np.var(result_mul.resid) < np.var(result_add.resid):
+    if np.var(result_mul.resid) > np.var(result_add.resid):
         logging.info("Multiplicative model detected")
         type = 'multiplicative'
         df_outliers = generate_outliers_stl(df, type, derived_seasonal, detected_period)
@@ -791,7 +791,7 @@ def detect_outliers_mstl_extended(df, derived_period) -> Union[pd.DataFrame, str
     result_add = MSTL(df.iloc[:, -1], periods=derived_period).fit()
 
     # Choose the model with lower variance in residuals
-    if np.var(result_mul.resid) < np.var(result_add.resid):
+    if np.var(result_mul.resid) > np.var(result_add.resid):
         # logging.info("Multiplicative model detected")
         type = 'multiplicative'
         df_outliers = generate_outliers_mstl(df, type, derived_period)
