@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://aseemanand.github.io/pycatcher/</loc>
+         <loc>https://www.pycatcher.com/</loc>
          <lastmod>2024-12-17</lastmod>
     </url>
     <url>
-         <loc>https://aseemanand.github.io/pycatcher/diagnostic_functions/</loc>
+         <loc>https://www.pycatcher.com/diagnostic_functions/</loc>
          <lastmod>2024-12-17</lastmod>
     </url>
     <url>
-         <loc>https://aseemanand.github.io/pycatcher/highlights/</loc>
+         <loc>https://www.pycatcher.com/highlights/</loc>
          <lastmod>2024-12-17</lastmod>
     </url>
     <url>
-         <loc>https://aseemanand.github.io/pycatcher/outlier_detection_functions/</loc>
+         <loc>https://www.pycatcher.com/outlier_detection_functions/</loc>
          <lastmod>2024-12-17</lastmod>
     </url>
 </urlset>
