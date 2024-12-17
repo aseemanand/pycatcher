@@ -134,5 +134,6 @@ credentials.json
 .coverage
 .coverage.*
 
-# Ignore uploads directory
+# Ignore uploads and site directories
 uploads/
+site/

@@ -1,0 +1,10 @@
+site_name: PyCatcher Documentation
+site_url: https://aseemanand.github.io/pycatcher/
+docs_dir: docs
+theme:
+  name: material
+nav:
+  - Home: index.md
+  - Highlights: highlights.md
+  - Diagnostic Functions: diagnostic_functions.md
+  - Outlier Detection Functions: outlier_detection_functions.md
