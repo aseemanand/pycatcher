@@ -5,9 +5,9 @@
 This package identifies outlier(s) for a given time-series dataset in simple steps. It supports day, week, month and 
 quarter level time-series data.
 
-- [Highlights](docs/highlights.md)
-- [Outlier Detection Functions](docs/outlier_detection_functions.md)
-- [Diagnostic Functions](docs/diagnostic_functions.md)
+- [Highlights](https://aseemanand.github.io/pycatcher/highlights/)
+- [Outlier Detection Functions](https://aseemanand.github.io/pycatcher/outlier_detection_functions/)
+- [Diagnostic Functions](https://aseemanand.github.io/pycatcher/diagnostic_functions/)
 
 ### Installation
 
