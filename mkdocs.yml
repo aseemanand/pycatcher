@@ -1,5 +1,5 @@
 site_name: PyCatcher Documentation
-site_url: https://aseemanand.github.io/pycatcher/
+site_url: https://www.pycatcher.com
 docs_dir: docs
 theme:
   name: material
