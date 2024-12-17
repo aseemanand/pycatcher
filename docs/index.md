@@ -5,9 +5,9 @@
 This package identifies outlier(s) for a given time-series dataset in simple steps. It supports day, week, month and 
 quarter level time-series data.
 
-- [Highlights](docs/highlights.md)
-- [Outlier Detection Functions](docs/outlier_detection_functions.md)
-- [Diagnostic Functions](docs/diagnostic_functions.md)
+- [Highlights](highlights.md)
+- [Outlier Detection Functions](outlier_detection_functions.md)
+- [Diagnostic Functions](diagnostic_functions.md)
 
 ### Installation
 
@@ -168,5 +168,3 @@ Build an IQR plot for a given dataframe (for less than 2 years of data).
 To see an example of how to use the `pycatcher` package for outlier detection in time-series data, check out the [Example Notebook](https://github.com/aseemanand/pycatcher/blob/main/notebooks/Example%20Notebook.ipynb).
 
 The notebook provides step-by-step guidance and demonstrates the key features of the library.
-
-
