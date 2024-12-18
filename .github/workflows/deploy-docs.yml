@@ -26,6 +26,8 @@ jobs:
     - name: Build MkDocs Site
       run: |
         poetry run mkdocs build --verbose --clean
+    - name: Add CNAME for Custom Domain
+      run: echo "www.pycatcher.com" > site/CNAME
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
