@@ -82,7 +82,7 @@ def test_get_ssacf():
     df = pd.DataFrame({"Value": [1, 2, 3, 4, 5]})
 
     # Run the function
-    result = get_ssacf(residuals)
+    result = get_ssacf(residuals,type="none")
 
     # Test that the result is a valid number (more advanced checks can be added)
     assert isinstance(result, float)

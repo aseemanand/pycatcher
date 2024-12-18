@@ -91,8 +91,12 @@ def anomaly_mad(residuals: BaseEstimator) -> pd.DataFrame:
     else:
         residuals = residuals.values.reshape(-1, 1)
 
+    # Using MAD estimator from the PyOD library
+    # Initialize the MAD detector
+    mad_init = MAD(threshold=3.5)
+
     # Fit the MAD outlier detection model
-    mad = MAD().fit(residuals)
+    mad = mad_init.fit(residuals)
 
     # Identify outliers using MAD labels (1 indicates an outlier)
     is_outlier = mad.labels_ == 1
@@ -144,12 +148,12 @@ def sum_of_squares(array: np.ndarray) -> float:
     # Calculate the sum of squares of the flattened array
     sum_of_squares_value = np.sum(flattened_array ** 2)
 
-    logging.info("Sum of squares calculated: %.2f", sum_of_squares_value)
+    logging.info("Sum of Squares calculation Completed.")
 
     return float(sum_of_squares_value)
 
 
-def get_ssacf(residuals: np.ndarray) -> float:
+def get_ssacf(residuals: np.ndarray, type) -> float:
     """
     Get the sum of squares of the Auto Correlation Function (ACF) of the residuals.
 
@@ -159,16 +163,15 @@ def get_ssacf(residuals: np.ndarray) -> float:
     Returns:
         float: The sum of squares of the ACF of the residuals.
     """
-
-    logging.info("Calculating the sum of squares of the ACF of residuals.")
+    logging.info("Model type assumption: %s", type)
+    logging.info("Calculating the ACF of residuals.")
 
     # Compute the ACF of the residuals
     acf_array = acf(residuals, fft=True)
 
     # Calculate the sum of squares of the ACF values
     ssacf = sum_of_squares(acf_array)
-
-    logging.info("Sum of squares of ACF: %.2f", ssacf)
+    logging.info("Sum of Squares of ACF: %.2f", ssacf)
 
     return ssacf
 
@@ -326,15 +329,15 @@ def decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     residuals_mul: pd.Series = get_residuals(decomposition_mul)
 
     # Calculate Sum of Squares of the ACF for both models
-    ssacf_add: float = get_ssacf(residuals_add)
-    ssacf_mul: float = get_ssacf(residuals_mul)
+    ssacf_add: float = get_ssacf(residuals_add, type='Additive')
+    ssacf_mul: float = get_ssacf(residuals_mul, type='Multiplicative')
 
     # Return the outliers detected by the model with the smaller ACF value
     if ssacf_add < ssacf_mul:
-        logging.info("Using the additive model for outlier detection.")
+        logging.info("Using the Additive model for outlier detection.")
         is_outlier = anomaly_mad(residuals_add)
     else:
-        logging.info("Using the multiplicative model for outlier detection.")
+        logging.info("Using the Multiplicative model for outlier detection.")
         is_outlier = anomaly_mad(residuals_mul)
 
     # Use the aligned boolean Series as the indexer

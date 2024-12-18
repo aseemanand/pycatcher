@@ -98,8 +98,9 @@ def build_seasonal_plot_classic(df):
 
         # Get ACF values for both Additive and Multiplicative models
 
-        ssacf_add = get_ssacf(residuals_add)
-        ssacf_mul = get_ssacf(residuals_mul)
+        # Calculate Sum of Squares of the ACF for both models
+        ssacf_add: float = get_ssacf(residuals_add, type='Additive')
+        ssacf_mul: float = get_ssacf(residuals_mul, type='Multiplicative')
 
         if ssacf_add < ssacf_mul:
             logger.info("Using Additive model for seasonal decomposition.")
@@ -288,8 +289,9 @@ def build_decomposition_results(df):
         residuals_mul = get_residuals(decomposition_mul)
 
         # Get ACF values for both Additive and Multiplicative models
-        ssacf_add = get_ssacf(residuals_add)
-        ssacf_mul = get_ssacf(residuals_mul)
+        # Calculate Sum of Squares of the ACF for both models
+        ssacf_add: float = get_ssacf(residuals_add, type='Additive')
+        ssacf_mul: float = get_ssacf(residuals_mul, type='Multiplicative')
 
         if ssacf_add < ssacf_mul:
             logger.info("Using Additive model for seasonal decomposition.")
@@ -408,8 +410,9 @@ def build_outliers_plot_classic(df) -> plt:
 
     # Get ACF values for both Additive and Multiplicative models
 
-    ssacf_add = get_ssacf(residuals_add)
-    ssacf_mul = get_ssacf(residuals_mul)
+    # Calculate Sum of Squares of the ACF for both models
+    ssacf_add: float = get_ssacf(residuals_add, type='Additive')
+    ssacf_mul: float = get_ssacf(residuals_mul, type='Multiplicative')
 
     if ssacf_add < ssacf_mul:
         print("Additive Model")
