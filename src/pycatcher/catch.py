@@ -3,7 +3,6 @@ from typing import Union
 import re as regex
 import numpy as np
 import pandas as pd
-from pyod.models.base import BaseDetector
 from pyod.models.mad import MAD
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import TimeSeriesSplit
@@ -88,9 +87,9 @@ def anomaly_mad(residuals: BaseEstimator) -> pd.DataFrame:
 
     # Reshape residuals from the fitted model
     if isinstance(residuals, np.ndarray):
-       residuals = residuals.reshape(-1, 1)
+        residuals = residuals.reshape(-1, 1)
     else:
-       residuals = residuals.values.reshape(-1, 1)
+        residuals = residuals.values.reshape(-1, 1)
 
     # Using MAD estimator from the PyOD library
     # Initialize the MAD detector
@@ -154,7 +153,7 @@ def sum_of_squares(array: np.ndarray) -> float:
     return float(sum_of_squares_value)
 
 
-def get_ssacf(residuals: np.ndarray,type) -> float:
+def get_ssacf(residuals: np.ndarray, type) -> float:
     """
     Get the sum of squares of the Auto Correlation Function (ACF) of the residuals.
 
@@ -330,8 +329,8 @@ def decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
     residuals_mul: pd.Series = get_residuals(decomposition_mul)
 
     # Calculate Sum of Squares of the ACF for both models
-    ssacf_add: float = get_ssacf(residuals_add,type = 'Additive')
-    ssacf_mul: float = get_ssacf(residuals_mul,type = 'Multiplicative')
+    ssacf_add: float = get_ssacf(residuals_add, type='Additive')
+    ssacf_mul: float = get_ssacf(residuals_mul, type='Multiplicative')
 
     # Return the outliers detected by the model with the smaller ACF value
     if ssacf_add < ssacf_mul:
