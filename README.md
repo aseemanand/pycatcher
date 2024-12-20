@@ -18,7 +18,7 @@ pip install pycatcher
 ### DataFrame Arguments
 * First column in the dataframe must be a date column ('YYYY-MM-DD') and the last column a numeric column 
 (sum or total count for the time period) to detect outliers using Seasonal Decomposition algorithms.
-* Last column must be a numeric column to detect outliers using Moving Average and Z-score algorithm. 
+* Last column must be a numeric column to detect outliers using IQR and Moving Average algorithms. 
 
 <hr style="border:1.25px solid gray">
 
