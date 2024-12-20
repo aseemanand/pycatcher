@@ -357,8 +357,10 @@ def build_moving_average_outliers_plot(df: pd.DataFrame) -> plt:
 
     # Identify outliers
     outliers = df1[(df1['above_threshold']) | (df1['below_threshold'])].dropna()
+    return_outliers = outliers.iloc[:, :2]
+    return_outliers.reset_index(drop=True, inplace=True)
 
-    print("Outliers:", outliers)
+    print("Outliers:", return_outliers)
 
     # Plot the data
     plt.figure(figsize=(20, 8))
