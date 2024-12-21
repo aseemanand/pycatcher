@@ -1,5 +1,5 @@
 ## PyCatcher
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/aseemanand/pycatcher/blob/main/LICENSE) [![Total Downloads](https://pepy.tech/badge/pycatcher)](https://pepy.tech/project/pycatcher) [![Monthly Downloads](https://pepy.tech/badge/pycatcher/month)](https://pepy.tech/project/pycatcher/month) [![Weekly Downloads](https://pepy.tech/badge/pycatcher/week)](https://pepy.tech/project/pycatcher/week) ![PYPI version](https://img.shields.io/pypi/v/pycatcher.svg) ![PYPI - Python Version](https://img.shields.io/pypi/pyversions/pycatcher.svg)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/aseemanand/pycatcher/blob/main/LICENSE) [![PyPI Downloads](https://static.pepy.tech/badge/pycatcher)](https://pepy.tech/projects/pycatcher)  [![PyPI Downloads](https://static.pepy.tech/badge/pycatcher/month)](https://pepy.tech/projects/pycatcher)  [![PyPI Downloads](https://static.pepy.tech/badge/pycatcher/week)](https://pepy.tech/projects/pycatcher)  ![PYPI version](https://img.shields.io/pypi/v/pycatcher.svg) ![PYPI - Python Version](https://img.shields.io/pypi/pyversions/pycatcher.svg)
 
 ## Outlier Detection for Time-series Data
 This package identifies outlier(s) for a given time-series dataset in simple steps. It supports day, week, month and 
@@ -18,7 +18,7 @@ pip install pycatcher
 ### DataFrame Arguments
 * First column in the dataframe must be a date column ('YYYY-MM-DD') and the last column a numeric column 
 (sum or total count for the time period) to detect outliers using Seasonal Decomposition algorithms.
-* Last column must be a numeric column to detect outliers using Moving Average and Z-score algorithm. 
+* Last column must be a numeric column to detect outliers using Interquartile Range (IQR) and Moving Average algorithms. 
 
 <hr style="border:1.25px solid gray">
 
