@@ -4,10 +4,49 @@ import pandas as pd
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-from pycatcher.catch import detect_outliers_today_classic
-from src.pycatcher.catch import find_outliers_iqr, anomaly_mad, get_residuals, \
-    sum_of_squares, get_ssacf, detect_outliers_today_classic, detect_outliers_latest_classic, \
-    detect_outliers_classic, decompose_and_detect, detect_outliers_iqr
+from src.pycatcher.catch import (TimeSeriesError, DataValidationError, check_and_convert_date, find_outliers_iqr,
+    anomaly_mad, get_residuals, sum_of_squares, get_ssacf, detect_outliers_today_classic,
+    detect_outliers_latest_classic, detect_outliers_classic, decompose_and_detect, detect_outliers_iqr)
+
+
+@pytest.fixture
+def sample_df():
+    """Fixture for sample DataFrame with dates and values."""
+    return pd.DataFrame({
+        'date': pd.date_range(start='2022-01-01', periods=5),
+        'value': [10, 20, 30, 40, 50]
+    })
+
+
+class TestCheckAndConvertDate:
+    def test_valid_datetime_column(self, sample_df):
+        """Test with already datetime column."""
+        result = check_and_convert_date(sample_df)
+        assert isinstance(result.index, pd.DatetimeIndex)
+
+    def test_string_date_column(self):
+        """Test with string dates that need conversion."""
+        df = pd.DataFrame({
+            'date': ['2022-01-01', '2022-01-02'],
+            'value': [1, 2]
+        })
+        result = check_and_convert_date(df)
+        assert isinstance(result.index, pd.DatetimeIndex)
+
+    def test_invalid_date_format(self):
+        """Test with invalid date format."""
+        df = pd.DataFrame({
+            'date': ['invalid', 'dates'],
+            'value': [1, 2]
+        })
+        with pytest.raises(DataValidationError):
+            check_and_convert_date(df)
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        df = pd.DataFrame()
+        with pytest.raises(DataValidationError):
+            check_and_convert_date(df)
 
 
 # Test case for find_outliers_iqr
