@@ -10,8 +10,7 @@ __all__ = [
 
 # Exposing specific anomaly_detection functions or classes.
 from .test_catch import (
-    test_find_outliers_iqr,
-    test_anomaly_mad,
+    # Test functions
     test_get_residuals,
     test_sum_of_squares,
     test_get_ssacf,
@@ -23,7 +22,15 @@ from .test_catch import (
     input_data_decompose_and_detect,
     test_decompose_and_detect,
     input_data_detect_outliers_iqr,
-    test_detect_outliers_iqr
+    test_detect_outliers_iqr,
+
+    # Test classes and their methods
+    TestCheckAndConvertDate,
+    TestFindOutliersIQR,
+    TestAnomalyMAD,
+
+    # Common fixture
+    sample_df
 )
 
 from .test_diagnostics import (

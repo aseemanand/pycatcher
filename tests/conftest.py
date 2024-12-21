@@ -1,12 +1,23 @@
 import os
 import pytest
+import logging
 from src.pycatcher import create_app
 from src.pycatcher.webapp import register_routes
 
 
 def pytest_configure(config):
-    """Set up test configuration."""
-    os.environ['PYCATCHER_LOG_LEVEL'] = 'CRITICAL'  # Suppress all logs during tests
+    """Set up test configuration to suppress all logs during tests"""
+    os.environ['PYCATCHER_LOG_LEVEL'] = 'CRITICAL'
+
+    # Silence all loggers
+    logging.getLogger().setLevel(logging.CRITICAL)
+
+    # Explicitly silence the specific loggers being used
+    loggers = ['', 'src', 'src.pycatcher.catch', 'src.pycatcher.diagnostics', 'pycatcher']
+    for name in loggers:
+        logger = logging.getLogger(name)
+        logger.setLevel(logging.CRITICAL)
+        logger.propagate = False
 
 
 @pytest.fixture
