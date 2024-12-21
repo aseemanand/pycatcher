@@ -81,8 +81,16 @@ class DataValidationError(Exception):
 
 
 def check_and_convert_date(df: pd.DataFrame) -> pd.DataFrame:
-    """Checks if the first column of a DataFrame is in date format,
-       and converts it to 'yyyy-mm-dd' format if necessary."""
+    """
+    Checks if the first column of a DataFrame is in date format, and converts it to 'yyyy-mm-dd' format if necessary.
+
+    Args:
+        df (pd.DataFrame): A DataFrame containing the user data.
+        The first column should be the date else it will be called out.
+
+    Returns:
+        pd.DataFrame: A date indexed DataFrame containing all the valid rows.
+    """
 
     if df is None or df.empty:
         logger.error("Input DataFrame is None or empty")
@@ -124,24 +132,40 @@ def find_outliers_iqr(df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: A DataFrame containing the rows that are considered outliers.
     """
 
-    logging.info("Detecting outliers using the IQR method.")
+    if df is None or df.empty:
+        logger.error("Input DataFrame is None or empty")
+        raise DataValidationError("Input DataFrame cannot be None or empty")
 
-    # Calculate Q1 (25th percentile) and Q3 (75th percentile) for the last column
-    q1 = df.iloc[:, -1].quantile(0.25)
-    q3 = df.iloc[:, -1].quantile(0.75)
+    try:
+        logging.info("Detecting outliers using the IQR method.")
 
-    # Calculate the Inter Quartile Range (IQR)
-    iqr = q3 - q1
+        # Ensure the last column is numeric
+        try:
+            df.iloc[:, -1] = pd.to_numeric(df.iloc[:, -1])
+        except ValueError:
+            logger.error("Last column cannot be converted to numeric values")
+            raise DataValidationError("Last column must contain numeric values")
 
-    # Identify outliers
-    outliers = df[((df.iloc[:, -1] < (q1 - 1.5 * iqr)) | (df.iloc[:, -1] > (q3 + 1.5 * iqr)))]
+        # Calculate Q1 (25th percentile) and Q3 (75th percentile) for the last column
+        q1 = df.iloc[:, -1].quantile(0.25)
+        q3 = df.iloc[:, -1].quantile(0.75)
+        iqr = q3 - q1
 
-    logging.info("Outliers detected: %d rows.", len(outliers))
+        logger.debug("Q1: %.2f, Q3: %.2f, IQR: %.2f", float(q1), float(q3), float(iqr))
 
-    return outliers
+        # Identify outliers
+        outliers = df[((df.iloc[:, -1] < (q1 - 1.5 * iqr)) | (df.iloc[:, -1] > (q3 + 1.5 * iqr)))]
+
+        logging.info("Outliers detected: %d rows.", len(outliers))
+
+        return outliers
+
+    except Exception as e:
+        logger.error("Error in IQR outlier detection: %s", str(e))
+        raise
 
 
-def anomaly_mad(residuals: BaseEstimator) -> pd.DataFrame:
+def anomaly_mad(residuals: Union[np.ndarray, pd.Series]) -> pd.DataFrame:
     """
     Detect outliers using the Median Absolute Deviation (MAD) method.
     MAD is a statistical measure that quantifies the dispersion or variability of a dataset.
@@ -154,27 +178,37 @@ def anomaly_mad(residuals: BaseEstimator) -> pd.DataFrame:
         pd.DataFrame: A DataFrame containing the rows identified as outliers.
     """
 
-    logging.info("Detecting outliers using the MAD method.")
+    if residuals is None or (isinstance(residuals, (np.ndarray, pd.Series)) and len(residuals) == 0):
+        logger.error("Input residuals are None or empty")
+        raise DataValidationError("Input residuals cannot be None or empty")
 
-    # Reshape residuals from the fitted model
-    if isinstance(residuals, np.ndarray):
-        residuals = residuals.reshape(-1, 1)
-    else:
-        residuals = residuals.values.reshape(-1, 1)
+    try:
+        logging.info("Detecting outliers using the MAD method.")
 
-    # Using MAD estimator from the PyOD library
-    # Initialize the MAD detector
-    mad_init = MAD(threshold=3.5)
+        # Reshape residuals from the fitted model
+        if isinstance(residuals, np.ndarray):
+            residuals = residuals.reshape(-1, 1)
+        else:
+            residuals = residuals.values.reshape(-1, 1)
 
-    # Fit the MAD outlier detection model
-    mad = mad_init.fit(residuals)
+        logger.debug("Reshaped residuals shape: %s", str(residuals.shape))
 
-    # Identify outliers using MAD labels (1 indicates an outlier)
-    is_outlier = mad.labels_ == 1
+        # Using MAD estimator from the PyOD library
+        # Initialize the MAD detector
+        mad_init = MAD(threshold=3.5)
 
-    logging.info("Outliers detected by MAD!")
+        # Fit the MAD outlier detection model
+        mad = mad_init.fit(residuals)
 
-    return is_outlier
+        # Identify outliers using MAD labels (1 indicates an outlier)
+        is_outlier = mad.labels_ == 1
+
+        logging.info("Outliers detected by MAD!")
+
+        return is_outlier
+    except Exception as e:
+        logger.error("Error in MAD outlier detection: %s", str(e))
+        raise
 
 
 def get_residuals(model_type: BaseEstimator) -> np.ndarray:

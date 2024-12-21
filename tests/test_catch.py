@@ -49,23 +49,70 @@ class TestCheckAndConvertDate:
             check_and_convert_date(df)
 
 
-# Test case for find_outliers_iqr
-def test_find_outliers_iqr():
-    # Create a sample DataFrame
-    data = {
-        'ID': [1, 2, 3, 4, 5],
-        'Value': [10, 12, 14, 100, 15]
-    }
+class TestFindOutliersIQR:
+    def test_normal_distribution(self):
+        """Test with normally distributed data."""
+        np.random.seed(42)
+        normal_data = np.random.normal(loc=0, scale=1, size=1000)
+        df = pd.DataFrame({
+            'date': pd.date_range(start='2022-01-01', periods=1000),
+            'value': normal_data
+        })
+        outliers = find_outliers_iqr(df)
 
-    df = pd.DataFrame(data)
+        # Expected outliers in normal distribution: ~0.7%
+        assert 0.001 <= len(outliers) / len(df) <= 0.02
 
-    # Run the function
-    outliers = find_outliers_iqr(df)
-    print(outliers['Value'].iloc[0])
+    def test_with_known_outliers(self):
+        """Test with dataset containing known outliers."""
+        df = pd.DataFrame({
+            'date': pd.date_range(start='2022-01-01', periods=5),
+            'value': [1, 2, 3, 100, 4]  # 100 is a clear outlier
+        })
+        outliers = find_outliers_iqr(df)
+        assert len(outliers) == 1
+        assert outliers.iloc[0]['value'] == 100
 
-    # Assert that the outlier detected is the value 100
-    assert not outliers.empty
-    assert outliers['Value'].iloc[0] == 100
+    def test_invalid_data_type(self):
+        """Test with non-numeric data."""
+        df = pd.DataFrame({
+            'date': pd.date_range(start='2022-01-01', periods=3),
+            'value': ['a', 'b', 'c']
+        })
+        with pytest.raises(DataValidationError):
+            find_outliers_iqr(df)
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        df = pd.DataFrame()
+        with pytest.raises(DataValidationError):
+            find_outliers_iqr(df)
+
+
+class TestAnomalyMAD:
+    def test_normal_distribution(self):
+        """Test with normally distributed data."""
+        np.random.seed(42)
+        normal_data = np.random.normal(loc=0, scale=1, size=1000)
+        outliers = anomaly_mad(normal_data)
+        # Expected outliers should be reasonable for normal distribution
+        assert 0.001 <= np.mean(outliers) <= 0.1
+
+    def test_with_known_outliers(self):
+        """Test with known outliers."""
+        data = np.array([1, 2, 3, 100, 4])  # 100 is an outlier
+        outliers = anomaly_mad(data)
+        assert outliers[3]  # The outlier should be detected
+
+    def test_empty_input(self):
+        """Test with empty input."""
+        with pytest.raises(DataValidationError):
+            anomaly_mad(np.array([]))
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError):
+            anomaly_mad(None)
 
 
 # Test case for anomaly_mad
