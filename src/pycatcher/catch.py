@@ -1,3 +1,4 @@
+import os
 import logging
 from typing import Union
 import re as regex
@@ -14,31 +15,101 @@ from scipy import stats
 from scipy.special import inv_boxcox
 
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+# Configure logging based on environment with more detailed format
+def setup_logger():
+    """Configure logger settings based on environment variables or context."""
+    log = logging.getLogger(__name__)
 
-# warnings.resetwarnings()
+    # Clear any existing handlers
+    if log.handlers:
+        log.handlers.clear()
+
+    # Create formatter
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s')
+
+    # Create handler
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+
+    # Set logging level based on environment variable
+    log_level = os.environ.get('PYCATCHER_LOG_LEVEL', 'WARNING').upper()
+    log.setLevel(getattr(logging, log_level))
+
+    # Only add handler if we want to see logs
+    if log_level != 'CRITICAL':
+        log.addHandler(handler)
+
+    return log
+
+
+# Initialize logger
+logger = setup_logger()
+
+
+class TimeSeriesError(Exception):
+    """Custom exception for time series related errors.
+
+    This exception should be raised when there are errors specific to time series operations,
+    such as invalid time frequencies, insufficient data points for seasonal decomposition,
+    or other time series-specific validation failures.
+
+    Attributes:
+        message (str): Explanation of the error
+    """
+
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(self.message)
+
+
+class DataValidationError(Exception):
+    """Custom exception for data validation errors.
+
+    This exception should be raised when there are issues with data format, type,
+    or content that prevent proper processing, such as missing required columns,
+    invalid data types, or corrupt data.
+
+    Attributes:
+        message (str): Explanation of the error
+        invalid_data: Optional attribute to store the problematic data
+    """
+
+    def __init__(self, message: str, invalid_data=None):
+        self.message = message
+        self.invalid_data = invalid_data
+        super().__init__(self.message)
 
 
 def check_and_convert_date(df: pd.DataFrame) -> pd.DataFrame:
     """Checks if the first column of a DataFrame is in date format,
        and converts it to 'yyyy-mm-dd' format if necessary."""
 
-    first_col_name = df.columns[0]
+    if df is None or df.empty:
+        logger.error("Input DataFrame is None or empty")
+        raise DataValidationError("Input DataFrame cannot be None or empty")
 
-    # Check if the column is already in datetime format
-    if pd.api.types.is_datetime64_any_dtype(df[first_col_name]):
-        df[df.columns[0]] = df[df.columns[0]].apply(pd.to_datetime)
-        df = df.set_index(df.columns[0]).dropna()
-    else:
-        try:
-            # Attempt to convert the column to datetime
+    try:
+        first_col_name = df.columns[0]
+        logger.debug("Processing first column: %s", first_col_name)
+
+        # Check if the column is already in datetime format
+        if pd.api.types.is_datetime64_any_dtype(df[first_col_name]):
+            logger.debug("Column already in datetime format")
             df[df.columns[0]] = df[df.columns[0]].apply(pd.to_datetime)
-            df = df.set_index(df.columns[0]).dropna()
-        except ValueError:
-            print("First column is not in a recognizable date format.")
-    return df
+        else:
+            logger.info("Attempting to convert column to datetime format")
+            df[df.columns[0]] = df[df.columns[0]].apply(pd.to_datetime)
+
+        df = df.set_index(first_col_name).dropna()
+        logger.info("Successfully processed dates. Resulting DataFrame shape: (%d, %d)", df.shape[0], df.shape[1])
+        return df
+
+    except (ValueError, TypeError) as e:
+        logger.error("Date conversion failed: %s", str(e))
+        raise DataValidationError(f"First column must be in a recognizable date format: {str(e)}")
+    except Exception as e:
+        logger.error("Unexpected error in date processing: %s", str(e))
+        raise
 
 
 def find_outliers_iqr(df: pd.DataFrame) -> pd.DataFrame:
