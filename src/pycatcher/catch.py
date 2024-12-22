@@ -156,7 +156,7 @@ def find_outliers_iqr(df: pd.DataFrame) -> pd.DataFrame:
         # Identify outliers
         outliers = df[((df.iloc[:, -1] < (q1 - 1.5 * iqr)) | (df.iloc[:, -1] > (q3 + 1.5 * iqr)))]
 
-        logging.info("Outliers detected: %d rows.", len(outliers))
+        logger.info("Outliers detected: %d rows.", len(outliers))
 
         return outliers
 
@@ -183,7 +183,7 @@ def anomaly_mad(residuals: Union[np.ndarray, pd.Series]) -> pd.DataFrame:
         raise DataValidationError("Input residuals cannot be None or empty")
 
     try:
-        logging.info("Detecting outliers using the MAD method.")
+        logger.info("Detecting outliers using the MAD method.")
 
         # Reshape residuals from the fitted model
         if isinstance(residuals, np.ndarray):
@@ -203,7 +203,7 @@ def anomaly_mad(residuals: Union[np.ndarray, pd.Series]) -> pd.DataFrame:
         # Identify outliers using MAD labels (1 indicates an outlier)
         is_outlier = mad.labels_ == 1
 
-        logging.info("Outliers detected by MAD!")
+        logger.info("Outliers detected by MAD!")
 
         return is_outlier
     except Exception as e:
@@ -221,17 +221,43 @@ def get_residuals(model_type: BaseEstimator) -> np.ndarray:
 
     Returns:
         np.ndarray: An array of residuals with NaN values removed.
+
+    Raises:
+        DataValidationError: If model_type is None or doesn't have resid attribute
+        ValueError: If all residuals are NaN values
     """
 
-    logging.info("Extracting residuals and removing NaN values.")
+    if model_type is None:
+        logger.error("Input model is None")
+        raise DataValidationError("Input model cannot be None")
 
-    # Extract residuals from the model and remove NaN values
-    residuals = model_type.resid.values
-    residuals_cleaned = residuals[~np.isnan(residuals)]
+    try:
+        logger.info("Extracting residuals and removing NaN values.")
 
-    logging.info("Number of residuals after NaN removal: %d", len(residuals_cleaned))
+        if not hasattr(model_type, 'resid'):
+            logger.error("Model does not have 'resid' attribute")
+            raise DataValidationError("Model must have 'resid' attribute")
 
-    return residuals_cleaned
+        # Extract residuals from the model and remove NaN values
+        residuals = model_type.resid.values
+        logger.debug("Initial residuals shape: %s", str(residuals.shape))
+
+        # Remove NaN values
+        residuals_cleaned = residuals[~np.isnan(residuals)]
+        logger.info("Number of residuals after NaN removal: %d", len(residuals_cleaned))
+
+        if len(residuals_cleaned) == 0:
+            logger.error("All residuals are NaN values")
+            raise ValueError("No valid residuals found after NaN removal")
+
+        return residuals_cleaned
+
+    except AttributeError as e:
+        logger.error("Error accessing model attributes: %s", str(e))
+        raise DataValidationError(f"Error accessing model attributes: {str(e)}")
+    except Exception as e:
+        logger.error("Unexpected error in residuals extraction: %s", str(e))
+        raise
 
 
 def sum_of_squares(array: np.ndarray) -> float:
@@ -243,19 +269,40 @@ def sum_of_squares(array: np.ndarray) -> float:
 
     Returns:
         float: The sum of squares of the array elements.
+
+    Raises:
+        DataValidationError: If input is None or empty
+        TypeError: If input is not a NumPy array
     """
 
-    logging.info("Calculating the sum of squares.")
+    if array is None:
+        logger.error("Input array is None")
+        raise DataValidationError("Input array cannot be None")
 
-    # Flatten the array to a 1D array
-    flattened_array = array.flatten()
+    if not isinstance(array, np.ndarray):
+        logger.error("Input must be a NumPy array, got %s instead", type(array).__name__)
+        raise TypeError("Input must be a NumPy array")
 
-    # Calculate the sum of squares of the flattened array
-    sum_of_squares_value = np.sum(flattened_array ** 2)
+    try:
+        logger.info("Calculating the sum of squares.")
 
-    logging.info("Sum of Squares calculation Completed.")
+        if array.size == 0:
+            logger.error("Input array is empty")
+            raise DataValidationError("Input array cannot be empty")
 
-    return float(sum_of_squares_value)
+        # Flatten the array to a 1D array
+        flattened_array = array.flatten()
+        logger.debug("Flattened array shape: %s", str(flattened_array.shape))
+
+        # Calculate the sum of squares of the flattened array
+        sum_of_squares_value = np.sum(flattened_array ** 2)
+        logger.info("Sum of squares calculation completed: %.2f", sum_of_squares_value)
+
+        return float(sum_of_squares_value)
+
+    except Exception as e:
+        logger.error("Unexpected error in sum of squares calculation: %s", str(e))
+        raise
 
 
 def get_ssacf(residuals: np.ndarray, type) -> float:
