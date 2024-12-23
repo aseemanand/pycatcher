@@ -150,6 +150,7 @@ def build_iqr_plot(df):
 
     # Adjust layout to avoid clipping of labels
     plt.tight_layout()
+    plt.show()
 
     plt.close(fig)
     return fig
