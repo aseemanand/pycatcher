@@ -39,6 +39,8 @@ pytest-mock = "^3.14.0"
 coverage = "*"
 prospector = "^1.13.3"
 jupyterlab = "*"
+fastapi = "*"
+pydantic = "*"
 
 [tool.poetry.scripts]
 start-pycatcher-ui = "pycatcher.webapp:main"
