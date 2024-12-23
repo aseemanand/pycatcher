@@ -115,50 +115,71 @@ class TestAnomalyMAD:
             anomaly_mad(None)
 
 
-# Test case for anomaly_mad
-def test_anomaly_mad():
-    # Mock the model_type object with residuals
-    mock_model = MagicMock()
-    arr = np.array([1, 2, 3, 4, 100])
-    mock_model.residuals = pd.DataFrame(arr, columns=['Values'])
+class TestGetResiduals:
+    """Test cases for get_residuals function."""
 
-    # Mock df_pan with index
-    df_pan = pd.DataFrame({"Value": [1, 2, 3, 4, 100]}, index=[0, 1, 2, 3, 4])
+    def test_valid_model(self):
+        """Test with valid model containing residuals."""
+        mock_model = MagicMock()
+        arr = np.array([1, 2, np.nan, 4, 5])
+        mock_model.resid = pd.Series(arr)
 
-    # Run the function
-    is_outlier = anomaly_mad(mock_model.residuals)
-    df_pan = df_pan[is_outlier]
+        residuals = get_residuals(mock_model)
 
-    # Assert that the outlier is detected
-    assert not df_pan.empty
-    assert df_pan['Value'].iloc[0] == 100
+        np.testing.assert_array_equal(residuals, np.array([1, 2, 4, 5]))
+
+    def test_none_model(self):
+        """Test with None model."""
+        with pytest.raises(DataValidationError, match="Input model cannot be None"):
+            get_residuals(None)
+
+    def test_model_without_resid(self):
+        """Test with model missing resid attribute."""
+        mock_model = MagicMock()
+        del mock_model.resid  # Ensure no resid attribute
+
+        with pytest.raises(DataValidationError, match="Model must have 'resid' attribute"):
+            get_residuals(mock_model)
+
+    def test_all_nan_residuals(self):
+        """Test with model containing all NaN residuals."""
+        mock_model = MagicMock()
+        arr = np.array([np.nan, np.nan, np.nan])
+        mock_model.resid = pd.Series(arr)
+
+        with pytest.raises(ValueError, match="No valid residuals found after NaN removal"):
+            get_residuals(mock_model)
 
 
-# Test case for get_residuals
-def test_get_residuals():
-    # Mock the model_type object with residuals
-    mock_model = MagicMock()
-    arr = np.array([1, 2, np.nan, 4, 5])
-    mock_model.resid = pd.DataFrame(arr, columns=['Values'])
+class TestSumOfSquares:
+    """Test cases for sum_of_squares function."""
 
-    # Run the function
-    residuals = get_residuals(mock_model)
+    def test_valid_array(self):
+        """Test with valid numpy array."""
+        array = np.array([1, 2, 3, 4])
+        result = sum_of_squares(array)
+        assert result == 30  # 1^2 + 2^2 + 3^2 + 4^2 = 30
 
-    # Check if NaNs are removed and residuals are correct
-    expected = np.array([1, 2, 4, 5])
-    np.testing.assert_array_equal(residuals, expected)
+    def test_2d_array(self):
+        """Test with 2D numpy array."""
+        array = np.array([[1, 2], [3, 4]])
+        result = sum_of_squares(array)
+        assert result == 30  # Same result as 1D array
 
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input array cannot be None"):
+            sum_of_squares(None)
 
-# Test case for sum_of_squares
-def test_sum_of_squares():
-    # Create a NumPy array
-    array = np.array([1, 2, 3, 4])
+    def test_empty_array(self):
+        """Test with empty numpy array."""
+        with pytest.raises(DataValidationError, match="Input array cannot be empty"):
+            sum_of_squares(np.array([]))
 
-    # Run the function
-    result = sum_of_squares(array)
-
-    # The expected sum of squares is 1^2 + 2^2 + 3^2 + 4^2 = 30
-    assert result == 30
+    def test_non_numpy_array(self):
+        """Test with non-numpy array input."""
+        with pytest.raises(TypeError, match="Input must be a NumPy array"):
+            sum_of_squares([1, 2, 3, 4])  # Regular list instead of numpy array
 
 
 # Test case for get_ssacf
