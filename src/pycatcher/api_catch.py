@@ -12,15 +12,12 @@ app = FastAPI(
 )
 
 # Define the input model using Pydantic
-
-
 class InputModel(BaseModel):
     data: List[List[float]]  # List of rows, each row is a list of values
     columns: List[str]       # Column names for the DataFrame
 
+
 # Define the output model
-
-
 class OutputModel(BaseModel):
     outliers: List[dict]  # A list of outliers as dictionaries
 

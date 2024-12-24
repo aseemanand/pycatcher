@@ -16,15 +16,12 @@ app = FastAPI(
 )
 
 # Define the input model using Pydantic
-
-
 class InputModel(BaseModel):
     data: list[list]  # List of lists representing the DataFrame data
     columns: list[str]  # Column names for the DataFrame
 
+
 # Define the output model
-
-
 class OutputModel(BaseModel):
     plot_image: str  # Base64-encoded image string
 
@@ -38,7 +35,7 @@ async def build_iqr_plot_api(inputs: InputModel):
 
         # Generate the IQR plot and save it to a BytesIO buffer
         # Variable 'ax' is required to avoid the type mismatch error in PyCharm and
-        # to properly unpack the tuple retured by subplots().
+        # to properly unpack the tuple returned by subplots().
         # However, leaving 'ax' gives prospector warning for unused variable. Ignore the warning
         fig, _ = plt.subplots()
         plt.figure()

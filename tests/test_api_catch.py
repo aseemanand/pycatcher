@@ -41,7 +41,3 @@ def test_find_outliers_api():
     )
 
     print("Test passed: The API detected outliers correctly.")
-
-# Run the test
-if __name__ == "__main__":
-    test_find_outliers_api()
