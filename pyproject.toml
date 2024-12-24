@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pycatcher"
-version = "0.0.55"
+version = "0.0.56"
 description = "This package identifies outlier(s) for a given time-series dataset in simple steps. It supports day, week, month and quarter level time-series data."
 authors = ["Aseem Anand <aseemanand@gmail.com>"]
 maintainers = ["Jagadish Pamarthi <jagadish.vrsec@gmail.com>"]
@@ -39,6 +39,8 @@ pytest-mock = "^3.14.0"
 coverage = "*"
 prospector = "^1.13.3"
 jupyterlab = "*"
+fastapi = "*"
+pydantic = "*"
 
 [tool.poetry.scripts]
 start-pycatcher-ui = "pycatcher.webapp:main"
