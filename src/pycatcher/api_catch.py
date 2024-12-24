@@ -11,6 +11,7 @@ app = FastAPI(
     version="1.0"
 )
 
+
 # Define the input model using Pydantic
 class InputModel(BaseModel):
     data: List[List[float]]  # List of rows, each row is a list of values

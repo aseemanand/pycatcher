@@ -15,6 +15,7 @@ app = FastAPI(
     version="1.0"
 )
 
+
 # Define the input model using Pydantic
 class InputModel(BaseModel):
     data: list[list]  # List of lists representing the DataFrame data
