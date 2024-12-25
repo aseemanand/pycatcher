@@ -188,10 +188,9 @@ def anomaly_zscore(residuals: Union[np.ndarray, pd.Series]) -> int:
         # Calculate the z-scores
         z_scores = (residuals - np.mean(residuals)) / np.std(residuals)
 
-        return z_scores
-
         logger.info("Dispersion detected by Z-Score method!")
 
+        return z_scores
     except Exception as e:
         logger.error("Error in Z Score dispersion detection: %s", str(e))
         raise
