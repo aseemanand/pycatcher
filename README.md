@@ -133,7 +133,21 @@ and a residual component.
 
 ***
 
-### **2. Detect Outliers Using Moving Average**
+### **2. Detect Outliers Using ESD (Extreme Studentized Deviate)**
+Detect anomalies in time-series data using the ESD algorithm.
+
+- **Method**: `detect_outliers_esd(df)`
+- **Output**: Rows flagged as outliers using the Generalized ESD or Seasonal ESD algorithm.
+
+#### **Visualize ESD Outliers**
+Show outliers using the Generalized ESD or Seasonal ESD algorithm.
+
+- **Method**: `build_outliers_plot_esd(df)`
+- **Output**: Outlier plot generated using Generalized ESD or Seasonal ESD algorithm.
+  
+---
+
+### **3. Detect Outliers Using Moving Average**
 Detect anomalies in time-series data using the Moving Average method.
 
 - **Method**: `detect_outliers_moving_average(df)`
@@ -142,12 +156,12 @@ Detect anomalies in time-series data using the Moving Average method.
 #### **Visualize Moving Average Outliers**
 Show outliers using the Moving Average and Z-score algorithm.
 
-- **Method**: `build_moving_average_outliers_plot(df)`
+- **Method**: `build_outliers_plot_moving_average(df)`
 - **Output**: Outlier plot generated using Moving Average method.
   
 ---
 
-### **3. IQR-Based Anomaly Detection**
+### **4. IQR-Based Anomaly Detection**
 
 #### **Detect Outliers Using Interquartile Range (IQR)**
 For datasets spanning less than two years, the IQR method is employed.

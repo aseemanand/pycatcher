@@ -9,13 +9,17 @@ from statsmodels.tsa.seasonal import STL, MSTL
 import statsmodels.api as sm
 import numpy as np
 from scipy import stats
+from scipy.stats import shapiro
 
 from .catch import (get_residuals,
                     get_ssacf,
                     anomaly_mad,
                     calculate_optimal_window_size,
                     generate_outliers_stl,
-                    generate_outliers_mstl)
+                    generate_outliers_mstl,
+                    generate_outliers_generalized_esd,
+                    generate_outliers_seasonal_esd
+                    )
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -310,7 +314,7 @@ def build_decomposition_results(df):
         print("Data is less than 2 years. No seasonal decomposition")
 
 
-def build_moving_average_outliers_plot(df: pd.DataFrame) -> plt:
+def build_outliers_plot_moving_average(df: pd.DataFrame) -> plt:
     """
      Show outliers using Moving Average and Z-score algorithm.
 
@@ -967,3 +971,78 @@ def generate_seasonal_plot_mstl(df, derived_period) -> plt:
         result_add.plot()
 
     logging.info("Completing seasonal decomposition plot using MSTL")
+
+
+def build_outliers_plot_esd(df) -> plt:
+    """
+    In this method, time series anomalies are detected using the Generalized ESD algorithm.
+    The generalized ESD (Extreme Studentized Deviate) test is used to detect one or more outliers
+    in a univariate data set that follows an approximately Normal distribution.
+    # http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h3.htm
+
+    Arguments:
+        df: Pandas dataframe
+    Outputs:
+        plt: Outliers plot (detected Generalized ESD anomalies)
+    """
+
+    # Check whether the argument is Pandas dataframe
+    if not isinstance(df, pd.DataFrame):
+        # Convert to Pandas dataframe for easy manipulation
+        df_pandas = df.toPandas()
+    else:
+        df_pandas = df
+
+    # Check for normality using the Shapiro-Wilk test to decide about right ESD method
+
+    stat, p = shapiro(df_pandas.iloc[:, -1])
+    logging.info('Testing for Normality - Shapiro-Wilk Test Results:')
+    logger.info("Statistic: %.3f", stat)
+    logger.info('p-value: %.3f', p)
+
+    # Setting Significance level default to 0.05
+    alpha = 0.05
+
+    # Decide right ESD method based on data distribution
+    if p > alpha:
+        logging.info("Data Normally Distributed - Using Generalized ESD Method")
+        # Call Generalized ESD function to generate outliers. Hybrid is set to True to use
+        # Median & Median Absolute Deviation (MAD) else it would use the Mean & Standard Deviation of the residual.
+        return_outliers = generate_outliers_generalized_esd(df_pandas, hybrid=False)
+        if return_outliers is None:
+            logging.info("No outlier detected by Generalized ESD Method")
+            return
+        else:
+            print("Outliers detected by Generalized ESD Method:")
+            df_outliers = return_outliers.iloc[:, :2]
+            print(df_outliers)
+    else:
+        print("Data Not Normally Distributed - Using Sesonal ESD Method")
+        # Call Seasonal ESD function to generate outliers. Hybrid is set to True to use
+        # Median & Median Absolute Deviation (MAD) else it would use the Mean & Standard Deviation of the residual.
+        return_outliers = generate_outliers_seasonal_esd(df_pandas, hybrid=True)
+        if return_outliers is None:
+            logging.info("No outlier detected by Seasonal ESD Method")
+            return
+        else:
+            logging.info("Outliers detected by Seasonal ESD Method:")
+            df_outliers = return_outliers.iloc[:, :2]
+            print(df_outliers)
+
+        # Get matching indices in df_pandas and plot
+        matching_indices = df_pandas.index.isin(df_outliers.index)
+
+        # Mark outlier rows in df_pandas dataframe as outliers
+        df_pandas['outlier'] = False
+        df_pandas.loc[matching_indices, 'outlier'] = True
+
+        # Plot the outliers
+        plt.figure(figsize=(24, 10))
+        df_plot = df_pandas.copy()
+        df_plot['Month-Year'] = pd.to_datetime(df_plot.iloc[:, 0]).dt.to_period('M')
+        df_plot['Month-Year'] = df_plot['Month-Year'].astype(str)
+        df_plot['Count'] = pd.to_numeric(df_plot.iloc[:, 1])
+
+        # Highlight outliers in the plot
+        sns.scatterplot(data=df_plot, x='Month-Year', y='Count', hue='outlier').set_title("Seasonal ESD Anomalies")
+        plt.show()
