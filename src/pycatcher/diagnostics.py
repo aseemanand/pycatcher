@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 import re as regex
 import pandas as pd
-import sesd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import (adfuller, kpss)
@@ -1047,4 +1046,3 @@ def build_outliers_plot_esd(df) -> plt:
         # Highlight outliers in the plot
         sns.scatterplot(data=df_plot, x='Month-Year', y='Count', hue='outlier').set_title("Seasonal ESD Anomalies")
         plt.show()
-
