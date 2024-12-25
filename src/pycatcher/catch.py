@@ -187,7 +187,9 @@ def anomaly_zscore(residuals: Union[np.ndarray, pd.Series]) -> int:
 
         # Calculate the z-scores
         z_scores = (residuals - np.mean(residuals)) / np.std(residuals)
+
         return z_scores
+
         logger.info("Dispersion detected by Z-Score method!")
 
     except Exception as e:
@@ -1412,18 +1414,18 @@ def detect_outliers_esd(df) -> Union[pd.DataFrame, str]:
 
     # Interpret the results
     if p > alpha:
-       logging.info("Data Normally Distributed - Using Generalized ESD Method")
-       # Call generalized ESD function to generate outliers. Hybrid is set to True to use
-       # Median & Median Absolute Deviation (MAD) else it would use the Mean & Standard
-       # Deviation of the residual.
-       return_outliers = generate_outliers_generalized_esd(df_pandas, hybrid=False)
-       if return_outliers is None:
-         logging.info("No outlier detected by Generalized ESD Method")
-       else:
-         logging.info("Outliers detected by Generalized ESD Method")
-         df_outliers = return_outliers.iloc[:, :2]
-         df_outliers.reset_index(drop=True, inplace=True)
-         return df_outliers
+        logging.info("Data Normally Distributed - Using Generalized ESD Method")
+        # Call generalized ESD function to generate outliers. Hybrid is set to True to use
+        # Median & Median Absolute Deviation (MAD) else it would use the Mean & Standard
+        # Deviation of the residual.
+        return_outliers = generate_outliers_generalized_esd(df_pandas, hybrid=False)
+        if return_outliers is None:
+            logging.info("No outlier detected by Generalized ESD Method")
+        else:
+            logging.info("Outliers detected by Generalized ESD Method")
+            df_outliers = return_outliers.iloc[:, :2]
+            df_outliers.reset_index(drop=True, inplace=True)
+            return df_outliers
     else:
         print("Data Not Normally Distributed - Using Sesonal ESD Method")
         # Call Seasonal ESD function to generate outliers. Hybrid is set to True to use
@@ -1431,12 +1433,12 @@ def detect_outliers_esd(df) -> Union[pd.DataFrame, str]:
         # Deviation of the residual.
         return_outliers = generate_outliers_seasonal_esd(df_pandas, hybrid=True)
         if return_outliers is None:
-          logging.info("No outlier detected by Seasonal ESD Method")
+            logging.info("No outlier detected by Seasonal ESD Method")
         else:
-          logging.info("Outliers detected by Seasonal ESD Method")
-          df_outliers = return_outliers.iloc[:, :2]
-          df_outliers.reset_index(drop=True, inplace=True)
-          return df_outliers
+            logging.info("Outliers detected by Seasonal ESD Method")
+            df_outliers = return_outliers.iloc[:, :2]
+            df_outliers.reset_index(drop=True, inplace=True)
+            return df_outliers
 
 
 def detect_outliers_today_esd(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
