@@ -4,6 +4,7 @@ from typing import Union
 import re as regex
 import numpy as np
 import pandas as pd
+import sesd
 from pyod.models.mad import MAD
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import TimeSeriesSplit
@@ -12,6 +13,7 @@ from statsmodels.tsa.seasonal import STL, MSTL
 from statsmodels.tsa.stattools import acf
 import statsmodels.api as sm
 from scipy import stats
+from scipy.stats import shapiro
 from scipy.special import inv_boxcox
 
 
@@ -162,6 +164,33 @@ def find_outliers_iqr(df: pd.DataFrame) -> pd.DataFrame:
 
     except Exception as e:
         logger.error("Error in IQR outlier detection: %s", str(e))
+        raise
+
+def anomaly_zscore(residuals: Union[np.ndarray, pd.Series]) -> int:
+    """
+        Detect outliers using the Z-Score method when the data follow Normal distribution.
+
+        Args:
+            residuals (BaseEstimator): Residuals from seasonal decomposition.
+
+        Returns:
+            int: Z-score value.
+        """
+
+    if residuals is None or (isinstance(residuals, (np.ndarray, pd.Series)) and len(residuals) == 0):
+        logger.error("Input residuals are None or empty")
+        raise DataValidationError("Input residuals cannot be None or empty")
+
+    try:
+        logger.info("Detecting dispersion using the Z Score method.")
+
+        # Calculate the z-scores
+        z_scores = (residuals - np.mean(residuals)) / np.std(residuals)
+        return z_scores
+        logger.info("Dispersion detected by Z-Score method!")
+
+    except Exception as e:
+        logger.error("Error in Z Score dispersion detection: %s", str(e))
         raise
 
 
@@ -822,11 +851,27 @@ def generate_outliers_stl(df, type, seasonal, period) -> pd.DataFrame:
         # Access the residual component
         residuals = residual_transformed
 
-    # Using Median Absolute Deviation (MAD) to detect outliers
-    is_outlier = anomaly_mad(residuals)
-    anomalies = df[is_outlier]
+    # Check for normality using the Shapiro-Wilk test to decide right anomaly detection method
+    stat, p = shapiro(residuals)
+    logging.info('Testing for Normality - Shapiro-Wilk Test Results:')
+    logger.info("Statistic: %.3f", stat)
+    logger.info('p-value: %.3f', p)
+    outliers = []
+    # Decide right dispersion method
+    alpha = 0.05
+    if p > alpha:
+        logging.info("Residuals Normally Distributed - Using Z Score")
+        # Identify outliers using Z-Score
+        z_scores = anomaly_zscore(residuals)
+        outliers = df[np.abs(z_scores) > 2]
+    else:
+        logging.info("Residuals not Normally Distributed - Using Median Absolute Deviation")
+        # Using Median Absolute Deviation (MAD) to detect outliers
+        is_outlier = anomaly_mad(residuals)
+        outliers = df[is_outlier]
+
     logging.info("Generated outlier detection using STL")
-    return anomalies
+    return outliers
 
 
 def detect_outliers_mstl(df) -> Union[pd.DataFrame, str]:
@@ -1006,11 +1051,27 @@ def generate_outliers_mstl(df, type, period) -> pd.DataFrame:
         # Access the residual component
         residuals = residual_transformed
 
-    # Using Median Absolute Deviation (MAD) to detect outliers
-    is_outlier = anomaly_mad(residuals)
-    anomalies = df[is_outlier]
-    logging.info("Generated outlier detection using MSTL")
-    return anomalies
+    # Check for normality using the Shapiro-Wilk test to decide right anomaly detection method
+    stat, p = shapiro(residuals)
+    logging.info('Testing for Normality - Shapiro-Wilk Test Results:')
+    logger.info("Statistic: %.3f", stat)
+    logger.info('p-value: %.3f', p)
+    outliers = []
+    # Decide right dispersion method
+    alpha = 0.05
+    if p > alpha:
+        logging.info("Residuals Normally Distributed - Using Z Score")
+        # Identify outliers using Z-Score
+        z_scores = anomaly_zscore(residuals)
+        outliers = df[np.abs(z_scores) > 2]
+    else:
+        logging.info("Residuals not Normally Distributed - Using Median Absolute Deviation")
+        # Using Median Absolute Deviation (MAD) to detect outliers
+        is_outlier = anomaly_mad(residuals)
+        outliers = df[is_outlier]
+
+    logging.info("Generated outlier detection using STL")
+    return outliers
 
 
 def detect_outliers_today_stl(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
@@ -1127,4 +1188,311 @@ def detect_outliers_latest_mstl(df: pd.DataFrame) -> pd.DataFrame:
     df_latest_outlier = df_outliers.tail(1)
 
     logging.info("Detected the latest outlier!")
+    return df_latest_outlier
+
+
+def detect_ts_frequency(df) -> Union[int, str]:
+    """
+    Detect frequency for a time-series dataset
+
+    Args:
+        df (pd.DataFrame): A Pandas DataFrame with time-series data.
+            First column must be a date column ('YYYY-MM-DD')
+
+    Returns:
+        int or str: A message with None found or the detected frequency of the dataset.
+    """
+    logging.info("Starting Time series frequency detection")
+
+    # Check whether the argument is Pandas dataframe
+    if not isinstance(df, pd.DataFrame):
+        # Convert to Pandas dataframe for easy manipulation
+        df_pandas = df.toPandas()
+    else:
+        df_pandas = df
+
+    # Ensure the first column is in datetime format and set it as index
+    df_ts = df_pandas.copy()
+    # Ensure the DataFrame is indexed correctly
+    if not isinstance(df_ts.index, pd.DatetimeIndex):
+        df_ts = df_ts.set_index(pd.to_datetime(df_ts.iloc[:, 0])).dropna()
+
+    # Convert a column to datetime and set it as the index
+    df_ts.iloc[:, 0] = pd.to_datetime(df_ts.iloc[:, 0])
+    df_ts = df_ts.set_index(df_ts.columns[0])
+
+    # Ensure the datetime index is unique (no duplicate dates)
+    if df_ts.index.is_unique:
+        # Find the time frequency (daily, weekly etc.) and length of the index column
+        inferred_frequency = df_ts.index.inferred_freq
+        logging.info("Time frequency: %s", inferred_frequency)
+
+        length_index = len(df_ts.index)
+        logging.info("Length of time index: %.2f", length_index)
+
+        # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
+
+        # Set parameter for Week check
+        regex_week_check = r'[W-Za-z]'
+
+        match inferred_frequency:
+            case 'H' if length_index >= 17520:
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # hour level time-series.")
+                detected_period = 24  # Hourly seasonality
+            case 'D' if length_index >= 730:
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # day level time-series.")
+                detected_period = 365  # Yearly seasonality
+            case 'B' if length_index >= 520:
+                # logging.info("Using seasonal trend decomposition for outlier detection in business
+                # day level time-series.")
+                detected_period = 365  # Yearly seasonality
+            case 'MS' if length_index >= 24:
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # month level time-series.")
+                detected_period = 12
+            case 'M' if length_index >= 24:
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # month level time-series.")
+                detected_period = 12
+            case 'Q' if length_index >= 8:
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # quarter level time-series.")
+                detected_period = 4  # Quarterly seasonality
+            case 'A' if length_index >= 2:
+                # logging.info("Using seasonal trend decomposition for for outlier detection in
+                # annual level time-series.")
+                detected_period = 1  # Annual seasonality
+            case _:
+                if regex.match(regex_week_check, str(inferred_frequency)) and length_index >= 104:
+                    detected_period = 52  # Week level seasonality
+                else:
+                    print("Could not detect frequency")
+                    detected_period = None
+        logging.info("Completing Time series frequency detection")
+        return detected_period
+    else:
+        logging.info("Duplicate date index values. Check your data.")
+        df_ts.head(10)
+
+
+def generate_outliers_generalized_esd(df, hybrid) -> Union[pd.DataFrame, str]:
+    """
+    In this method, time series anomalies are detected using the Generalized ESD algorithm.
+    The generalized ESD (Extreme Studentized Deviate) test is used to detect one or more outliers
+    in a univariate data set that follows an approximately Normal distribution.
+    # http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h3.htm
+
+    Arguments:
+        df: Pandas dataframe
+    Outputs:
+       Pandas dataframe with outliers (detected Generalized ESD anomalies) or str message
+    """
+
+    # Default for detecting maximum number of outliers
+    n = len(df)
+    max_outliers = n // 20  # maximum outliers set to 5% of the data size
+
+    # Significance level used for a hypothesis test. Generally set to 0.05.
+    alpha_level = 0.05
+
+    series = np.array(df.iloc[:, -1])
+
+    # Use Generalized ESD algorithm on the time series
+    # column_name: string. Name of the column that we want to detect anomalies in
+    # max_anomalies: Integer. Max number of anomalies to look for in the time series
+    # alpha_level: Significance level used for a hypothesis test. Generally set to 0.05.
+    # Hybrid is set to true to use Median & Median Absolute Deviation (MAD) else it would use the Mean &
+    # Standard Deviation of the residual.
+
+    outliers_indices = sesd.generalized_esd(series, max_anomalies=max_outliers,
+                                            alpha=0.05, hybrid=hybrid)
+
+    # Convert to Pandas Series to get the sorted indices of the outliers
+    df_sorted = pd.Series(df.index.isin(outliers_indices)).sort_index()
+
+    is_outlier = [idx for idx, is_out in zip(df.index, df_sorted) if is_out]
+
+    if len(outliers_indices) == 0:
+        return None
+    else:
+        logging.info("Generated outliers by Generalized ESD Method")
+        return df.loc[is_outlier]
+
+
+def generate_outliers_seasonal_esd(df, hybrid):
+    """
+    In this method, time series anomalies are generated using the Seasonal ESD algorithm which is a wrapper
+    around the SESD package (to compute the Seasonal Extreme Studentized Deviate of a time series). The steps
+    taken are first to decompose the time series into STL Seasonal-Trend decomposition
+    (trend, seasonality, residual).Then, calculate the Median Absolute Deviation (MAD) and perform a regular
+    ESD test on the residual, which is being calculated as R = ts - seasonality - Median or MAD on the residual.
+    # Reference: arxiv.org/pdf/1704.07706.pdf
+
+    Arguments:
+        df: Pandas dataframe
+    Outputs:
+        return_outliers: Pandas dataframe with column for detected Seasonal ESD anomalies
+    """
+
+    # Default for detecting maximum number of outliers
+    n = len(df)
+    max_outliers = n // 20  # Maximum outliers set to 5% of the data size.
+    # max_outliers = 10 #Maximum outliers set to 5% of the data size.
+
+    # Detect frequency of the time series
+    detected_period = detect_ts_frequency(df)
+
+    # Significance level used for a hypothesis test. Generally set to 0.05.
+    alpha_level = 0.05
+
+    series = np.array(df.iloc[:, -1])
+
+    # Using Seasonal ESD algorithm from SESD package on the time series
+    # column_name: String. Name of the column that we want to detect anomalies in
+    # detected_period: Integer. Time frequency of the series. If we want to detect a yearly trend,
+    # this value will be 365.
+    # max_anomalies: Integer. Max number of anomalies to look for in the time series
+    # alpha_level: Significance level used for a hypothesis test. Generally set to 0.05.
+    # Hybrid is set to true to use Median & Median Absolute Deviation (MAD) else it would use the Mean &
+    # Standard Deviation of the residual.
+
+    outliers_indices = sesd.seasonal_esd(series, hybrid=hybrid,
+                                         periodicity=detected_period,
+                                         max_anomalies=max_outliers,
+                                         alpha=alpha_level)
+
+    # Convert to Pandas Series to get the sorted indices of the outliers
+    df_sorted = pd.Series(df.index.isin(outliers_indices)).sort_index()
+
+    is_outlier = [idx for idx, is_out in zip(df.index, df_sorted) if is_out]
+
+    if len(outliers_indices) == 0:
+        return None
+    else:
+        logging.info("Generated outliers by Seasonal ESD Method")
+        return df.loc[is_outlier]
+
+
+def detect_outliers_esd(df) -> Union[pd.DataFrame, str]:
+    """
+    Detects time series anomalies using either the Generalized ESD or Sesonal ESD algorithms.
+    The generalized ESD (Extreme Studentized Deviate) test is used to detect one or more outliers
+    in a univariate data set that follows an approximately Normal distribution.
+    # http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h3.htm
+
+    In Seasonal ESD algorithm, steps taken are first to decompose the time series into STL Seasonal-Trend
+    decomposition (trend, seasonality, residual). Then, calculate the Median Absolute Deviation (MAD)
+    and perform a regular ESD test on the residual, which is being calculated as R = ts - seasonality -
+    Median or MAD on the residual.
+    # Reference: arxiv.org/pdf/1704.07706.pdf
+
+    Arguments:
+        df: Pandas dataframe
+    Outputs:
+        return_outliers: Pandas dataframe with column for detected anomalies
+    """
+    # Check whether the argument is Pandas dataframe
+    if not isinstance(df, pd.DataFrame):
+        # Convert to Pandas dataframe for easy manipulation
+        df_pandas = df.toPandas()
+    else:
+        df_pandas = df
+
+    # Check for normality using the Shapiro-Wilk test to decide about right ESD method
+
+    stat, p = shapiro(df_pandas.iloc[:, -1])
+    logging.info('Checking for Normality - Shapiro-Wilk Test Results:')
+    logger.info("Statistic: %.3f", stat)
+    logger.info('p-value: %.3f', p)
+
+    # Setting Significance level default to 0.05
+    alpha = 0.05
+
+    # Interpret the results
+    if p > alpha:
+      logging.info("Data Normally Distributed - Using Generalized ESD Method")
+      #Call generalized ESD function to generate outliers. Hybrid is set to True to use
+      # Median & Median Absolute Deviation (MAD) else it would use the Mean & Standard
+      # Deviation of the residual.
+      return_outliers = generate_outliers_generalized_esd(df_pandas,hybrid=False)
+      if return_outliers is None:
+        logging.info("No outlier detected by Generalized ESD Method")
+      else:
+        logging.info("Outliers detected by Generalized ESD Method")
+        df_outliers = return_outliers.iloc[:, :2]
+        df_outliers.reset_index(drop=True, inplace=True)
+        return df_outliers
+    else:
+      print("Data Not Normally Distributed - Using Sesonal ESD Method")
+      #Call Seasonal ESD function to generate outliers. Hybrid is set to True to use
+      # Median & Median Absolute Deviation (MAD) else it would use the Mean & Standard
+      # Deviation of the residual.
+      return_outliers = generate_outliers_seasonal_esd(df_pandas,hybrid=True)
+      if return_outliers is None:
+        logging.info("No outlier detected by Seasonal ESD Method")
+      else:
+        logging.info("Outliers detected by Seasonal ESD Method")
+        df_outliers = return_outliers.iloc[:, :2]
+        df_outliers.reset_index(drop=True, inplace=True)
+        return df_outliers
+
+
+def detect_outliers_today_esd(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
+    """
+    Detect the outliers detected today using ESD method
+
+    Args:
+         df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
+                           and the last column should be the feature (count) for which outliers are detected.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing today's outliers if detected.
+        str: A message indicating no outliers were found today.
+    """
+
+    logging.info("Detecting today's outliers.")
+
+    # Get the DataFrame of outliers from detect_outliers and select the latest row
+    df_outliers = detect_outliers_esd(df)
+    df_last_outlier = df_outliers.tail(1)
+
+    # Ensure the index is a datetime object
+    df_last_outlier.index = pd.to_datetime(df_last_outlier.index)
+
+    # Extract the latest outlier's date
+    last_outlier_date = df_last_outlier.index[-1].date().strftime('%Y-%m-%d')
+
+    # Get the current date
+    current_date = pd.Timestamp.now().strftime('%Y-%m-%d')
+
+    # Check if the latest outlier occurred today
+    if last_outlier_date == current_date:
+        logging.info("Outliers detected today.")
+        return df_last_outlier
+    else:
+        logging.info("No outliers detected today.")
+        return "No Outliers Today!"
+
+
+def detect_outliers_latest_esd(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Detect the last outliers detected using the detect_outlier_esd method.
+
+    Args:
+         df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
+                           and the last column should be the feature (count) for which outliers are detected.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the latest detected outlier.
+    """
+
+    logging.info("Detecting the latest outliers.")
+
+    df_outliers = detect_outliers_esd(df)
+    df_latest_outlier = df_outliers.tail(1)
+
+    logging.info("Detected the latest outlier!")
+
     return df_latest_outlier

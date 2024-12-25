@@ -26,6 +26,7 @@ from flask import Flask
 from pycatcher.catch import (
     find_outliers_iqr,
     anomaly_mad,
+    anomaly_zscore,
     sum_of_squares,
     detect_outliers_today_classic,
     detect_outliers_latest_classic,
@@ -37,12 +38,17 @@ from pycatcher.catch import (
     calculate_rmse,
     generate_outliers_stl,
     generate_outliers_mstl,
+    generate_outliers_generalized_esd,
+    generate_outliers_seasonal_esd,
     detect_outliers_stl,
     detect_outliers_mstl,
     detect_outliers_today_stl,
     detect_outliers_latest_stl,
     detect_outliers_today_mstl,
     detect_outliers_latest_mstl,
+    detect_outliers_esd,
+    detect_ts_frequency,
+
 
 )
 from pycatcher.diagnostics import (
@@ -54,12 +60,13 @@ from pycatcher.diagnostics import (
     build_monthwise_plot,
     conduct_stationarity_check,
     build_decomposition_results,
-    build_moving_average_outliers_plot,
+    build_outliers_plot_moving_average,
     build_outliers_plot_classic,
     build_outliers_plot_stl,
     build_outliers_plot_mstl,
     build_seasonal_plot_mstl,
     build_seasonal_plot_stl,
+    build_outliers_plot_esd,
 
 )
 
@@ -68,6 +75,7 @@ __all__ = [
     # Anomaly detection functions
     "find_outliers_iqr",
     "anomaly_mad",
+    "anomaly_zscore",
     "detect_outliers_today_classic",
     "detect_outliers_latest_classic",
     "detect_outliers_classic",
@@ -77,6 +85,10 @@ __all__ = [
     "detect_outliers_latest_stl",
     "detect_outliers_today_mstl",
     "detect_outliers_latest_mstl",
+    "detect_outliers_esd",
+    "detect_outliers_today_esd",
+    "detect_outliers_latest_esd",
+    "detect_ts_frequency",
 
     # Statistical functions
     "sum_of_squares",
@@ -98,11 +110,14 @@ __all__ = [
     "detect_outliers_stl",
     "detect_outliers_mstl",
     "generate_outliers_mstl",
+    "generate_outliers_seasonal_esd",
+    "generate_outliers_generalized_esd",
     "build_outliers_plot_classic",
     "build_outliers_plot_stl",
     "build_outliers_plot_mstl",
     "build_seasonal_plot_stl",
     "build_seasonal_plot_mstl",
+    "build_outliers_plot_esd",
 
     # Web app
     "create_app"
