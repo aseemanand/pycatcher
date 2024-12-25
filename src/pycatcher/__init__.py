@@ -46,6 +46,8 @@ from pycatcher.catch import (
     detect_outliers_latest_stl,
     detect_outliers_today_mstl,
     detect_outliers_latest_mstl,
+    detect_outliers_today_esd,
+    detect_outliers_latest_esd,
     detect_outliers_esd,
     detect_ts_frequency,
 
@@ -105,7 +107,7 @@ __all__ = [
     "build_monthwise_plot",
     "conduct_stationarity_check",
     "build_decomposition_results",
-    "build_moving_average_outliers_plot",
+    "build_outliers_plot_moving_average",
     "generate_outliers_stl",
     "detect_outliers_stl",
     "detect_outliers_mstl",

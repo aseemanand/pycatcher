@@ -1416,7 +1416,7 @@ def detect_outliers_esd(df) -> Union[pd.DataFrame, str]:
        # Call generalized ESD function to generate outliers. Hybrid is set to True to use
        # Median & Median Absolute Deviation (MAD) else it would use the Mean & Standard
        # Deviation of the residual.
-       return_outliers = generate_outliers_generalized_esd(df_pandas,hybrid=False)
+       return_outliers = generate_outliers_generalized_esd(df_pandas, hybrid=False)
        if return_outliers is None:
          logging.info("No outlier detected by Generalized ESD Method")
        else:
@@ -1429,7 +1429,7 @@ def detect_outliers_esd(df) -> Union[pd.DataFrame, str]:
         # Call Seasonal ESD function to generate outliers. Hybrid is set to True to use
         # Median & Median Absolute Deviation (MAD) else it would use the Mean & Standard
         # Deviation of the residual.
-        return_outliers = generate_outliers_seasonal_esd(df_pandas,hybrid=True)
+        return_outliers = generate_outliers_seasonal_esd(df_pandas, hybrid=True)
         if return_outliers is None:
           logging.info("No outlier detected by Seasonal ESD Method")
         else:
