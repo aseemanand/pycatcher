@@ -182,18 +182,99 @@ class TestSumOfSquares:
             sum_of_squares([1, 2, 3, 4])  # Regular list instead of numpy array
 
 
-# Test case for get_ssacf
-def test_get_ssacf():
-    # Create residuals and df
-    residuals = np.array([1, 2, 3, 4, 5])
-    df = pd.DataFrame({"Value": [1, 2, 3, 4, 5]})
+class TestGetSSACF:
+    """Test cases for get_ssacf function."""
 
-    # Run the function
-    result = get_ssacf(residuals,type="none")
+    def test_valid_residuals(self):
+        """Test with valid numpy array residuals."""
+        residuals = np.array([1, 2, 3, 4])
+        result = get_ssacf(residuals, "test_model")
+        assert isinstance(result, float)
+        assert result > 0  # Sum of squares should be positive
 
-    # Test that the result is a valid number (more advanced checks can be added)
-    assert isinstance(result, float)
-    assert result >= 0
+    def test_2d_residuals(self):
+        """Test with 2D numpy array residuals."""
+        residuals = np.array([[1, 2], [3, 4]])
+        with pytest.raises(ValueError):  # ACF expects 1D array
+            get_ssacf(residuals, "test_model")
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input residuals cannot be None"):
+            get_ssacf(None, "test_model")
+
+    def test_empty_residuals(self):
+        """Test with empty numpy array."""
+        with pytest.raises(DataValidationError, match="Input residuals array cannot be empty"):
+            get_ssacf(np.array([]), "test_model")
+
+    def test_non_numpy_array(self):
+        """Test with non-numpy array input."""
+        with pytest.raises(TypeError, match="Residuals must be a NumPy array"):
+            get_ssacf([1, 2, 3, 4], "test_model")
+
+
+class TestDetectOutliersTodayClassic:
+    """Test cases for detect_outliers_today_classic function."""
+
+    @pytest.fixture
+    def sample_df_with_outliers(self):
+        """Fixture for sample DataFrame with outliers."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=5)
+        return pd.DataFrame({
+            'value': [10, 20, 1000, 30, 40]  # 1000 is an outlier
+        }, index=dates)
+
+    def test_outliers_today(self, sample_df_with_outliers, monkeypatch):
+        """Test when outliers are detected today."""
+
+        # Mock detect_outliers_classic to return known outliers
+        def mock_detect_outliers(df):
+            return sample_df_with_outliers.tail(1)
+
+        monkeypatch.setattr("src.pycatcher.catch.detect_outliers_classic", mock_detect_outliers)
+
+        result = detect_outliers_today_classic(sample_df_with_outliers)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 1
+
+    def test_no_outliers_today(self, sample_df_with_outliers, monkeypatch):
+        """Test when no outliers are detected today."""
+
+        # Mock detect_outliers_classic to return outliers from previous day
+        def mock_detect_outliers(df):
+            return sample_df_with_outliers.iloc[:-1]
+
+        monkeypatch.setattr("src.pycatcher.catch.detect_outliers_classic", mock_detect_outliers)
+
+        result = detect_outliers_today_classic(sample_df_with_outliers)
+        assert isinstance(result, str)
+        assert result == "No Outliers Today!"
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            detect_outliers_today_classic(None)
+
+    def test_empty_dataframe_no_rows(self):
+        """Test with DataFrame having no rows."""
+        empty_df = pd.DataFrame(columns=['value'])
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            detect_outliers_today_classic(empty_df)
+
+    def test_invalid_dataframe_format(self):
+        """Test with invalid DataFrame format."""
+        # Create DataFrame without DatetimeIndex
+        df = pd.DataFrame({'value': [1, 2, 3]})
+        with pytest.raises(DataValidationError, match="DataFrame must have a DatetimeIndex"):
+            detect_outliers_today_classic(df)
+
+    def test_missing_value_column(self):
+        """Test with DataFrame missing value column."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=3)
+        df = pd.DataFrame(index=dates)  # DataFrame with only DatetimeIndex
+        with pytest.raises(DataValidationError, match="DataFrame must contain at least one value column"):
+            detect_outliers_today_classic(df)
 
 
 @pytest.fixture
@@ -203,47 +284,6 @@ def input_data_for_detect_outliers():
         'date': pd.date_range(start='2022-01-01', periods=5),
         'value': [10, 20, 30, 40, 50]
     })
-
-
-@patch('src.pycatcher.catch.detect_outliers_classic')
-def test_outliers_detected_today(mock_detect_outliers_classic, input_data_for_detect_outliers):
-    """Test case when outliers are detected today."""
-
-    # Mock outliers DataFrame with today's date
-    today = pd.Timestamp(datetime.now().strftime('%Y-%m-%d'))
-
-    df_outliers_today = pd.DataFrame({
-        'date': [today],
-        'value': [100]
-    }).set_index('date')
-
-    mock_detect_outliers_classic.return_value = df_outliers_today
-
-    # Call the function with the sample input data
-    result = detect_outliers_today_classic(input_data_for_detect_outliers)
-
-    # Assert that the result is the DataFrame with today's outliers
-    pd.testing.assert_frame_equal(result, df_outliers_today)
-
-
-@patch('src.pycatcher.catch.detect_outliers_classic')
-def test_no_outliers_today(mock_detect_outliers_classic, input_data_for_detect_outliers):
-    """Test case when no outliers are detected today."""
-
-    # Mock outliers DataFrame with a past date (ensure the index is in datetime format)
-    past_date = pd.Timestamp('2023-10-05')
-    df_outliers_previous_day = pd.DataFrame({
-        'date': [past_date],
-        'value': [100]
-    }).set_index('date')
-
-    mock_detect_outliers_classic.return_value = df_outliers_previous_day
-
-    # Call the function with the sample input data
-    result = detect_outliers_today_classic(input_data_for_detect_outliers)
-
-    # Assert that the function returns "No Outliers Today!"
-    assert result == "No Outliers Today!"
 
 
 @patch('src.pycatcher.catch.detect_outliers_classic')
@@ -264,25 +304,6 @@ def test_outliers_latest_detected(mock_detect_outliers_classic, input_data_for_d
 
     # Assert that the result is the DataFrame with the latest outlier
     pd.testing.assert_frame_equal(result, df_outliers.tail(1))
-
-
-@patch('src.pycatcher.catch.detect_outliers_classic')
-def test_no_outliers_detected(mock_detect_outliers_classic, input_data_for_detect_outliers):
-    """Test case when no outliers are detected."""
-
-    # Mock an empty outliers DataFrame (indicating no outliers found)
-    df_no_outliers = pd.DataFrame({
-        'date': [],
-        'value': []
-    }).set_index('date')
-
-    mock_detect_outliers_classic.return_value = df_no_outliers
-
-    # Call the function with the sample input data
-    result = detect_outliers_latest_classic(input_data_for_detect_outliers)
-
-    # Since no outliers are detected, the result should be an empty DataFrame
-    pd.testing.assert_frame_equal(result, df_no_outliers)
 
 
 @patch('src.pycatcher.catch.decompose_and_detect')

@@ -336,27 +336,50 @@ def sum_of_squares(array: np.ndarray) -> float:
         raise
 
 
-def get_ssacf(residuals: np.ndarray, type) -> float:
+def get_ssacf(residuals: np.ndarray, type: str) -> float:
     """
     Get the sum of squares of the Auto Correlation Function (ACF) of the residuals.
 
     Args:
         residuals (np.ndarray): A NumPy array containing the residuals.
+        type (str): The type of model being used.
 
     Returns:
         float: The sum of squares of the ACF of the residuals.
+
+    Raises:
+        DataValidationError: If residuals is None or empty
+        TypeError: If residuals is not a NumPy array
     """
-    logging.info("Model type assumption: %s", type)
-    logging.info("Calculating the ACF of residuals.")
+    if residuals is None:
+        logger.error("Input residuals is None")
+        raise DataValidationError("Input residuals cannot be None")
 
-    # Compute the ACF of the residuals
-    acf_array = acf(residuals, fft=True)
+    if not isinstance(residuals, np.ndarray):
+        logger.error("Residuals must be a NumPy array")
+        raise TypeError("Residuals must be a NumPy array")
 
-    # Calculate the sum of squares of the ACF values
-    ssacf = sum_of_squares(acf_array)
-    logging.info("Sum of Squares of ACF: %.2f", ssacf)
+    try:
+        logger.info("Model type assumption: %s", type)
+        logger.info("Calculating the ACF of residuals.")
 
-    return ssacf
+        if residuals.size == 0:
+            logger.error("Input residuals array is empty")
+            raise DataValidationError("Input residuals array cannot be empty")
+
+        # Compute the ACF of the residuals
+        acf_array = acf(residuals, fft=True)
+        logger.debug("ACF array shape: %s", str(acf_array.shape))
+
+        # Calculate the sum of squares of the ACF values
+        ssacf = sum_of_squares(acf_array)
+        logger.info("Sum of Squares of ACF: %.2f", ssacf)
+
+        return ssacf
+
+    except Exception as e:
+        logger.error("Unexpected error in ACF calculation: %s", str(e))
+        raise
 
 
 def detect_outliers_today_classic(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
@@ -368,29 +391,63 @@ def detect_outliers_today_classic(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
                            and the last column should be the feature (count) for which outliers are detected.
 
     Returns:
-        pd.DataFrame: A DataFrame containing today's outliers if detected.
-        str: A message indicating no outliers were found today.
+        Union[pd.DataFrame, str]: A DataFrame containing today's outliers if detected,
+                                or a string message if no outliers found.
+
+    Raises:
+        DataValidationError: If df is None, empty, or has invalid format
+        TimeSeriesError: If date processing fails
     """
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    logging.info("Detecting today's outliers.")
+    if len(df.index) == 0:
+        logger.error("Input DataFrame has no rows")
+        raise DataValidationError("Input DataFrame cannot have zero rows")
 
-    # Get the DataFrame of outliers from detect_outliers and select the latest row
-    df_outliers = detect_outliers_classic(df)
-    df_last_outlier = df_outliers.tail(1)
+    # Validate DataFrame structure
+    if not isinstance(df.index, pd.DatetimeIndex):
+        logger.error("DataFrame index must be DatetimeIndex")
+        raise DataValidationError("DataFrame must have a DatetimeIndex")
 
-    # Extract the latest outlier's date
-    last_outlier_date = df_last_outlier.index[-1].date().strftime('%Y-%m-%d')
+    if len(df.columns) == 0:
+        logger.error("DataFrame has no columns")
+        raise DataValidationError("DataFrame must contain at least one value column")
 
-    # Get the current date
-    current_date = pd.Timestamp.now().strftime('%Y-%m-%d')
+    try:
+        logging.info("Detecting today's outliers.")
 
-    # Check if the latest outlier occurred today
-    if last_outlier_date == current_date:
-        logging.info("Outliers detected today.")
-        return df_last_outlier
-    else:
-        logging.info("No outliers detected today.")
-        return "No Outliers Today!"
+        # Get the DataFrame of outliers from detect_outliers and select the latest row
+        df_outliers = detect_outliers_classic(df)
+
+        if df_outliers.empty:
+            logger.info("No outliers detected in the dataset")
+            return "No Outliers Today!"
+
+        # Extract the latest outlier's date
+        df_last_outlier = df_outliers.tail(1)
+        last_outlier_date = df_last_outlier.index[-1].date().strftime('%Y-%m-%d')
+        logger.debug("Latest outlier date: %s", last_outlier_date)
+
+        # Get the current date
+        current_date = pd.Timestamp.now().strftime('%Y-%m-%d')
+        logger.debug("Current date: %s", current_date)
+
+        # Check if the latest outlier occurred today
+        if last_outlier_date == current_date:
+            logging.info("Outliers detected today.")
+            return df_last_outlier
+        else:
+            logging.info("No outliers detected today.")
+            return "No Outliers Today!"
+
+    except AttributeError as e:
+        logger.error("Error accessing DataFrame attributes: %s", str(e))
+        raise DataValidationError(f"Invalid DataFrame format: {str(e)}")
+    except Exception as e:
+        logger.error("Unexpected error in outlier detection: %s", str(e))
+        raise
 
 
 def detect_outliers_latest_classic(df: pd.DataFrame) -> pd.DataFrame:

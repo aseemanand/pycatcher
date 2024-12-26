@@ -11,11 +11,6 @@ __all__ = [
 # Exposing specific anomaly_detection functions or classes.
 from .test_catch import (
     # Test functions
-    test_get_ssacf,
-    test_outliers_detected_today,
-    test_no_outliers_today,
-    test_outliers_latest_detected,
-    test_no_outliers_detected,
     input_data_for_detect_outliers,
     input_data_decompose_and_detect,
     test_decompose_and_detect,
@@ -28,6 +23,8 @@ from .test_catch import (
     TestAnomalyMAD,
     TestGetResiduals,
     TestSumOfSquares,
+    TestGetSSACF,
+    TestDetectOutliersTodayClassic,
 
     # Common fixture
     sample_df
