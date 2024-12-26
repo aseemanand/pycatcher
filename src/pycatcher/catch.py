@@ -400,11 +400,6 @@ def detect_outliers_today_classic(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
         logger.error("Input DataFrame has no rows")
         raise DataValidationError("Input DataFrame cannot have zero rows")
 
-    # Validate DataFrame structure
-    if not isinstance(df.index, pd.DatetimeIndex):
-        logger.error("DataFrame index must be DatetimeIndex")
-        raise DataValidationError("DataFrame must have a DatetimeIndex")
-
     if len(df.columns) == 0:
         logger.error("DataFrame has no columns")
         raise DataValidationError("DataFrame must contain at least one value column")
@@ -418,6 +413,11 @@ def detect_outliers_today_classic(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
         if df_outliers.empty:
             logger.info("No outliers detected in the dataset")
             return "No Outliers Today!"
+
+        # Validate DataFrame structure
+        if not isinstance(df_outliers.index, pd.DatetimeIndex):
+            logger.error("DataFrame index must be DatetimeIndex")
+            raise DataValidationError("DataFrame must have a DatetimeIndex")
 
         # Extract the latest outlier's date
         df_last_outlier = df_outliers.tail(1)
@@ -467,11 +467,6 @@ def detect_outliers_latest_classic(df: pd.DataFrame) -> pd.DataFrame:
         logger.error("Input DataFrame has no rows")
         raise DataValidationError("Input DataFrame cannot have zero rows")
 
-    # Validate DataFrame structure
-    if not isinstance(df.index, pd.DatetimeIndex):
-        logger.error("DataFrame index must be DatetimeIndex")
-        raise DataValidationError("DataFrame must have a DatetimeIndex")
-
     if len(df.columns) == 0:
         logger.error("DataFrame has no columns")
         raise DataValidationError("DataFrame must contain at least one value column")
@@ -483,6 +478,11 @@ def detect_outliers_latest_classic(df: pd.DataFrame) -> pd.DataFrame:
         if df_outliers.empty:
             logger.info("No outliers detected in the dataset")
             return pd.DataFrame()
+
+        # Validate DataFrame structure
+        if not isinstance(df_outliers.index, pd.DatetimeIndex):
+            logger.error("DataFrame index must be DatetimeIndex")
+            raise DataValidationError("DataFrame must have a DatetimeIndex")
 
         df_latest_outlier = df_outliers.tail(1)
         logger.info("Detected the latest outlier!")
