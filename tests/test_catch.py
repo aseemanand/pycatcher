@@ -277,6 +277,59 @@ class TestDetectOutliersTodayClassic:
             detect_outliers_today_classic(df)
 
 
+class TestDetectOutliersLatestClassic:
+    """Test cases for detect_outliers_latest_classic function."""
+
+    @pytest.fixture
+    def sample_df(self):
+        """Fixture for sample DataFrame."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=5)
+        return pd.DataFrame({
+            'value': [10, 20, 1000, 30, 40]  # 1000 is an outlier
+        }, index=dates)
+
+    def test_valid_detection(self, sample_df, monkeypatch):
+        """Test with valid DataFrame containing outliers."""
+        # Mock detect_outliers_classic to return known outliers
+        mock_outliers = sample_df.iloc[[2]]  # Row with value 1000
+        def mock_detect_outliers(df):
+            return mock_outliers
+
+        monkeypatch.setattr("src.pycatcher.catch.detect_outliers_classic", mock_detect_outliers)
+
+        result = detect_outliers_latest_classic(sample_df)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 1
+        assert result.iloc[0]['value'] == 1000
+
+    def test_no_outliers(self, sample_df, monkeypatch):
+        """Test when no outliers are detected."""
+        def mock_detect_outliers(df):
+            return pd.DataFrame()
+
+        monkeypatch.setattr("src.pycatcher.catch.detect_outliers_classic", mock_detect_outliers)
+
+        result = detect_outliers_latest_classic(sample_df)
+        assert result.empty
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            detect_outliers_latest_classic(None)
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        empty_df = pd.DataFrame(columns=['value'])
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            detect_outliers_latest_classic(empty_df)
+
+    def test_invalid_index(self):
+        """Test with invalid index type."""
+        df = pd.DataFrame({'value': [1, 2, 3]})
+        with pytest.raises(DataValidationError, match="DataFrame must have a DatetimeIndex"):
+            detect_outliers_latest_classic(df)
+
+
 @pytest.fixture
 def input_data_for_detect_outliers():
     """Fixture for sample input DataFrame."""
@@ -284,26 +337,6 @@ def input_data_for_detect_outliers():
         'date': pd.date_range(start='2022-01-01', periods=5),
         'value': [10, 20, 30, 40, 50]
     })
-
-
-@patch('src.pycatcher.catch.detect_outliers_classic')
-def test_outliers_latest_detected(mock_detect_outliers_classic, input_data_for_detect_outliers):
-    """Test case when the latest outlier is detected."""
-
-    # Mock outliers DataFrame with latest outlier
-    latest_outlier_date = pd.Timestamp('2023-10-08')
-    df_outliers = pd.DataFrame({
-        'date': [latest_outlier_date],
-        'value': [100]
-    }).set_index('date')
-
-    mock_detect_outliers_classic.return_value = df_outliers
-
-    # Call the function with the sample input data
-    result = detect_outliers_latest_classic(input_data_for_detect_outliers)
-
-    # Assert that the result is the DataFrame with the latest outlier
-    pd.testing.assert_frame_equal(result, df_outliers.tail(1))
 
 
 @patch('src.pycatcher.catch.decompose_and_detect')

@@ -93,7 +93,6 @@ def check_and_convert_date(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: A date indexed DataFrame containing all the valid rows.
     """
-
     if df is None or df.empty:
         logger.error("Input DataFrame is None or empty")
         raise DataValidationError("Input DataFrame cannot be None or empty")
@@ -133,13 +132,12 @@ def find_outliers_iqr(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: A DataFrame containing the rows that are considered outliers.
     """
-
     if df is None or df.empty:
         logger.error("Input DataFrame is None or empty")
         raise DataValidationError("Input DataFrame cannot be None or empty")
 
     try:
-        logging.info("Detecting outliers using the IQR method.")
+        logger.info("Detecting outliers using the IQR method.")
 
         # Ensure the last column is numeric
         try:
@@ -177,7 +175,6 @@ def anomaly_zscore(residuals: Union[np.ndarray, pd.Series]) -> int:
     Returns:
          int: Z-score value.
         """
-
     if residuals is None or (isinstance(residuals, (np.ndarray, pd.Series)) and len(residuals) == 0):
         logger.error("Input residuals are None or empty")
         raise DataValidationError("Input residuals cannot be None or empty")
@@ -208,7 +205,6 @@ def anomaly_mad(residuals: Union[np.ndarray, pd.Series]) -> pd.DataFrame:
     Returns:
         pd.DataFrame: A DataFrame containing the rows identified as outliers.
     """
-
     if residuals is None or (isinstance(residuals, (np.ndarray, pd.Series)) and len(residuals) == 0):
         logger.error("Input residuals are None or empty")
         raise DataValidationError("Input residuals cannot be None or empty")
@@ -257,7 +253,6 @@ def get_residuals(model_type: BaseEstimator) -> np.ndarray:
         DataValidationError: If model_type is None or doesn't have resid attribute
         ValueError: If all residuals are NaN values
     """
-
     if model_type is None:
         logger.error("Input model is None")
         raise DataValidationError("Input model cannot be None")
@@ -305,7 +300,6 @@ def sum_of_squares(array: np.ndarray) -> float:
         DataValidationError: If input is None or empty
         TypeError: If input is not a NumPy array
     """
-
     if array is None:
         logger.error("Input array is None")
         raise DataValidationError("Input array cannot be None")
@@ -416,7 +410,7 @@ def detect_outliers_today_classic(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
         raise DataValidationError("DataFrame must contain at least one value column")
 
     try:
-        logging.info("Detecting today's outliers.")
+        logger.info("Detecting today's outliers.")
 
         # Get the DataFrame of outliers from detect_outliers and select the latest row
         df_outliers = detect_outliers_classic(df)
@@ -436,10 +430,10 @@ def detect_outliers_today_classic(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
 
         # Check if the latest outlier occurred today
         if last_outlier_date == current_date:
-            logging.info("Outliers detected today.")
+            logger.info("Outliers detected today.")
             return df_last_outlier
         else:
-            logging.info("No outliers detected today.")
+            logger.info("No outliers detected today.")
             return "No Outliers Today!"
 
     except AttributeError as e:
@@ -460,16 +454,45 @@ def detect_outliers_latest_classic(df: pd.DataFrame) -> pd.DataFrame:
 
     Returns:
         pd.DataFrame: A DataFrame containing the latest detected outlier.
+
+    Raises:
+        DataValidationError: If df is None, empty, or has invalid format
+        TimeSeriesError: If date processing fails
     """
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    logging.info("Detecting the latest outliers.")
+    if len(df.index) == 0:
+        logger.error("Input DataFrame has no rows")
+        raise DataValidationError("Input DataFrame cannot have zero rows")
 
-    df_outliers = detect_outliers_classic(df)
-    df_latest_outlier = df_outliers.tail(1)
+    # Validate DataFrame structure
+    if not isinstance(df.index, pd.DatetimeIndex):
+        logger.error("DataFrame index must be DatetimeIndex")
+        raise DataValidationError("DataFrame must have a DatetimeIndex")
 
-    logging.info("Detected the latest outlier!")
+    if len(df.columns) == 0:
+        logger.error("DataFrame has no columns")
+        raise DataValidationError("DataFrame must contain at least one value column")
 
-    return df_latest_outlier
+    try:
+        logger.info("Detecting the latest outliers.")
+        df_outliers = detect_outliers_classic(df)
+
+        if df_outliers.empty:
+            logger.info("No outliers detected in the dataset")
+            return pd.DataFrame()
+
+        df_latest_outlier = df_outliers.tail(1)
+        logger.info("Detected the latest outlier!")
+        logger.debug("Latest outlier date: %s", df_latest_outlier.index[-1])
+
+        return df_latest_outlier
+
+    except Exception as e:
+        logger.error("Unexpected error in latest outlier detection: %s", str(e))
+        raise
 
 
 def detect_outliers_classic(df: pd.DataFrame) -> Union[pd.DataFrame, str]:

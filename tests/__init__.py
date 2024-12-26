@@ -25,6 +25,7 @@ from .test_catch import (
     TestSumOfSquares,
     TestGetSSACF,
     TestDetectOutliersTodayClassic,
+    TestDetectOutliersLatestClassic,
 
     # Common fixture
     sample_df
