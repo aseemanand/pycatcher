@@ -739,18 +739,18 @@ def detect_outliers_moving_average(df: pd.DataFrame) -> str:
     df1 = df_pandas.copy()
     df1['moving_average'] = df_pandas.iloc[:, -1].rolling(window=optimal_window_size).mean()
 
-    # Set a threshold of 2 standard deviations from the moving average
-    threshold = df1['moving_average'].std() * 2
+    # Call Z-score algorithm to detect anomalies
+    z_scores = anomaly_zscore(df1['moving_average'])
+    outliers = df1[np.abs(z_scores) > 2]
 
-    # Identify values that cross the threshold
-    df1['above_threshold'] = df_pandas.iloc[:, -1] > (df1['moving_average'] + threshold)
-    df1['below_threshold'] = df_pandas.iloc[:, -1] < (df1['moving_average'] - threshold)
-
-    outliers = df1[(df1['above_threshold']) | (df1['below_threshold'])].dropna()
-    return_outliers = outliers.iloc[:, :2]
-    return_outliers.reset_index(drop=True, inplace=True)
-    logging.info("Outlier detection using Moving Average method completed")
-    return return_outliers
+    if outliers.empty:
+        print("No outlier detected using Moving Average method")
+        return
+    else:
+        return_outliers = outliers.iloc[:, :2]
+        return_outliers.reset_index(drop=True, inplace=True)
+        logging.info("Outlier detection using Moving Average method completed")
+        return return_outliers
 
 
 def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
