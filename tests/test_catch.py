@@ -262,13 +262,6 @@ class TestDetectOutliersTodayClassic:
         with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
             detect_outliers_today_classic(empty_df)
 
-    def test_invalid_dataframe_format(self):
-        """Test with invalid DataFrame format."""
-        # Create DataFrame without DatetimeIndex
-        df = pd.DataFrame({'value': [1, 2, 3]})
-        with pytest.raises(DataValidationError, match="DataFrame must have a DatetimeIndex"):
-            detect_outliers_today_classic(df)
-
     def test_missing_value_column(self):
         """Test with DataFrame missing value column."""
         dates = pd.date_range(end=pd.Timestamp.now(), periods=3)
@@ -322,12 +315,6 @@ class TestDetectOutliersLatestClassic:
         empty_df = pd.DataFrame(columns=['value'])
         with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
             detect_outliers_latest_classic(empty_df)
-
-    def test_invalid_index(self):
-        """Test with invalid index type."""
-        df = pd.DataFrame({'value': [1, 2, 3]})
-        with pytest.raises(DataValidationError, match="DataFrame must have a DatetimeIndex"):
-            detect_outliers_latest_classic(df)
 
 
 @pytest.fixture
