@@ -36,6 +36,7 @@ from pycatcher.catch import (
     detect_outliers_moving_average,
     calculate_optimal_window_size,
     calculate_rmse,
+    check_normal_distribution_monte_carlo,
     generate_outliers_stl,
     generate_outliers_mstl,
     generate_outliers_generalized_esd,
@@ -97,6 +98,7 @@ __all__ = [
     "calculate_optimal_window_size",
     "calculate_rmse",
     "decompose_and_detect",
+    "check_normal_distribution_monte_carlo",
 
     # Diagnostic functions
     "get_residuals",

@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 import re as regex
 import pandas as pd
 import seaborn as sns
@@ -14,6 +13,7 @@ from scipy.stats import shapiro
 from .catch import (get_residuals,
                     get_ssacf,
                     anomaly_mad,
+                    anomaly_zscore,
                     calculate_optimal_window_size,
                     generate_outliers_stl,
                     generate_outliers_mstl,
@@ -348,34 +348,28 @@ def build_outliers_plot_moving_average(df: pd.DataFrame) -> plt:
     df1 = df_pandas.copy()
     df1['moving_average'] = df_pandas.iloc[:, -1].rolling(window=optimal_window_size).mean()
 
-    # Set a threshold of 2 standard deviations from the moving average
-    threshold = df1['moving_average'].std() * 2
+    # Call Z-score algorithm to detect dispersion
+    z_scores = anomaly_zscore(df1['moving_average'])
+    outliers = df1[np.abs(z_scores) > 2]
 
-    # Identify values that cross the threshold
-    df1['above_threshold'] = df_pandas.iloc[:, -1] > (df1['moving_average'] + threshold)
-    df1['below_threshold'] = df_pandas.iloc[:, -1] < (df1['moving_average'] - threshold)
+    if outliers.empty:
+        print("No outlier detected using Moving Average method")
+        return
+    else:
+        return_outliers = outliers.iloc[:, :2]
+        return_outliers.reset_index(drop=True, inplace=True)
+        print("Outlier detection using Moving Average method completed")
+        print("Outliers:", return_outliers)
 
-    # Calculate upper and lower bounds for outliers
-    upper_bound = df1['moving_average'] + 2 * df_pandas.iloc[:, -1].rolling(window=optimal_window_size).std()
-    lower_bound = df1['moving_average'] - 2 * df_pandas.iloc[:, -1].rolling(window=optimal_window_size).std()
+        # Plot the data
+        plt.figure(figsize=(20, 8))
+        plt.plot(df_pandas.iloc[:, -1], label='Original Data')
+        plt.plot(df1['moving_average'], label='Moving Average')
 
-    # Identify outliers
-    outliers = df1[(df1['above_threshold']) | (df1['below_threshold'])].dropna()
-    return_outliers = outliers.iloc[:, :2]
-    return_outliers.reset_index(drop=True, inplace=True)
-
-    print("Outliers:", return_outliers)
-
-    # Plot the data
-    plt.figure(figsize=(20, 8))
-    plt.plot(df_pandas.iloc[:, -1], label='Original Data')
-    plt.plot(df1['moving_average'], label='Moving Average')
-    plt.fill_between(df1.index, lower_bound, upper_bound, alpha=0.2, label='Outlier Bounds')
-
-    # Highlight outliers
-    plt.scatter(outliers.index, outliers.iloc[:, 1], color='green', label='Outliers')
-    plt.legend()
-    logging.info("Completed outliers plotting using Moving Average method")
+        # Highlight outliers
+        plt.scatter(outliers.index, outliers.iloc[:, 1], color='green', label='Outliers')
+        plt.legend()
+        logging.info("Completed outliers plotting using Moving Average method")
 
 
 def build_outliers_plot_classic(df) -> plt:
@@ -571,9 +565,7 @@ def generate_outlier_plot_stl(df, detected_period) -> plt:
 
     plt.figure(figsize=(10, 4))
     plt.plot(df)
-    for date in df_outliers.index:
-        plt.axvline(datetime(date.year, date.month, date.day), color='k', linestyle='--', alpha=0.5)
-        plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='r', marker='D')
+    plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='r', marker='D')
 
     return plt
 
@@ -834,10 +826,7 @@ def generate_outlier_plot_mstl(df, derived_period) -> plt:
 
     plt.figure(figsize=(10, 4))
     plt.plot(df)
-
-    for date in df_outliers.index:
-        plt.axvline(datetime(date.year, date.month, date.day), color='k', linestyle='--', alpha=0.5)
-        plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='r', marker='D')
+    plt.scatter(df_outliers.index, df_outliers.iloc[:, -1], color='r', marker='D')
 
     return plt
 
@@ -989,13 +978,13 @@ def build_outliers_plot_esd(df) -> plt:
     # Check whether the argument is Pandas dataframe
     if not isinstance(df, pd.DataFrame):
         # Convert to Pandas dataframe for easy manipulation
-        df_pandas = df.toPandas()
+        df_esd = df.toPandas()
     else:
-        df_pandas = df
+        df_esd = df
 
     # Check for normality using the Shapiro-Wilk test to decide about right ESD method
 
-    stat, p = shapiro(df_pandas.iloc[:, -1])
+    stat, p = shapiro(df_esd.iloc[:, -1])
     logging.info('Testing for Normality - Shapiro-Wilk Test Results:')
     logger.info("Statistic: %.3f", stat)
     logger.info('p-value: %.3f', p)
@@ -1005,10 +994,10 @@ def build_outliers_plot_esd(df) -> plt:
 
     # Decide right ESD method based on data distribution
     if p > alpha:
-        logging.info("Data Normally Distributed - Using Generalized ESD Method")
+        logging.info("Data Likely Normally Distributed - Using Generalized ESD Method")
         # Call Generalized ESD function to generate outliers. Hybrid is set to True to use
         # Median & Median Absolute Deviation (MAD) else it would use the Mean & Standard Deviation of the residual.
-        return_outliers = generate_outliers_generalized_esd(df_pandas, hybrid=False)
+        return_outliers = generate_outliers_generalized_esd(df_esd, hybrid=False)
         if return_outliers is None:
             logging.info("No outlier detected by Generalized ESD Method")
             return
@@ -1020,29 +1009,31 @@ def build_outliers_plot_esd(df) -> plt:
         print("Data Not Normally Distributed - Using Sesonal ESD Method")
         # Call Seasonal ESD function to generate outliers. Hybrid is set to True to use
         # Median & Median Absolute Deviation (MAD) else it would use the Mean & Standard Deviation of the residual.
-        return_outliers = generate_outliers_seasonal_esd(df_pandas, hybrid=True)
+        return_outliers = generate_outliers_seasonal_esd(df_esd, hybrid=True)
         if return_outliers is None:
             logging.info("No outlier detected by Seasonal ESD Method")
             return
         else:
-            logging.info("Outliers detected by Seasonal ESD Method:")
-            df_outliers = return_outliers.iloc[:, :2]
-            print(df_outliers)
+            print("Outliers detected by Seasonal ESD Method:")
+            df_outlier = return_outliers.iloc[:, :2]
+            print(df_outlier)
+            # Create df_match dataset to detect matching indices in the original dataframe and plot
+            df_match = df_esd.copy()
 
-        # Get matching indices in df_pandas and plot
-        matching_indices = df_pandas.index.isin(df_outliers.index)
+            # Get matching indices in df_match and plot
+            matching_indices = df_match.index.isin(df_outlier.index)
 
-        # Mark outlier rows in df_pandas dataframe as outliers
-        df_pandas['outlier'] = False
-        df_pandas.loc[matching_indices, 'outlier'] = True
+            # Mark outlier rows in df_match dataframe as outliers
+            df_match['outlier'] = False
+            df_match.loc[matching_indices, 'outlier'] = True
 
-        # Plot the outliers
-        plt.figure(figsize=(24, 10))
-        df_plot = df_pandas.copy()
-        df_plot['Month-Year'] = pd.to_datetime(df_plot.iloc[:, 0]).dt.to_period('M')
-        df_plot['Month-Year'] = df_plot['Month-Year'].astype(str)
-        df_plot['Count'] = pd.to_numeric(df_plot.iloc[:, 1])
+            # Plot the outliers
+            plt.figure(figsize=(24, 10))
+            df_plot = df_match.copy()
+            df_plot['Month-Year'] = pd.to_datetime(df_plot.iloc[:, 0]).dt.to_period('M')
+            df_plot['Month-Year'] = df_plot['Month-Year'].astype(str)
+            df_plot['Count'] = pd.to_numeric(df_plot.iloc[:, 1])
 
-        # Highlight outliers in the plot
-        sns.scatterplot(data=df_plot, x='Month-Year', y='Count', hue='outlier').set_title("Seasonal ESD Anomalies")
-        plt.show()
+            # Highlight outliers in the plot
+            sns.scatterplot(data=df_plot, x='Month-Year', y='Count', hue='outlier').set_title("Seasonal ESD Anomalies")
+            plt.show()
