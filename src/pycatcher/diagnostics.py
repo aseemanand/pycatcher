@@ -994,7 +994,7 @@ def build_outliers_plot_esd(df) -> plt:
 
     # Decide right ESD method based on data distribution
     if p > alpha:
-        logging.info("Data Normally Distributed - Using Generalized ESD Method")
+        logging.info("Data Likely Normally Distributed - Using Generalized ESD Method")
         # Call Generalized ESD function to generate outliers. Hybrid is set to True to use
         # Median & Median Absolute Deviation (MAD) else it would use the Mean & Standard Deviation of the residual.
         return_outliers = generate_outliers_generalized_esd(df_esd, hybrid=False)

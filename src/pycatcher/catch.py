@@ -923,16 +923,17 @@ def generate_outliers_stl(df, type, seasonal, period) -> pd.DataFrame:
         # Access the residual component
         residuals = residual_transformed
 
-    # Check for normality using the Shapiro-Wilk test to decide right anomaly detection method
-    stat, p = shapiro(residuals)
-    logging.info('Testing for Normality - Shapiro-Wilk Test Results:')
+    # Check for normality using the Monte Carlo simulation of Shapiro-Wilk test
+    residuals_values = residuals.values
+    residuals_clean = residuals_values[~np.isnan(residuals_values)]
+    stat, p_value = check_normal_distribution_monte_carlo(residuals_clean)
     logger.info("Statistic: %.3f", stat)
-    logger.info('p-value: %.3f', p)
+    logger.info('p-value: %.3f', p_value)
     outliers = []
     # Decide right dispersion method
     alpha = 0.05
-    if p > alpha:
-        logging.info("Residuals Normally Distributed - Using Z Score")
+    if p_value > alpha:
+        logging.info("Residuals Likely Normally Distributed - Using Z Score")
         # Identify outliers using Z-Score
         z_scores = anomaly_zscore(residuals)
         outliers = df[np.abs(z_scores) > 2]
@@ -944,6 +945,28 @@ def generate_outliers_stl(df, type, seasonal, period) -> pd.DataFrame:
 
     logging.info("Generated outlier detection using STL")
     return outliers
+
+
+def check_normal_distribution_monte_carlo(data):
+    """
+    Tests if a given data sample is normally distributed using the Shapiro-Wilk test with a Monte Carlo simulation.
+
+    Args:
+        data: A numpy array representing the data sample.
+
+    Returns:
+        A tuple containing the test statistic and p-value from the Monte Carlo simulation.
+    """
+
+    # Define the test statistic as the Shapiro-Wilk test statistic
+    def shapiro_statistic(sample):
+        return stats.shapiro(sample)[0]
+
+    # Perform the Monte Carlo test with the normal distribution as the null hypothesis
+    result = stats.monte_carlo_test(data, rvs=stats.norm.rvs, statistic=shapiro_statistic, alternative='greater',
+                                    n_resamples=10000)
+
+    return result.statistic, result.pvalue
 
 
 def detect_outliers_mstl(df) -> Union[pd.DataFrame, str]:
@@ -1123,16 +1146,17 @@ def generate_outliers_mstl(df, type, period) -> pd.DataFrame:
         # Access the residual component
         residuals = residual_transformed
 
-    # Check for normality using the Shapiro-Wilk test to decide right anomaly detection method
-    stat, p = shapiro(residuals)
-    logging.info('Testing for Normality - Shapiro-Wilk Test Results:')
+    # Check for normality using the Monte Carlo simulation of Shapiro-Wilk test
+    residuals_values = residuals.values
+    residuals_clean = residuals_values[~np.isnan(residuals_values)]
+    stat, p_value = check_normal_distribution_monte_carlo(residuals_clean)
     logger.info("Statistic: %.3f", stat)
-    logger.info('p-value: %.3f', p)
+    logger.info('p-value: %.3f', p_value)
     outliers = []
     # Decide right dispersion method
     alpha = 0.05
-    if p > alpha:
-        logging.info("Residuals Normally Distributed - Using Z Score")
+    if p_value > alpha:
+        logging.info("Residuals Likely Normally Distributed - Using Z Score")
         # Identify outliers using Z-Score
         z_scores = anomaly_zscore(residuals)
         outliers = df[np.abs(z_scores) > 2]
@@ -1483,7 +1507,7 @@ def detect_outliers_esd(df) -> Union[pd.DataFrame, str]:
 
     # Interpret the results
     if p > alpha:
-        logging.info("Data Normally Distributed - Using Generalized ESD Method")
+        logging.info("Data Likely Normally Distributed - Using Generalized ESD Method")
         # Call generalized ESD function to generate outliers. Hybrid is set to True to use
         # Median & Median Absolute Deviation (MAD) else it would use the Mean & Standard
         # Deviation of the residual.
