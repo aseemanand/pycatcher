@@ -144,7 +144,7 @@ def build_seasonal_plot_classic(df) -> str:
         logging.info("Duplicate date index values. Check your data.")
 
 
-def generate_seasonal_plot_classic(df,detected_period) -> Union[str, plt]:
+def generate_seasonal_plot_classic(df, detected_period) -> Union[str, plt]:
     """
     Build seasonal plot for a given dataframe using classic seasonal decomposition
     Args:
