@@ -9,6 +9,7 @@ import statsmodels.api as sm
 import numpy as np
 from scipy import stats
 from scipy.stats import shapiro
+from typing import Union
 
 from .catch import (get_residuals,
                     get_ssacf,
@@ -53,7 +54,7 @@ def plot_seasonal(res, axes, title):
     axes[3].set_ylabel('Residual')
 
 
-def build_seasonal_plot_classic(df):
+def build_seasonal_plot_classic(df) -> str:
     """
     Build seasonal plot for a given dataframe using classic seasonal decomposition
         Args:
@@ -70,52 +71,124 @@ def build_seasonal_plot_classic(df):
     else:
         df_pandas = df
 
-    df_season = df_pandas.copy()
-    # Ensure the first column is in datetime format and set it as index
-    df_season.iloc[:, 0] = pd.to_datetime(df_season.iloc[:, 0])
-    df_season = df_season.set_index(df_season.columns[0]).asfreq('D').dropna()
+        # Ensure the first column is in datetime format and set it as index
+        df_ts = df_pandas.copy()
+        # Ensure the DataFrame is indexed correctly
+        if not isinstance(df_ts.index, pd.DatetimeIndex):
+            df_ts = df_ts.set_index(pd.to_datetime(df_ts.iloc[:, 0])).dropna()
 
-    # Find length of time period to decide right outlier algorithm
-    length_year = len(df_season.index) // 365.25
+        # Convert a column to datetime and set it as the index
+        df_ts.iloc[:, 0] = pd.to_datetime(df_ts.iloc[:, 0])
+        df_ts = df_ts.set_index(df_ts.columns[0])
 
-    logger.info("Time-series data length: %.2f years", length_year)
+        # Ensure the datetime index is unique (no duplicate dates)
+        if df_ts.index.is_unique:
+            # Find the time frequency (daily, weekly etc.) and length of the index column
+            inferred_frequency = df_ts.index.inferred_freq
+            logging.info("Time frequency: %s", inferred_frequency)
 
-    if length_year >= 2.0:
+            length_index = len(df_ts.index)
+            logging.info("Length of time index: %d", length_index)
 
-        # Building Additive and Multiplicative time series models
-        # In a multiplicative time series, the components multiply together to make the time series.
-        # If there is an increasing trend, the amplitude of seasonal activity increases.
-        # Everything becomes more exaggerated. This is common for web traffic.
+            # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
 
-        # In an additive time series, the components add together to make the time series.
-        # If there is an increasing trend, we still see roughly the same size peaks and troughs
-        # throughout the time series. This is often seen in indexed time series where the
-        # absolute value is growing but changes stay relative.
+            # Set parameter for Week check
+            regex_week_check = r'[W-Za-z]'
 
-        decomposition_add = sm.tsa.seasonal_decompose(df_season.iloc[:, -1],
+            match inferred_frequency:
+                case 'H' if length_index >= 17520:
+                    # logging.info("Using seasonal trend decomposition for for outlier detection in
+                    # hour level time-series.")
+                    detected_period = 24  # Hourly seasonality
+                    generate_seasonal_plot_classic(df_ts, detected_period)
+                case 'D' if length_index >= 730:
+                    # logging.info("Using seasonal trend decomposition for for outlier detection in
+                    # day level time-series.")
+                    detected_period = 365  # Yearly seasonality
+                    generate_seasonal_plot_classic(df_ts, detected_period)
+                case 'B' if length_index >= 520:
+                    # logging.info("Using seasonal trend decomposition for outlier detection in business
+                    # day level time-series.")
+                    detected_period = 365  # Yearly seasonality
+                    generate_seasonal_plot_classic(df_ts, detected_period)
+                case 'MS' if length_index >= 24:
+                    # logging.info("Using seasonal trend decomposition for for outlier detection in
+                    # month level time-series.")
+                    detected_period = 12
+                    generate_seasonal_plot_classic(df_ts, detected_period)
+                case 'M' if length_index >= 24:
+                    # logging.info("Using seasonal trend decomposition for for outlier detection in
+                    # month level time-series.")
+                    detected_period = 12
+                    generate_seasonal_plot_classic(df_ts, detected_period)
+                case 'Q' if length_index >= 8:
+                    # logging.info("Using seasonal trend decomposition for for outlier detection in
+                    # quarter level time-series.")
+                    detected_period = 4  # Quarterly seasonality
+                    generate_seasonal_plot_classic(df_ts, detected_period)
+                case 'A' if length_index >= 2:
+                    # logging.info("Using seasonal trend decomposition for for outlier detection in
+                    # annual level time-series.")
+                    detected_period = 1  # Annual seasonality
+                    generate_seasonal_plot_classic(df_ts, detected_period)
+                case _:
+                    if regex.match(regex_week_check, str(inferred_frequency)) and length_index >= 104:
+                        detected_period = 52  # Week level seasonality
+                        generate_seasonal_plot_classic(df_ts, detected_period)
+                    else:
+                        print("Could not detect frequency")
+                        detected_period = None
+            logging.info("Completing Time series frequency detection")
+        else:
+            logging.info("Duplicate date index values. Check your data.")
+
+
+def generate_seasonal_plot_classic(df,detected_period) -> Union[str, plt]:
+    """
+    Build seasonal plot for a given dataframe using classic seasonal decomposition
+    Args:
+        df (pd.DataFrame): A DataFrame containing the data. The first column should be the date,
+                                   and the second/last column should be the feature (count).
+    """
+    logging.info("Building seasonal plot based on classical seasonal decomposition")
+
+    if detected_period is not None:
+
+         # Building Additive and Multiplicative time series models
+         # In a multiplicative time series, the components multiply together to make the time series.
+         # If there is an increasing trend, the amplitude of seasonal activity increases.
+         # Everything becomes more exaggerated. This is common for web traffic.
+
+         # In an additive time series, the components add together to make the time series.
+         # If there is an increasing trend, we still see roughly the same size peaks and troughs
+         # throughout the time series. This is often seen in indexed time series where the
+         # absolute value is growing but changes stay relative.
+
+         decomposition_add = sm.tsa.seasonal_decompose(df.iloc[:, -1],
                                                       model='additive', extrapolate_trend='freq')
-        residuals_add = get_residuals(decomposition_add)
+         residuals_add = get_residuals(decomposition_add)
 
-        decomposition_mul = sm.tsa.seasonal_decompose(df_season.iloc[:, -1],
+         decomposition_mul = sm.tsa.seasonal_decompose(df.iloc[:, -1],
                                                       model='multiplicative', extrapolate_trend='freq')
-        residuals_mul = get_residuals(decomposition_mul)
+         residuals_mul = get_residuals(decomposition_mul)
 
-        # Get ACF values for both Additive and Multiplicative models
+         # Get ACF values for both Additive and Multiplicative models
 
-        # Calculate Sum of Squares of the ACF for both models
-        ssacf_add: float = get_ssacf(residuals_add, type='Additive')
-        ssacf_mul: float = get_ssacf(residuals_mul, type='Multiplicative')
+         # Calculate Sum of Squares of the ACF for both models
+         ssacf_add: float = get_ssacf(residuals_add, type='Additive')
+         ssacf_mul: float = get_ssacf(residuals_mul, type='Multiplicative')
 
-        if ssacf_add < ssacf_mul:
-            logger.info("Using Additive model for seasonal decomposition.")
+         if ssacf_add < ssacf_mul:
+            print("Using Additive model for seasonal decomposition.")
             _, axes = plt.subplots(ncols=1, nrows=4, sharex=False, figsize=(30, 15))
             plot_seasonal(decomposition_add, axes, title="Additive")
-        else:
-            logger.info("Using Multiplicative model for seasonal decomposition.")
+         else:
+            print("Using Multiplicative model for seasonal decomposition.")
             _, axes = plt.subplots(ncols=1, nrows=4, sharex=False, figsize=(30, 15))
             plot_seasonal(decomposition_mul, axes, title="Multiplicative")
+         logging.info("Completing seasonal plot based on classical seasonal decomposition.")
     else:
-        logger.info("Use boxplot since the data is less than 2 years.")
+        print("Use boxplot since the data is less than 2 years.")
         print('Use build_iqr_plot method to see the boxplot with outliers')
 
 
@@ -570,7 +643,7 @@ def generate_outlier_plot_stl(df, detected_period) -> plt:
     return plt
 
 
-def build_seasonal_plot_stl(df) -> plt:
+def build_seasonal_plot_stl(df) -> Union[pd.DataFrame, str]:
     """
     Build a seasonal plot for time-series dataset using Seasonal-Trend decomposition using Loess (STL).
 
@@ -663,7 +736,7 @@ def generate_seasonal_plot_stl(df, detected_period) -> plt:
                 and last column should be a count/feature column.
 
         Returns:
-            plt: A seasonal plot based on MSTL
+            plt: A seasonal plot based on STL
         """
 
     derived_seasonal = detected_period + ((detected_period % 2) == 0)  # Ensure odd
