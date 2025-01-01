@@ -492,7 +492,7 @@ def detect_outliers_classic(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
 
     Args:
         df (pd.DataFrame): A Pandas DataFrame with time-series data.
-            First column must be a date column ('YYYY-MM-DD')
+            First column must be a date ('YYYY-MM-DD) /month (YYYY-MM) /year (YYYY) column
             and last column should be a count/feature column.
 
     Returns:
