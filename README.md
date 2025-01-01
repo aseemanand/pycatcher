@@ -15,10 +15,15 @@ quarter level time-series data.
 pip install pycatcher
 ```
 
-### DataFrame Arguments
-* First column in the dataframe must be a date column ('YYYY-MM-DD') and the last column a numeric column 
-(sum or total count for the time period) to detect outliers using Seasonal Decomposition algorithms.
+### Basic Requirements
+* PyCatcher expects a Pandas DataFrame as an input for various outlier detection methods. It can convert Spark DataFrame 
+to Pandas DataFrame at the data processing stage. 
+* First column in the dataframe must be a time period column (date in 'YYYY-MM-DD'/month in 'YYYY-MM'/year in 'YYYY' 
+format) and the last column a numeric column (sum or total count for the time period) to detect outliers using 
+Seasonal Decomposition algorithms.
 * Last column must be a numeric column to detect outliers using Interquartile Range (IQR) and Moving Average algorithms. 
+* There is no need for any labeled observations (ground truth). Outliers are detected solely through 
+underlying algorithms (for example, seasonal-trend decomposition and dispersion methods like MAD or Z-Score).   
 
 <hr style="border:1.25px solid gray">
 
