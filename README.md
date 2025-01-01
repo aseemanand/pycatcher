@@ -16,10 +16,10 @@ pip install pycatcher
 ```
 
 ### Basic Requirements
-* PyCatcher expects Pandas DataFrame as an input for various outlier detection methods. It can convert Spark DataFrame 
+* PyCatcher expects a Pandas DataFrame as an input for various outlier detection methods. It can convert Spark DataFrame 
 to Pandas DataFrame at the data processing stage. 
-* First column in the dataframe must be a time period column (date as YYYY-MM-DD; month as YYYY-MM; year as YYYY format) 
-and the last column should be a numeric column (sum or total count for the time period) to detect outliers using 
+* First column in the dataframe must be a time period column (date in 'YYYY-MM-DD'/month in 'YYYY-MM'/year in 'YYYY' 
+format) and the last column a numeric column (sum or total count for the time period) to detect outliers using 
 Seasonal Decomposition algorithms.
 * Last column must be a numeric column to detect outliers using Interquartile Range (IQR) and Moving Average algorithms. 
 * There is no need for any labeled observations (ground truth). Outliers are detected solely through 
