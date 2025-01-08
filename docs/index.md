@@ -22,7 +22,7 @@ to Pandas DataFrame at the data processing stage.
 format) and the last column a numeric column (sum or total count for the time period) to detect outliers using 
 Seasonal Decomposition algorithms.
 * Last column must be a numeric column to detect outliers using Interquartile Range (IQR) and Moving Average algorithms. 
-* At present, the package does not depend on labeled observations (ground truth). Outliers are detected solely through 
+* At present, PyCatcher does not depend on labeled observations (ground truth). Outliers are detected solely through 
 underlying algorithms (for example, seasonal-trend decomposition and dispersion methods like MAD or Z-Score).   
 
 <hr style="border:1.25px solid gray">
