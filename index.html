@@ -261,9 +261,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#dataframe-arguments" class="md-nav__link">
+  <a href="#basic-requirements" class="md-nav__link">
     <span class="md-ellipsis">
-      DataFrame Arguments
+      Basic Requirements
     </span>
   </a>
   
@@ -629,9 +629,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#dataframe-arguments" class="md-nav__link">
+  <a href="#basic-requirements" class="md-nav__link">
     <span class="md-ellipsis">
-      DataFrame Arguments
+      Basic Requirements
     </span>
   </a>
   
@@ -906,11 +906,16 @@ quarter level time-series data.</p>
 <h3 id="installation">Installation</h3>
 <pre><code class="language-bash">pip install pycatcher
 </code></pre>
-<h3 id="dataframe-arguments">DataFrame Arguments</h3>
+<h3 id="basic-requirements">Basic Requirements</h3>
 <ul>
-<li>First column in the dataframe must be a date column ('YYYY-MM-DD') and the last column a numeric column 
-(sum or total count for the time period) to detect outliers using Seasonal Decomposition algorithms.</li>
-<li>Last column must be a numeric column to detect outliers using Moving Average and Z-score algorithm. </li>
+<li>PyCatcher expects a Pandas DataFrame as an input for various outlier detection methods. It can convert Spark DataFrame 
+to Pandas DataFrame at the data processing stage. </li>
+<li>First column in the dataframe must be a time period column (date in 'YYYY-MM-DD'; month in 'YYYY-MM'; year in 'YYYY' 
+format) and the last column a numeric column (sum or total count for the time period) to detect outliers using 
+Seasonal Decomposition algorithms.</li>
+<li>Last column must be a numeric column to detect outliers using Interquartile Range (IQR) and Moving Average algorithms. </li>
+<li>At present, PyCatcher does not depend on labeled observations (ground truth). Outliers are detected solely through 
+underlying algorithms (for example, seasonal-trend decomposition and dispersion methods like MAD or Z-Score).   </li>
 </ul>
 <hr style="border:1.25px solid gray">
 
