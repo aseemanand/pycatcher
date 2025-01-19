@@ -19,6 +19,8 @@ from .test_catch import (
     TestGetSSACF,
     TestDetectOutliersTodayClassic,
     TestDetectOutliersLatestClassic,
+    TestDetectOutliersClassic,
+    TestDecomposeAndDetect,
 
     # Common fixture
     sample_df

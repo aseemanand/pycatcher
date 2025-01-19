@@ -596,44 +596,99 @@ def decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
 
     Returns:
         str or pd.DataFrame: A message or a DataFrame with detected outliers.
+
+    Raises:
+        DataValidationError: If df_pandas is None, empty, or has invalid format
+        TimeSeriesError: If decomposition fails
+        ValueError: If residuals cannot be calculated
     """
+    if df_pandas is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    logging.info("Decomposing time-series for additive and multiplicative models.")
+    if len(df_pandas.index) == 0:
+        logger.error("Input DataFrame has no rows")
+        raise DataValidationError("Input DataFrame cannot have zero rows")
 
-    # Decompose the series using both additive and multiplicative models
-    decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
-                                                  model='additive',
-                                                  extrapolate_trend='freq')
-    decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
-                                                  model='multiplicative',
-                                                  extrapolate_trend='freq')
+    if not isinstance(df_pandas.iloc[:, -1], pd.Series):
+        logger.error("Last column cannot be converted to Series")
+        raise DataValidationError("Last column must be convertible to numeric Series")
 
-    # Get residuals from both decompositions
-    residuals_add: pd.Series = get_residuals(decomposition_add)
-    residuals_mul: pd.Series = get_residuals(decomposition_mul)
+    try:
+        logger.info("Starting time-series decomposition process")
 
-    # Calculate Sum of Squares of the ACF for both models
-    ssacf_add: float = get_ssacf(residuals_add, type='Additive')
-    ssacf_mul: float = get_ssacf(residuals_mul, type='Multiplicative')
+        # Validate that the last column is numeric
+        if not np.issubdtype(df_pandas.iloc[:, -1].dtype, np.number):
+            logger.error("Last column is not numeric")
+            raise DataValidationError("Last column must contain numeric values")
 
-    # Return the outliers detected by the model with the smaller ACF value
-    if ssacf_add < ssacf_mul:
-        logging.info("Using the Additive model for outlier detection.")
-        is_outlier = anomaly_mad(residuals_add)
-    else:
-        logging.info("Using the Multiplicative model for outlier detection.")
-        is_outlier = anomaly_mad(residuals_mul)
+        logger.info("Performing additive decomposition")
+        try:
+            # Decompose the series using additive model
+            decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+                                                          model='additive',
+                                                          extrapolate_trend='freq')
 
-    # Use the aligned boolean Series as the indexer
-    df_outliers = df_pandas[is_outlier]
+            logger.debug("Additive decomposition completed successfully")
+        except Exception as e:
+            logger.error("Additive decomposition failed: %s", str(e))
+            raise TimeSeriesError(f"Additive decomposition failed: {str(e)}")
 
-    if df_outliers.empty:
-        logging.info("No outliers found.")
-        return "No outliers found."
+        logger.info("Performing multiplicative decomposition")
+        try:
+            # Decompose the series using both additive and multiplicative models
+            decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+                                                          model='multiplicative',
+                                                          extrapolate_trend='freq')
 
-    logging.info("Outliers detected: %d rows.", len(df_outliers))
+            logger.debug("Multiplicative decomposition completed successfully")
+        except Exception as e:
+            logger.error("Multiplicative decomposition failed: %s", str(e))
+            raise TimeSeriesError(f"Multiplicative decomposition failed: {str(e)}")
 
-    return df_outliers
+        # Get residuals from both decompositions
+        logger.info("Calculating residuals for both models")
+        try:
+            residuals_add: pd.Series = get_residuals(decomposition_add)
+            residuals_mul: pd.Series = get_residuals(decomposition_mul)
+            logger.debug("Residuals calculated successfully")
+        except Exception as e:
+            logger.error("Failed to calculate residuals: %s", str(e))
+            raise ValueError(f"Failed to calculate residuals: {str(e)}")
+
+        # Calculate Sum of Squares of the ACF for both models
+        logger.info("Calculating Sum of Squares of ACF")
+        try:
+            ssacf_add: float = get_ssacf(residuals_add, type='Additive')
+            ssacf_mul: float = get_ssacf(residuals_mul, type='Multiplicative')
+            logger.debug("ACF Sum of Squares - Additive: %.4f, Multiplicative: %.4f", ssacf_add, ssacf_mul)
+        except Exception as e:
+            logger.error("Failed to calculate ACF sum of squares: %s", str(e))
+            raise ValueError(f"Failed to calculate ACF sum of squares: {str(e)}")
+
+        # Return the outliers detected by the model with the smaller ACF value
+        if ssacf_add < ssacf_mul:
+            logger.info("Using the Additive model for outlier detection.")
+            is_outlier = anomaly_mad(residuals_add)
+        else:
+            logging.info("Using the Multiplicative model for outlier detection.")
+            is_outlier = anomaly_mad(residuals_mul)
+
+        # Use the aligned boolean Series as the indexer
+        logger.info("Filtering outliers based on selected model")
+        df_outliers = df_pandas[is_outlier]
+
+        if df_outliers.empty:
+            logger.info("No outliers found.")
+            return "No outliers found."
+
+        logger.info("Outliers detected: %d rows.", len(df_outliers))
+        logger.debug("Outlier dates: %s", df_outliers.index.tolist())
+
+        return df_outliers
+    except Exception as e:
+        logger.error("Unexpected error in decomposition and detection: %s", str(e))
+        raise
 
 
 def detect_outliers_iqr(df: pd.DataFrame) -> Union[pd.DataFrame, str]:

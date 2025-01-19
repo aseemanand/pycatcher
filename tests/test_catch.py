@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 from src.pycatcher.catch import (TimeSeriesError, DataValidationError, check_and_convert_date, find_outliers_iqr,
     anomaly_mad, get_residuals, sum_of_squares, get_ssacf, detect_outliers_today_classic,
-    detect_outliers_latest_classic, detect_outliers_classic)
+    detect_outliers_latest_classic, detect_outliers_classic, decompose_and_detect)
 
 
 @pytest.fixture
@@ -487,3 +487,50 @@ class TestDetectOutliersClassic:
             assert mock_iqr.called
             called_df = mock_iqr.call_args[0][0]
             assert isinstance(called_df.index, pd.DatetimeIndex)
+
+
+class TestDecomposeAndDetect:
+    """Test cases for decompose_and_detect function."""
+
+    @pytest.fixture
+    def sample_df(self):
+        """Fixture for sample DataFrame with numeric time series data."""
+        dates = pd.date_range(start='2022-01-01', periods=100, freq='D')
+        # Create data with clear seasonal pattern and some outliers
+        # Base level of 100 ensures all values are positive
+        trend = np.linspace(0, 10, 100)
+        seasonal = np.sin(np.linspace(0, 8 * np.pi, 100))
+        noise = np.random.normal(0, 0.1, 100)
+        values = 100 + trend + 5 * seasonal + noise
+        # Add outliers that are still positive
+        values[25] = 130  # High outlier
+        values[75] = 70  # Low outlier but still positive
+        return pd.DataFrame({'value': values}, index=dates)
+
+    def test_successful_decomposition(self, sample_df):
+        """Test successful decomposition and outlier detection."""
+        result = decompose_and_detect(sample_df)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) > 0  # Should detect the outliers we inserted
+        # Verify our inserted outliers are detected
+        assert any(result.index.date == sample_df.index[25].date())
+        assert any(result.index.date == sample_df.index[75].date())
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            decompose_and_detect(None)
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        empty_df = pd.DataFrame()
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            decompose_and_detect(empty_df)
+
+    def test_non_numeric_data(self):
+        """Test with non-numeric data."""
+        dates = pd.date_range(start='2022-01-01', periods=5)
+        df = pd.DataFrame({'value': ['a', 'b', 'c', 'd', 'e']}, index=dates)
+        with pytest.raises(DataValidationError, match="Last column must contain numeric values"):
+            decompose_and_detect(df)
+
