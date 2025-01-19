@@ -10,13 +10,6 @@ __all__ = [
 
 # Exposing specific anomaly_detection functions or classes.
 from .test_catch import (
-    # Test functions
-    input_data_for_detect_outliers,
-    input_data_decompose_and_detect,
-    test_decompose_and_detect,
-    input_data_detect_outliers_iqr,
-    test_detect_outliers_iqr,
-
     # Test classes and their methods
     TestCheckAndConvertDate,
     TestFindOutliersIQR,

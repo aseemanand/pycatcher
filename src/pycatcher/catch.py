@@ -497,50 +497,74 @@ def detect_outliers_classic(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
 
     Returns:
         str or pd.DataFrame: A message with None found or a DataFrame with detected outliers.
+
+    Raises:
+        DataValidationError: If df is None, empty, has invalid format, or contains duplicate dates
+        TimeSeriesError: If date processing or frequency inference fails
+        TypeError: If input is not a DataFrame or cannot be converted to one
     """
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    logging.info("Starting outlier detection.")
+    if not isinstance(df, pd.DataFrame) and not hasattr(df, 'toPandas'):
+        logger.error("Input must be a DataFrame or have toPandas method")
+        raise TypeError("Input must be a DataFrame or have toPandas method")
 
-    # Check whether the argument is Pandas dataframe
-    if not isinstance(df, pd.DataFrame):
-        # Convert to Pandas dataframe for easy manipulation
-        df_pandas = df.toPandas()
-    else:
-        df_pandas = df
+    try:
+        logger.info("Starting outlier detection process")
 
-    # Ensure the first column is in datetime format and set it as index
-    df_pandas = check_and_convert_date(df_pandas)
+        # Check whether the argument is Pandas dataframe and convert to Pandas dataframe
+        df_pandas = df.toPandas() if not isinstance(df, pd.DataFrame) else df
 
-    # Ensure the datetime index is unique (no duplicate dates)
-    if df_pandas.index.is_unique:
-        # Find the time frequency (daily, weekly etc.) and length of the index column
+        if len(df_pandas.index) == 0:
+            logger.error("Input DataFrame has no rows")
+            raise DataValidationError("Input DataFrame cannot have zero rows")
+
+        if len(df_pandas.columns) == 0:
+            logger.error("DataFrame has no columns")
+            raise DataValidationError("DataFrame must contain at least one value column")
+
+        # Ensure the first column is in datetime format and set it as index
+        logger.info("Converting and validating date format")
+        df_pandas = check_and_convert_date(df_pandas)
+
+        # Check for unique datetime index
+        if not df_pandas.index.is_unique:
+            logger.error("Duplicate date index values found in DataFrame")
+            raise DataValidationError("DataFrame contains duplicate date index values")
+
+        # Infer frequency and get index length
         inferred_frequency = df_pandas.index.inferred_freq
-        logging.info("Time frequency: %s", inferred_frequency)
+
+        if inferred_frequency is None:
+            logger.warning("Could not infer time frequency - data might be irregular")
+        else:
+            logger.info("Inferred time frequency: %s", inferred_frequency)
 
         length_index = len(df_pandas.index)
-        logging.info("Length of time index: %.2f", length_index)
+        logger.info("Length of time index: %.2f", length_index)
 
-        # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
-
-        # Set parameter for Week check
+        # Regular expression for week check
         regex_week_check = r'[W-Za-z]'
 
+        # Determine which method to use based on frequency and length
         match inferred_frequency:
             case 'D' if length_index >= 730:
-                logging.info("Using seasonal trend decomposition for for outlier detection in day level time-series.")
+                logger.info("Using seasonal trend decomposition for for outlier detection in day level time-series.")
                 df_outliers = decompose_and_detect(df_pandas)
                 return df_outliers
             case 'B' if length_index >= 520:
-                logging.info(
+                logger.info(
                     "Using seasonal trend decomposition for outlier detection in business day level time-series.")
                 df_outliers = decompose_and_detect(df_pandas)
                 return df_outliers
             case 'MS' if length_index >= 24:
-                logging.info("Using seasonal trend decomposition for for outlier detection in month level time-series.")
+                logger.info("Using seasonal trend decomposition for for outlier detection in month level time-series.")
                 df_outliers = decompose_and_detect(df_pandas)
                 return df_outliers
             case 'Q' if length_index >= 8:
-                logging.info("Using seasonal trend decomposition for outlier detection in quarter level time-series.")
+                logger.info("Using seasonal trend decomposition for outlier detection in quarter level time-series.")
                 df_outliers = decompose_and_detect(df_pandas)
                 return df_outliers
             case _:
@@ -549,10 +573,17 @@ def detect_outliers_classic(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
                     return df_outliers
                 else:
                     # If less than 2 years of data, use Inter Quartile Range (IQR) method
-                    logging.info("Using IQR method for outlier detection.")
+                    logger.info("Using IQR method for outlier detection.")
                     return detect_outliers_iqr(df_pandas)
-    else:
-        print("Duplicate date index values. Check your data.")
+    except TimeSeriesError as e:
+        logger.error("Time series processing error: %s", str(e))
+        raise
+    except DataValidationError as e:
+        logger.error("Data validation error: %s", str(e))
+        raise
+    except Exception as e:
+        logger.error("Unexpected error in outlier detection: %s", str(e))
+        raise
 
 
 def decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
