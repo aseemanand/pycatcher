@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 from src.pycatcher.catch import (TimeSeriesError, DataValidationError, check_and_convert_date, find_outliers_iqr,
     anomaly_mad, get_residuals, sum_of_squares, get_ssacf, detect_outliers_today_classic,
-    detect_outliers_latest_classic, detect_outliers_classic, decompose_and_detect)
+    detect_outliers_latest_classic, detect_outliers_classic, decompose_and_detect, detect_outliers_iqr)
 
 
 @pytest.fixture
@@ -534,3 +534,89 @@ class TestDecomposeAndDetect:
         with pytest.raises(DataValidationError, match="Last column must contain numeric values"):
             decompose_and_detect(df)
 
+
+class TestDetectOutliersIQR:
+    """Test cases for detect_outliers_iqr function."""
+
+    @pytest.fixture
+    def sample_df(self):
+        """Fixture for sample DataFrame."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=5)
+        return pd.DataFrame({
+            'value': [10, 20, 1000, 30, 40]  # 1000 is an outlier
+        }, index=dates)
+
+    def test_valid_detection(self, sample_df):
+        """Test with valid DataFrame containing outliers."""
+        result = detect_outliers_iqr(sample_df)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 1
+        assert result.iloc[0]['value'] == 1000  # Should detect the obvious outlier
+
+    def test_no_outliers(self):
+        """Test when no outliers are present."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=5)
+        normal_df = pd.DataFrame({
+            'value': [10, 12, 11, 13, 12]  # No outliers
+        }, index=dates)
+
+        result = detect_outliers_iqr(normal_df)
+        assert isinstance(result, str)
+        assert result == "No outliers found."
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            detect_outliers_iqr(None)
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        empty_df = pd.DataFrame(columns=['value'])
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            detect_outliers_iqr(empty_df)
+
+    def test_non_numeric_values(self):
+        """Test with non-numeric values."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=3)
+        string_df = pd.DataFrame({
+            'value': ['a', 'b', 'c']
+        }, index=dates)
+
+        with pytest.raises(ValueError):
+            detect_outliers_iqr(string_df)
+
+    def test_single_value(self):
+        """Test with DataFrame containing single value."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=1)
+        single_df = pd.DataFrame({
+            'value': [10]
+        }, index=dates)
+
+        result = detect_outliers_iqr(single_df)
+        assert isinstance(result, str)
+        assert result == "No outliers found."
+
+    def test_all_same_values(self):
+        """Test with DataFrame containing identical values."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=5)
+        identical_df = pd.DataFrame({
+            'value': [10, 10, 10, 10, 10]
+        }, index=dates)
+
+        result = detect_outliers_iqr(identical_df)
+        assert isinstance(result, str)
+        assert result == "No outliers found."
+
+    def test_with_missing_values(self):
+        """Test with DataFrame containing NaN values."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=5)
+        nan_df = pd.DataFrame({
+            'value': [10, np.nan, 1000, np.nan, 40]
+        }, index=dates)
+
+        # When there are NaN values, they are dropped during processing
+        # and if the remaining values don't contain outliers, we expect
+        # the "No outliers found." string
+        result = detect_outliers_iqr(nan_df)
+        assert isinstance(result, str)
+        assert result == "No outliers found."

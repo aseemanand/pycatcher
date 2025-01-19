@@ -700,30 +700,46 @@ def detect_outliers_iqr(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
 
     Returns:
         pd.DataFrame: A DataFrame containing the detected outliers.
+
+    Raises:
+        DataValidationError: If df is None, empty, has invalid format, or contains invalid numeric data
+        TypeError: If input is not a DataFrame or cannot be converted to one
+        ValueError: If numeric conversion fails
     """
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    logging.info("Detecting outliers using the IQR method.")
+    try:
+        logger.info("Starting IQR-based outlier detection process")
 
-    # Check whether the argument is Pandas dataframe
-    if not isinstance(df, pd.DataFrame):
-        # Convert to Pandas dataframe for easy manipulation
-        df_pandas = df.toPandas()
-    else:
-        df_pandas = df
+        # Convert to Pandas DataFrame if needed
+        df_pandas = df.toPandas() if not isinstance(df, pd.DataFrame) else df
 
-    # Ensure the last column is numeric
-    df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
+        if len(df_pandas.index) == 0:
+            logger.error("Input DataFrame has no rows")
+            raise DataValidationError("Input DataFrame cannot have zero rows")
 
-    # Detect outliers using the IQR method
-    df_outliers: pd.DataFrame = find_outliers_iqr(df_pandas)
+        if len(df_pandas.columns) == 0:
+            logger.error("DataFrame has no columns")
+            raise DataValidationError("DataFrame must contain at least one value column")
 
-    if df_outliers.empty:
-        logging.info("No outliers found.")
-        return "No outliers found."
+        # Ensure the last column is numeric
+        df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
 
-    logging.info("Outliers detected using IQR: %d rows.", len(df_outliers))
+        # Detect outliers using the IQR method
+        df_outliers: pd.DataFrame = find_outliers_iqr(df_pandas)
 
-    return df_outliers
+        if df_outliers.empty:
+            logger.info("No outliers found.")
+            return "No outliers found."
+
+        logger.info("Outliers detected using IQR: %d rows.", len(df_outliers))
+
+        return df_outliers
+    except Exception as e:
+        logger.error("Unexpected error in IQR outlier detection: %s", str(e))
+        raise
 
 
 def calculate_rmse(df: pd.DataFrame, window_size: int) -> list:
