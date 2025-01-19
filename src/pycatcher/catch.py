@@ -497,50 +497,74 @@ def detect_outliers_classic(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
 
     Returns:
         str or pd.DataFrame: A message with None found or a DataFrame with detected outliers.
+
+    Raises:
+        DataValidationError: If df is None, empty, has invalid format, or contains duplicate dates
+        TimeSeriesError: If date processing or frequency inference fails
+        TypeError: If input is not a DataFrame or cannot be converted to one
     """
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    logging.info("Starting outlier detection.")
+    if not isinstance(df, pd.DataFrame) and not hasattr(df, 'toPandas'):
+        logger.error("Input must be a DataFrame or have toPandas method")
+        raise TypeError("Input must be a DataFrame or have toPandas method")
 
-    # Check whether the argument is Pandas dataframe
-    if not isinstance(df, pd.DataFrame):
-        # Convert to Pandas dataframe for easy manipulation
-        df_pandas = df.toPandas()
-    else:
-        df_pandas = df
+    try:
+        logger.info("Starting outlier detection process")
 
-    # Ensure the first column is in datetime format and set it as index
-    df_pandas = check_and_convert_date(df_pandas)
+        # Check whether the argument is Pandas dataframe and convert to Pandas dataframe
+        df_pandas = df.toPandas() if not isinstance(df, pd.DataFrame) else df
 
-    # Ensure the datetime index is unique (no duplicate dates)
-    if df_pandas.index.is_unique:
-        # Find the time frequency (daily, weekly etc.) and length of the index column
+        if len(df_pandas.index) == 0:
+            logger.error("Input DataFrame has no rows")
+            raise DataValidationError("Input DataFrame cannot have zero rows")
+
+        if len(df_pandas.columns) == 0:
+            logger.error("DataFrame has no columns")
+            raise DataValidationError("DataFrame must contain at least one value column")
+
+        # Ensure the first column is in datetime format and set it as index
+        logger.info("Converting and validating date format")
+        df_pandas = check_and_convert_date(df_pandas)
+
+        # Check for unique datetime index
+        if not df_pandas.index.is_unique:
+            logger.error("Duplicate date index values found in DataFrame")
+            raise DataValidationError("DataFrame contains duplicate date index values")
+
+        # Infer frequency and get index length
         inferred_frequency = df_pandas.index.inferred_freq
-        logging.info("Time frequency: %s", inferred_frequency)
+
+        if inferred_frequency is None:
+            logger.warning("Could not infer time frequency - data might be irregular")
+        else:
+            logger.info("Inferred time frequency: %s", inferred_frequency)
 
         length_index = len(df_pandas.index)
-        logging.info("Length of time index: %.2f", length_index)
+        logger.info("Length of time index: %.2f", length_index)
 
-        # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
-
-        # Set parameter for Week check
+        # Regular expression for week check
         regex_week_check = r'[W-Za-z]'
 
+        # Determine which method to use based on frequency and length
         match inferred_frequency:
             case 'D' if length_index >= 730:
-                logging.info("Using seasonal trend decomposition for for outlier detection in day level time-series.")
+                logger.info("Using seasonal trend decomposition for for outlier detection in day level time-series.")
                 df_outliers = decompose_and_detect(df_pandas)
                 return df_outliers
             case 'B' if length_index >= 520:
-                logging.info(
+                logger.info(
                     "Using seasonal trend decomposition for outlier detection in business day level time-series.")
                 df_outliers = decompose_and_detect(df_pandas)
                 return df_outliers
             case 'MS' if length_index >= 24:
-                logging.info("Using seasonal trend decomposition for for outlier detection in month level time-series.")
+                logger.info("Using seasonal trend decomposition for for outlier detection in month level time-series.")
                 df_outliers = decompose_and_detect(df_pandas)
                 return df_outliers
             case 'Q' if length_index >= 8:
-                logging.info("Using seasonal trend decomposition for outlier detection in quarter level time-series.")
+                logger.info("Using seasonal trend decomposition for outlier detection in quarter level time-series.")
                 df_outliers = decompose_and_detect(df_pandas)
                 return df_outliers
             case _:
@@ -549,10 +573,17 @@ def detect_outliers_classic(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
                     return df_outliers
                 else:
                     # If less than 2 years of data, use Inter Quartile Range (IQR) method
-                    logging.info("Using IQR method for outlier detection.")
+                    logger.info("Using IQR method for outlier detection.")
                     return detect_outliers_iqr(df_pandas)
-    else:
-        print("Duplicate date index values. Check your data.")
+    except TimeSeriesError as e:
+        logger.error("Time series processing error: %s", str(e))
+        raise
+    except DataValidationError as e:
+        logger.error("Data validation error: %s", str(e))
+        raise
+    except Exception as e:
+        logger.error("Unexpected error in outlier detection: %s", str(e))
+        raise
 
 
 def decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
@@ -565,44 +596,99 @@ def decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
 
     Returns:
         str or pd.DataFrame: A message or a DataFrame with detected outliers.
+
+    Raises:
+        DataValidationError: If df_pandas is None, empty, or has invalid format
+        TimeSeriesError: If decomposition fails
+        ValueError: If residuals cannot be calculated
     """
+    if df_pandas is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    logging.info("Decomposing time-series for additive and multiplicative models.")
+    if len(df_pandas.index) == 0:
+        logger.error("Input DataFrame has no rows")
+        raise DataValidationError("Input DataFrame cannot have zero rows")
 
-    # Decompose the series using both additive and multiplicative models
-    decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
-                                                  model='additive',
-                                                  extrapolate_trend='freq')
-    decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
-                                                  model='multiplicative',
-                                                  extrapolate_trend='freq')
+    if not isinstance(df_pandas.iloc[:, -1], pd.Series):
+        logger.error("Last column cannot be converted to Series")
+        raise DataValidationError("Last column must be convertible to numeric Series")
 
-    # Get residuals from both decompositions
-    residuals_add: pd.Series = get_residuals(decomposition_add)
-    residuals_mul: pd.Series = get_residuals(decomposition_mul)
+    try:
+        logger.info("Starting time-series decomposition process")
 
-    # Calculate Sum of Squares of the ACF for both models
-    ssacf_add: float = get_ssacf(residuals_add, type='Additive')
-    ssacf_mul: float = get_ssacf(residuals_mul, type='Multiplicative')
+        # Validate that the last column is numeric
+        if not np.issubdtype(df_pandas.iloc[:, -1].dtype, np.number):
+            logger.error("Last column is not numeric")
+            raise DataValidationError("Last column must contain numeric values")
 
-    # Return the outliers detected by the model with the smaller ACF value
-    if ssacf_add < ssacf_mul:
-        logging.info("Using the Additive model for outlier detection.")
-        is_outlier = anomaly_mad(residuals_add)
-    else:
-        logging.info("Using the Multiplicative model for outlier detection.")
-        is_outlier = anomaly_mad(residuals_mul)
+        logger.info("Performing additive decomposition")
+        try:
+            # Decompose the series using additive model
+            decomposition_add = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+                                                          model='additive',
+                                                          extrapolate_trend='freq')
 
-    # Use the aligned boolean Series as the indexer
-    df_outliers = df_pandas[is_outlier]
+            logger.debug("Additive decomposition completed successfully")
+        except Exception as e:
+            logger.error("Additive decomposition failed: %s", str(e))
+            raise TimeSeriesError(f"Additive decomposition failed: {str(e)}")
 
-    if df_outliers.empty:
-        logging.info("No outliers found.")
-        return "No outliers found."
+        logger.info("Performing multiplicative decomposition")
+        try:
+            # Decompose the series using both additive and multiplicative models
+            decomposition_mul = sm.tsa.seasonal_decompose(df_pandas.iloc[:, -1],
+                                                          model='multiplicative',
+                                                          extrapolate_trend='freq')
 
-    logging.info("Outliers detected: %d rows.", len(df_outliers))
+            logger.debug("Multiplicative decomposition completed successfully")
+        except Exception as e:
+            logger.error("Multiplicative decomposition failed: %s", str(e))
+            raise TimeSeriesError(f"Multiplicative decomposition failed: {str(e)}")
 
-    return df_outliers
+        # Get residuals from both decompositions
+        logger.info("Calculating residuals for both models")
+        try:
+            residuals_add: pd.Series = get_residuals(decomposition_add)
+            residuals_mul: pd.Series = get_residuals(decomposition_mul)
+            logger.debug("Residuals calculated successfully")
+        except Exception as e:
+            logger.error("Failed to calculate residuals: %s", str(e))
+            raise ValueError(f"Failed to calculate residuals: {str(e)}")
+
+        # Calculate Sum of Squares of the ACF for both models
+        logger.info("Calculating Sum of Squares of ACF")
+        try:
+            ssacf_add: float = get_ssacf(residuals_add, type='Additive')
+            ssacf_mul: float = get_ssacf(residuals_mul, type='Multiplicative')
+            logger.debug("ACF Sum of Squares - Additive: %.4f, Multiplicative: %.4f", ssacf_add, ssacf_mul)
+        except Exception as e:
+            logger.error("Failed to calculate ACF sum of squares: %s", str(e))
+            raise ValueError(f"Failed to calculate ACF sum of squares: {str(e)}")
+
+        # Return the outliers detected by the model with the smaller ACF value
+        if ssacf_add < ssacf_mul:
+            logger.info("Using the Additive model for outlier detection.")
+            is_outlier = anomaly_mad(residuals_add)
+        else:
+            logger.info("Using the Multiplicative model for outlier detection.")
+            is_outlier = anomaly_mad(residuals_mul)
+
+        # Use the aligned boolean Series as the indexer
+        logger.info("Filtering outliers based on selected model")
+        df_outliers = df_pandas[is_outlier]
+
+        if df_outliers.empty:
+            logger.info("No outliers found.")
+            return "No outliers found."
+
+        logger.info("Outliers detected: %d rows.", len(df_outliers))
+        logger.debug("Outlier dates: %s", df_outliers.index.tolist())
+
+        return df_outliers
+    except Exception as e:
+        logger.error("Unexpected error in decomposition and detection: %s", str(e))
+        raise
 
 
 def detect_outliers_iqr(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
@@ -614,30 +700,46 @@ def detect_outliers_iqr(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
 
     Returns:
         pd.DataFrame: A DataFrame containing the detected outliers.
+
+    Raises:
+        DataValidationError: If df is None, empty, has invalid format, or contains invalid numeric data
+        TypeError: If input is not a DataFrame or cannot be converted to one
+        ValueError: If numeric conversion fails
     """
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    logging.info("Detecting outliers using the IQR method.")
+    try:
+        logger.info("Starting IQR-based outlier detection process")
 
-    # Check whether the argument is Pandas dataframe
-    if not isinstance(df, pd.DataFrame):
-        # Convert to Pandas dataframe for easy manipulation
-        df_pandas = df.toPandas()
-    else:
-        df_pandas = df
+        # Convert to Pandas DataFrame if needed
+        df_pandas = df.toPandas() if not isinstance(df, pd.DataFrame) else df
 
-    # Ensure the last column is numeric
-    df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
+        if len(df_pandas.index) == 0:
+            logger.error("Input DataFrame has no rows")
+            raise DataValidationError("Input DataFrame cannot have zero rows")
 
-    # Detect outliers using the IQR method
-    df_outliers: pd.DataFrame = find_outliers_iqr(df_pandas)
+        if len(df_pandas.columns) == 0:
+            logger.error("DataFrame has no columns")
+            raise DataValidationError("DataFrame must contain at least one value column")
 
-    if df_outliers.empty:
-        logging.info("No outliers found.")
-        return "No outliers found."
+        # Ensure the last column is numeric
+        df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
 
-    logging.info("Outliers detected using IQR: %d rows.", len(df_outliers))
+        # Detect outliers using the IQR method
+        df_outliers: pd.DataFrame = find_outliers_iqr(df_pandas)
 
-    return df_outliers
+        if df_outliers.empty:
+            logger.info("No outliers found.")
+            return "No outliers found."
+
+        logger.info("Outliers detected using IQR: %d rows.", len(df_outliers))
+
+        return df_outliers
+    except Exception as e:
+        logger.error("Unexpected error in IQR outlier detection: %s", str(e))
+        raise
 
 
 def calculate_rmse(df: pd.DataFrame, window_size: int) -> list:
@@ -646,30 +748,66 @@ def calculate_rmse(df: pd.DataFrame, window_size: int) -> list:
 
     Args:
         df (pd.DataFrame): A Pandas DataFrame
-        Last column should be a count/feature column.
+        window_size (int): Last column should be a count/feature column.
 
     Returns:
         list: mean of RMSE
+
+    Raises:
+        DataValidationError: If df is None, empty, has invalid format, or contains invalid numeric data
+        ValueError: If window_size is invalid
+        TypeError: If input types are incorrect
     """
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    tscv = TimeSeriesSplit(n_splits=5)
-    rmse_scores = []
+    if not isinstance(window_size, int):
+        logger.error("Window size must be an integer")
+        raise TypeError("Window size must be an integer")
 
-    for train_index, test_index in tscv.split(df):
-        train_df = df.iloc[train_index].copy()
-        test_df = df.iloc[test_index].copy()
+    if window_size <= 0:
+        logger.error("Window size must be positive")
+        raise ValueError("Window size must be greater than 0")
 
-        train_df['ma'] = train_df.iloc[:, -1].rolling(window=window_size).mean()
-        test_df['ma'] = test_df.iloc[:, -1].rolling(window=window_size).mean()
+    try:
+        logger.info("Starting RMSE calculation with window size: %d", window_size)
 
-        # Drop NaN values from the test dataframe
-        test_df = test_df.dropna()
+        # Convert to Pandas DataFrame if needed
+        df_pandas = df.toPandas() if not isinstance(df, pd.DataFrame) else df
 
-        # Ensure test_df is not empty
-        if not test_df.empty:
-            rmse = np.sqrt(mean_squared_error(test_df.iloc[:, -1], test_df['ma']))
-            rmse_scores.append(rmse)
-    return np.mean(rmse_scores) if rmse_scores else np.nan
+        if len(df_pandas.index) == 0:
+            logger.error("Input DataFrame has no rows")
+            raise DataValidationError("Input DataFrame cannot have zero rows")
+
+        if len(df_pandas.columns) == 0:
+            logger.error("DataFrame has no columns")
+            raise DataValidationError("DataFrame must contain at least one value column")
+
+        # Initialize TimeSeriesSplit
+        logger.debug("Initializing TimeSeriesSplit with 5 splits")
+        tscv = TimeSeriesSplit(n_splits=5)
+        rmse_scores = []
+
+        for train_index, test_index in tscv.split(df_pandas):
+            train_df = df_pandas.iloc[train_index].copy()
+            test_df = df_pandas.iloc[test_index].copy()
+
+            train_df['ma'] = train_df.iloc[:, -1].rolling(window=window_size).mean()
+            test_df['ma'] = test_df.iloc[:, -1].rolling(window=window_size).mean()
+
+            # Drop NaN values from the test dataframe
+            test_df = test_df.dropna()
+
+            # Ensure test_df is not empty
+            if not test_df.empty:
+                rmse = np.sqrt(mean_squared_error(test_df.iloc[:, -1], test_df['ma']))
+                rmse_scores.append(rmse)
+
+        return np.mean(rmse_scores) if rmse_scores else np.nan
+    except Exception as e:
+        logger.error("Unexpected error in RMSE calculation: %s", str(e))
+        raise
 
 
 def calculate_optimal_window_size(df: pd.DataFrame) -> str:
