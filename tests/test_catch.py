@@ -6,7 +6,8 @@ from unittest.mock import MagicMock, patch
 
 from src.pycatcher.catch import (TimeSeriesError, DataValidationError, check_and_convert_date, find_outliers_iqr,
     anomaly_mad, get_residuals, sum_of_squares, get_ssacf, detect_outliers_today_classic,
-    detect_outliers_latest_classic, detect_outliers_classic, decompose_and_detect, detect_outliers_iqr)
+    detect_outliers_latest_classic, detect_outliers_classic, decompose_and_detect, detect_outliers_iqr,
+                                 calculate_rmse)
 
 
 @pytest.fixture
@@ -620,3 +621,63 @@ class TestDetectOutliersIQR:
         result = detect_outliers_iqr(nan_df)
         assert isinstance(result, str)
         assert result == "No outliers found."
+
+
+class TestCalculateRmse:
+    """Test cases for calculate_rmse function."""
+
+    @pytest.fixture
+    def sample_df(self):
+        """Fixture for sample DataFrame with dates and values."""
+        dates = pd.date_range(start='2023-01-01', periods=100, freq='D')
+        values = np.sin(np.linspace(0, 10, 100)) * 100 + 500  # Generate sine wave pattern
+        return pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
+
+    @pytest.fixture
+    def small_df(self):
+        """Fixture for small DataFrame with few data points."""
+        return pd.DataFrame({
+            'date': pd.date_range(start='2023-01-01', periods=5, freq='D'),
+            'value': [100, 102, 98, 103, 97]
+        })
+
+    def test_valid_calculation(self, sample_df):
+        """Test RMSE calculation with valid input data."""
+        result = calculate_rmse(sample_df, window_size=7)
+        assert isinstance(result, (float, np.float64))  # Check for both Python float and numpy float64
+        assert float(result) == pytest.approx(0.0)  # Convert to float and use pytest.approx for comparison
+
+    def test_none_dataframe(self):
+        """Test with None DataFrame."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            calculate_rmse(None, window_size=5)
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        empty_df = pd.DataFrame()
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            calculate_rmse(empty_df, window_size=5)
+
+    def test_invalid_window_size_type(self, sample_df):
+        """Test with non-integer window size."""
+        with pytest.raises(TypeError, match="Window size must be an integer"):
+            calculate_rmse(sample_df, window_size=5.5)
+
+    def test_negative_window_size(self, sample_df):
+        """Test with negative window size."""
+        with pytest.raises(ValueError, match="Window size must be greater than 0"):
+            calculate_rmse(sample_df, window_size=-1)
+
+    def test_zero_window_size(self, sample_df):
+        """Test with zero window size."""
+        with pytest.raises(ValueError, match="Window size must be greater than 0"):
+            calculate_rmse(sample_df, window_size=0)
+
+    def test_missing_value_column(self):
+        """Test with DataFrame missing value column."""
+        df = pd.DataFrame(index=pd.date_range(start='2023-01-01', periods=5))
+        with pytest.raises(DataValidationError, match="DataFrame must contain at least one value column"):
+            calculate_rmse(df, window_size=3)

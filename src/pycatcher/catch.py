@@ -671,7 +671,7 @@ def decompose_and_detect(df_pandas: pd.DataFrame) -> Union[pd.DataFrame, str]:
             logger.info("Using the Additive model for outlier detection.")
             is_outlier = anomaly_mad(residuals_add)
         else:
-            logging.info("Using the Multiplicative model for outlier detection.")
+            logger.info("Using the Multiplicative model for outlier detection.")
             is_outlier = anomaly_mad(residuals_mul)
 
         # Use the aligned boolean Series as the indexer
@@ -748,30 +748,66 @@ def calculate_rmse(df: pd.DataFrame, window_size: int) -> list:
 
     Args:
         df (pd.DataFrame): A Pandas DataFrame
-        Last column should be a count/feature column.
+        window_size (int): Last column should be a count/feature column.
 
     Returns:
         list: mean of RMSE
+
+    Raises:
+        DataValidationError: If df is None, empty, has invalid format, or contains invalid numeric data
+        ValueError: If window_size is invalid
+        TypeError: If input types are incorrect
     """
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    tscv = TimeSeriesSplit(n_splits=5)
-    rmse_scores = []
+    if not isinstance(window_size, int):
+        logger.error("Window size must be an integer")
+        raise TypeError("Window size must be an integer")
 
-    for train_index, test_index in tscv.split(df):
-        train_df = df.iloc[train_index].copy()
-        test_df = df.iloc[test_index].copy()
+    if window_size <= 0:
+        logger.error("Window size must be positive")
+        raise ValueError("Window size must be greater than 0")
 
-        train_df['ma'] = train_df.iloc[:, -1].rolling(window=window_size).mean()
-        test_df['ma'] = test_df.iloc[:, -1].rolling(window=window_size).mean()
+    try:
+        logger.info("Starting RMSE calculation with window size: %d", window_size)
 
-        # Drop NaN values from the test dataframe
-        test_df = test_df.dropna()
+        # Convert to Pandas DataFrame if needed
+        df_pandas = df.toPandas() if not isinstance(df, pd.DataFrame) else df
 
-        # Ensure test_df is not empty
-        if not test_df.empty:
-            rmse = np.sqrt(mean_squared_error(test_df.iloc[:, -1], test_df['ma']))
-            rmse_scores.append(rmse)
-    return np.mean(rmse_scores) if rmse_scores else np.nan
+        if len(df_pandas.index) == 0:
+            logger.error("Input DataFrame has no rows")
+            raise DataValidationError("Input DataFrame cannot have zero rows")
+
+        if len(df_pandas.columns) == 0:
+            logger.error("DataFrame has no columns")
+            raise DataValidationError("DataFrame must contain at least one value column")
+
+        # Initialize TimeSeriesSplit
+        logger.debug("Initializing TimeSeriesSplit with 5 splits")
+        tscv = TimeSeriesSplit(n_splits=5)
+        rmse_scores = []
+
+        for train_index, test_index in tscv.split(df_pandas):
+            train_df = df_pandas.iloc[train_index].copy()
+            test_df = df_pandas.iloc[test_index].copy()
+
+            train_df['ma'] = train_df.iloc[:, -1].rolling(window=window_size).mean()
+            test_df['ma'] = test_df.iloc[:, -1].rolling(window=window_size).mean()
+
+            # Drop NaN values from the test dataframe
+            test_df = test_df.dropna()
+
+            # Ensure test_df is not empty
+            if not test_df.empty:
+                rmse = np.sqrt(mean_squared_error(test_df.iloc[:, -1], test_df['ma']))
+                rmse_scores.append(rmse)
+
+        return np.mean(rmse_scores) if rmse_scores else np.nan
+    except Exception as e:
+        logger.error("Unexpected error in RMSE calculation: %s", str(e))
+        raise
 
 
 def calculate_optimal_window_size(df: pd.DataFrame) -> str:

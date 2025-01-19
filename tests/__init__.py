@@ -22,6 +22,7 @@ from .test_catch import (
     TestDetectOutliersClassic,
     TestDecomposeAndDetect,
     TestDetectOutliersIQR,
+    TestCalculateRmse,
 
     # Common fixture
     sample_df
