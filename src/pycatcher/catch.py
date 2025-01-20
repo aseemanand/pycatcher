@@ -824,28 +824,57 @@ def calculate_optimal_window_size(df: pd.DataFrame) -> str:
 
     Returns:
         str: optimal window size
+
+    Raises:
+        DataValidationError: If df is None, empty, has invalid format, or contains invalid numeric data
+        ValueError: If all RMSE values are NaN
+        TypeError: If input is not a DataFrame or cannot be converted to one
     """
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    logging.info("Starting optimal window size calculation")
+    try:
+        logger.info("Starting optimal window size calculation")
 
-    # Try different window sizes
-    window_sizes = range(2, 21)
-    rmse_values = []
+        if len(df.index) == 0:
+            logger.error("Input DataFrame has no rows")
+            raise DataValidationError("Input DataFrame cannot have zero rows")
 
-    logging.info("Starting RMSE calculation")
-    for window_size in window_sizes:
-        rmse = calculate_rmse(df, window_size)
-        rmse_values.append(rmse)
-    logging.info("RMSE calculation completed")
+        if len(df.columns) == 0:
+            logger.error("DataFrame has no columns")
+            raise DataValidationError("DataFrame must contain at least one value column")
 
-    # Check if all rmse_values are NaN
-    if np.all(np.isnan(rmse_values)):
-        raise ValueError("All RMSE values are NaN. Check your data for issues.")
+        # Try different window sizes
+        window_sizes = range(2, 21)
+        rmse_values = []
 
-    # Find the window size with the lowest RMSE
-    optimal_window_size = window_sizes[np.nanargmin(rmse_values)]
-    logging.info("Optimal Window Size: %d", optimal_window_size)
-    return optimal_window_size
+        logger.info("Starting RMSE calculation")
+
+        for window_size in window_sizes:
+            logger.debug("Calculating RMSE for window size: %d", window_size)
+            try:
+                rmse = calculate_rmse(df, window_size)
+                rmse_values.append(rmse)
+            except Exception as e:
+                logger.warning("Failed to calculate RMSE for window size %d: %s", window_size, str(e))
+                rmse_values.append(np.nan)
+
+        logger.info("RMSE calculation completed")
+
+        # Check if all rmse_values are NaN
+        if np.all(np.isnan(rmse_values)):
+            logger.error("All RMSE values are NaN")
+            raise ValueError("All RMSE values are NaN. Check your data for issues.")
+
+        # Find the window size with the lowest RMSE
+        optimal_window_size = window_sizes[np.nanargmin(rmse_values)]
+        logger.info("Optimal Window Size: %d", optimal_window_size)
+        return optimal_window_size
+
+    except Exception as e:
+        logger.error("Unexpected error in optimal window size calculation: %s", str(e))
+        raise
 
 
 def detect_outliers_moving_average(df: pd.DataFrame) -> str:

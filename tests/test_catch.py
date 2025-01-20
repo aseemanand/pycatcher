@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 from src.pycatcher.catch import (TimeSeriesError, DataValidationError, check_and_convert_date, find_outliers_iqr,
     anomaly_mad, get_residuals, sum_of_squares, get_ssacf, detect_outliers_today_classic,
     detect_outliers_latest_classic, detect_outliers_classic, decompose_and_detect, detect_outliers_iqr,
-                                 calculate_rmse)
+    calculate_rmse, calculate_optimal_window_size)
 
 
 @pytest.fixture
@@ -681,3 +681,120 @@ class TestCalculateRmse:
         df = pd.DataFrame(index=pd.date_range(start='2023-01-01', periods=5))
         with pytest.raises(DataValidationError, match="DataFrame must contain at least one value column"):
             calculate_rmse(df, window_size=3)
+
+
+class TestCalculateOptimalWindowSize:
+    """Test cases for calculate_optimal_window_size function."""
+
+    @pytest.fixture
+    def sample_df(self):
+        """Fixture for sample DataFrame with clean time series data."""
+        dates = pd.date_range(start='2022-01-01', periods=100)
+        # Creating a simple time series with a trend
+        values = np.linspace(10, 100, 100) + np.random.normal(0, 5, 100)
+        return pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
+
+    def test_valid_calculation(self, sample_df):
+        """Test with valid DataFrame containing clean time series data."""
+        result = calculate_optimal_window_size(sample_df)
+        assert isinstance(result, int)
+        assert 2 <= result <= 20  # Window size should be within the range defined in the function
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            calculate_optimal_window_size(None)
+
+    def test_empty_dataframe_no_rows(self):
+        """Test with DataFrame having no rows."""
+        empty_df = pd.DataFrame(columns=['date', 'value'])
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            calculate_optimal_window_size(empty_df)
+
+    def test_empty_dataframe_no_columns(self):
+        """Test with DataFrame having no data and no columns."""
+        empty_df = pd.DataFrame()
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            calculate_optimal_window_size(empty_df)
+
+    def test_dataframe_with_rows_no_columns(self):
+        """Test with DataFrame having rows but no columns."""
+        # Create DataFrame with index but no columns
+        df = pd.DataFrame(index=range(5))
+        with pytest.raises(DataValidationError, match="DataFrame must contain at least one value column"):
+            calculate_optimal_window_size(df)
+
+    def test_small_dataset(self):
+        """Test with a small but valid dataset."""
+        # Create a dataset that's large enough for 5 splits but still relatively small
+        dates = pd.date_range(start='2022-01-01', periods=25)
+        # Creating simple linear trend with some noise
+        values = np.linspace(1, 25, 25) + np.random.normal(0, 0.5, 25)
+        small_df = pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
+        result = calculate_optimal_window_size(small_df)
+        assert isinstance(result, int)
+        assert 2 <= result <= 20  # Window size should be within the defined range
+
+    def test_minimum_size_dataset(self):
+        """Test with a dataset at the minimum size that should work."""
+        # TimeSeriesSplit with n_splits=5 requires at least n_splits + 2 samples
+        dates = pd.date_range(start='2022-01-01', periods=7)
+        values = range(1, 8)  # Simple increasing sequence
+        min_df = pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
+        with pytest.raises(ValueError, match="All RMSE values are NaN"):
+            calculate_optimal_window_size(min_df)
+
+    def test_constant_values(self):
+        """Test with constant values where RMSE might be all zero."""
+        dates = pd.date_range(start='2022-01-01', periods=50)
+        constant_df = pd.DataFrame({
+            'date': dates,
+            'value': [10] * 50
+        })
+        result = calculate_optimal_window_size(constant_df)
+        assert isinstance(result, int)
+        assert 2 <= result <= 20
+
+    @patch('src.pycatcher.catch.calculate_rmse')
+    def test_all_nan_rmse_values(self, mock_calculate_rmse):
+        """Test handling of all NaN RMSE values."""
+        mock_calculate_rmse.return_value = np.nan
+        dates = pd.date_range(start='2022-01-01', periods=50)
+        df = pd.DataFrame({
+            'date': dates,
+            'value': np.random.normal(0, 1, 50)
+        })
+        with pytest.raises(ValueError, match="All RMSE values are NaN"):
+            calculate_optimal_window_size(df)
+
+    def test_non_numeric_values(self):
+        """Test with non-numeric values in the value column."""
+        df = pd.DataFrame({
+            'date': pd.date_range(start='2022-01-01', periods=10),
+            'value': ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
+        })
+        with pytest.raises(Exception):  # Should raise an error when trying to calculate RMSE
+            calculate_optimal_window_size(df)
+
+    def test_highly_seasonal_data(self):
+        """Test with highly seasonal data."""
+        dates = pd.date_range(start='2022-01-01', periods=100)
+        # Create seasonal pattern with period of 7
+        seasonal = np.sin(np.linspace(0, 10 * np.pi, 100)) * 10
+        values = seasonal + np.random.normal(0, 1, 100)
+        seasonal_df = pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
+        result = calculate_optimal_window_size(seasonal_df)
+        assert isinstance(result, int)
+        assert 2 <= result <= 20

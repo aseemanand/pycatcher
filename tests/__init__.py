@@ -23,6 +23,7 @@ from .test_catch import (
     TestDecomposeAndDetect,
     TestDetectOutliersIQR,
     TestCalculateRmse,
+    TestCalculateOptimalWindowSize,
 
     # Common fixture
     sample_df
