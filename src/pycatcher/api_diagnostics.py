@@ -5,8 +5,13 @@ import matplotlib.pyplot as plt
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-# Import the function directly from the diagnostics.py file
-from pycatcher.diagnostics import build_iqr_plot
+# Import the functions directly from diagnostics.py
+from pycatcher.diagnostics import (
+    build_iqr_plot,
+    build_seasonal_plot_classic,
+    build_seasonal_plot_stl,
+    build_seasonal_plot_mstl
+)
 
 # Define the FastAPI app
 app = FastAPI(
@@ -15,33 +20,26 @@ app = FastAPI(
     version="1.0"
 )
 
-
 # Define the input model using Pydantic
+
+
 class InputModel(BaseModel):
     data: list[list]  # List of lists representing the DataFrame data
     columns: list[str]  # Column names for the DataFrame
 
-
 # Define the output model
+
+
 class OutputModel(BaseModel):
     plot_image: str  # Base64-encoded image string
 
+# Utility function to handle plotting and encoding
 
-# API endpoint to expose the function
-@app.post("/build_iqr_plot", response_model=OutputModel, summary="Build IQR plot for a given DataFrame")
-async def build_iqr_plot_api(inputs: InputModel):
+
+def generate_plot_response(plot_function, df: pd.DataFrame):
     try:
-        # Convert input data into a pandas DataFrame
-        df = pd.DataFrame(data=inputs.data, columns=inputs.columns)
-
-        # Generate the IQR plot and save it to a BytesIO buffer
-        # Variable 'ax' is required to avoid the type mismatch error in PyCharm and
-        # to properly unpack the tuple returned by subplots().
-        # However, leaving 'ax' gives prospector warning for unused variable. Ignore the warning
-        fig, _ = plt.subplots()
-        plt.figure()
-        build_iqr_plot(df)
-
+        # Generate the plot using the provided function
+        fig = plot_function(df)
         buffer = BytesIO()
         plt.savefig(buffer, format="png")
         plt.close(fig)
@@ -54,3 +52,42 @@ async def build_iqr_plot_api(inputs: InputModel):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Endpoint for IQR plot
+@app.post("/build_iqr_plot", response_model=OutputModel, summary="Build IQR plot for a given DataFrame")
+
+
+async def build_iqr_plot_api(inputs: InputModel):
+    df = pd.DataFrame(data=inputs.data, columns=inputs.columns)
+    return generate_plot_response(build_iqr_plot, df)
+
+
+# Endpoint for Classic Seasonal Plot
+@app.post("/build_seasonal_plot_classic", response_model=OutputModel, summary="Build Classic Seasonal plot for a "
+                                                                              "given DataFrame")
+
+
+async def build_seasonal_plot_classic_api(inputs: InputModel):
+    df = pd.DataFrame(data=inputs.data, columns=inputs.columns)
+    return generate_plot_response(build_seasonal_plot_classic, df)
+
+
+# Endpoint for STL Seasonal Plot
+@app.post("/build_seasonal_plot_stl", response_model=OutputModel, summary="Build STL Seasonal plot for a "
+                                                                          "given DataFrame")
+
+
+async def build_seasonal_plot_stl_api(inputs: InputModel):
+    df = pd.DataFrame(data=inputs.data, columns=inputs.columns)
+    return generate_plot_response(build_seasonal_plot_stl, df)
+
+
+# Endpoint for MSTL Seasonal Plot
+@app.post("/build_seasonal_plot_mstl", response_model=OutputModel, summary="Build MSTL Seasonal plot for a"
+                                                                           " given DataFrame")
+
+
+async def build_seasonal_plot_mstl_api(inputs: InputModel):
+    df = pd.DataFrame(data=inputs.data, columns=inputs.columns)
+    return generate_plot_response(build_seasonal_plot_mstl, df)
