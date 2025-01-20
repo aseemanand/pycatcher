@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 from src.pycatcher.catch import (TimeSeriesError, DataValidationError, check_and_convert_date, find_outliers_iqr,
     anomaly_mad, get_residuals, sum_of_squares, get_ssacf, detect_outliers_today_classic,
     detect_outliers_latest_classic, detect_outliers_classic, decompose_and_detect, detect_outliers_iqr,
-    calculate_rmse, calculate_optimal_window_size)
+    calculate_rmse, calculate_optimal_window_size, detect_outliers_moving_average)
 
 
 @pytest.fixture
@@ -798,3 +798,57 @@ class TestCalculateOptimalWindowSize:
         result = calculate_optimal_window_size(seasonal_df)
         assert isinstance(result, int)
         assert 2 <= result <= 20
+
+
+class TestDetectOutliersMovingAverage:
+    """Test cases for detect_outliers_moving_average function."""
+
+    @pytest.fixture
+    def sample_df(self):
+        """Fixture for sample DataFrame with time series data."""
+        dates = pd.date_range(start='2023-01-01', periods=10, freq='D')
+        return pd.DataFrame({
+            'date': dates,
+            'value': [10, 12, 11, 13, 100, 11, 12, 13, 11, 12]  # 100 is an outlier
+        })
+
+    def test_valid_detection(self, sample_df, monkeypatch):
+        """Test with valid DataFrame containing outliers."""
+
+        # Mock calculate_optimal_window_size to return a fixed window size
+        def mock_optimal_window(df):
+            return 3
+
+        # Mock anomaly_zscore to return known z-scores
+        def mock_zscore(series):
+            return pd.Series([0, 0, 0, 0, 5, 0, 0, 0, 0, 0])  # High z-score for outlier
+
+        monkeypatch.setattr("src.pycatcher.catch.calculate_optimal_window_size", mock_optimal_window)
+        monkeypatch.setattr("src.pycatcher.catch.anomaly_zscore", mock_zscore)
+
+        result = detect_outliers_moving_average(sample_df)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 1
+        assert result.iloc[0]['value'] == 100
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            detect_outliers_moving_average(None)
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        empty_df = pd.DataFrame(columns=['date', 'value'])
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            detect_outliers_moving_average(empty_df)
+
+    def test_optimal_window_calculation_error(self, sample_df, monkeypatch):
+        """Test handling of errors from optimal window size calculation."""
+
+        def mock_optimal_window(df):
+            raise ValueError("Error calculating optimal window size")
+
+        monkeypatch.setattr("src.pycatcher.catch.calculate_optimal_window_size", mock_optimal_window)
+
+        with pytest.raises(ValueError, match="Error calculating optimal window size"):
+            detect_outliers_moving_average(sample_df)

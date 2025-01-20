@@ -887,37 +887,64 @@ def detect_outliers_moving_average(df: pd.DataFrame) -> str:
 
      Returns:
          str: A message with None found or with detected outliers.
+
+    Raises:
+        DataValidationError: If df is None, empty, has invalid format, or contains invalid numeric data
+        TypeError: If input is not a DataFrame or cannot be converted to one
+        ValueError: If numeric conversion fails or optimal window size calculation fails
      """
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    logging.info("Starting outlier detection using Moving Average method")
+    try:
+        logger.info("Starting outlier detection using Moving Average method")
 
-    # Check whether the argument is Pandas dataframe
-    if not isinstance(df, pd.DataFrame):
-        # Convert to Pandas dataframe for easy manipulation
-        df_pandas = df.toPandas()
-    else:
-        df_pandas = df
+        # Check whether the argument is Pandas dataframe
+        df_pandas = df.toPandas() if not isinstance(df, pd.DataFrame) else df
 
-    # Calculate optimal window size
-    optimal_window_size = calculate_optimal_window_size(df_pandas)
+        if len(df_pandas.index) == 0:
+            logger.error("Input DataFrame has no rows")
+            raise DataValidationError("Input DataFrame cannot have zero rows")
 
-    # Calculate moving average
-    df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
-    df1 = df_pandas.copy()
-    df1['moving_average'] = df_pandas.iloc[:, -1].rolling(window=optimal_window_size).mean()
+        if len(df_pandas.columns) == 0:
+            logger.error("DataFrame has no columns")
+            raise DataValidationError("DataFrame must contain at least one value column")
 
-    # Call Z-score algorithm to detect anomalies
-    z_scores = anomaly_zscore(df1['moving_average'])
-    outliers = df1[np.abs(z_scores) > 2]
+        # Calculate optimal window size
+        logger.info("Calculating optimal window size")
+        optimal_window_size = calculate_optimal_window_size(df_pandas)
+        logger.info("Optimal window size calculated: %d", optimal_window_size)
 
-    if outliers.empty:
-        print("No outlier detected using Moving Average method")
-        return
-    else:
-        return_outliers = outliers.iloc[:, :2]
-        return_outliers.reset_index(drop=True, inplace=True)
-        logging.info("Outlier detection using Moving Average method completed")
-        return return_outliers
+        # Calculate moving average
+        logger.debug("Converting last column to numeric")
+        try:
+            df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
+        except (ValueError, TypeError) as e:
+            logger.error("Failed to convert last column to numeric: %s", str(e))
+            raise DataValidationError("Last column must be convertible to numeric values")
+
+        df1 = df_pandas.copy()
+        df1['moving_average'] = df_pandas.iloc[:, -1].rolling(window=optimal_window_size).mean()
+        logger.info("Moving average calculation completed")
+
+        # Call Z-score algorithm to detect anomalies
+        logger.debug("Calculating Z-scores for anomaly detection")
+        z_scores = anomaly_zscore(df1['moving_average'])
+        outliers = df1[np.abs(z_scores) > 2]
+
+        if outliers.empty:
+            logger.info("No outliers detected using Moving Average method")
+            print("No outlier detected using Moving Average method")
+            return
+        else:
+            return_outliers = outliers.iloc[:, :2]
+            return_outliers.reset_index(drop=True, inplace=True)
+            logger.info("Outlier detection using Moving Average method completed")
+            return return_outliers
+    except Exception as e:
+        logger.error("Unexpected error in Moving Average outlier detection: %s", str(e))
+        raise
 
 
 def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:

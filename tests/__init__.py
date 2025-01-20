@@ -24,6 +24,7 @@ from .test_catch import (
     TestDetectOutliersIQR,
     TestCalculateRmse,
     TestCalculateOptimalWindowSize,
+    TestDetectOutliersMovingAverage,
 
     # Common fixture
     sample_df
