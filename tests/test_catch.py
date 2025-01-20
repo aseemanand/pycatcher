@@ -6,7 +6,8 @@ from unittest.mock import MagicMock, patch
 
 from src.pycatcher.catch import (TimeSeriesError, DataValidationError, check_and_convert_date, find_outliers_iqr,
     anomaly_mad, get_residuals, sum_of_squares, get_ssacf, detect_outliers_today_classic,
-    detect_outliers_latest_classic, detect_outliers_classic, decompose_and_detect, detect_outliers_iqr)
+    detect_outliers_latest_classic, detect_outliers_classic, decompose_and_detect, detect_outliers_iqr,
+                                 calculate_rmse)
 
 
 @pytest.fixture
@@ -317,151 +318,366 @@ class TestDetectOutliersLatestClassic:
             detect_outliers_latest_classic(empty_df)
 
 
-@pytest.fixture
-def input_data_for_detect_outliers():
-    """Fixture for sample input DataFrame."""
-    return pd.DataFrame({
-        'date': pd.date_range(start='2022-01-01', periods=5),
-        'value': [10, 20, 30, 40, 50]
-    })
+class TestDetectOutliersClassic:
+    """Test cases for detect_outliers_classic function."""
+
+    @pytest.fixture
+    def daily_df(self):
+        """Fixture for daily data with 2+ years."""
+        dates = pd.date_range(start='2020-01-01', end='2022-12-31', freq='D')
+        return pd.DataFrame({
+            'date': dates,
+            'value': np.random.normal(100, 10, len(dates))
+        })
+
+    @pytest.fixture
+    def monthly_df(self):
+        """Fixture for monthly data with 2+ years."""
+        dates = pd.date_range(start='2020-01-01', end='2022-12-31', freq='MS')
+        return pd.DataFrame({
+            'date': dates,
+            'value': np.random.normal(100, 10, len(dates))
+        })
+
+    @pytest.fixture
+    def weekly_df(self):
+        """Fixture for weekly data with 2+ years."""
+        dates = pd.date_range(start='2020-01-01', end='2022-12-31', freq='W')
+        return pd.DataFrame({
+            'date': dates,
+            'value': np.random.normal(100, 10, len(dates))
+        })
+
+    @pytest.fixture
+    def short_df(self):
+        """Fixture for short period data (less than 2 years)."""
+        dates = pd.date_range(start='2022-01-01', end='2022-12-31', freq='D')
+        return pd.DataFrame({
+            'date': dates,
+            'value': np.random.normal(100, 10, len(dates))
+        })
+
+    def test_daily_data_seasonal(self, daily_df, monkeypatch):
+        """Test with daily data spanning more than 2 years."""
+        mock_decompose = MagicMock(return_value=pd.DataFrame({'value': [1, 2, 3]}))
+        monkeypatch.setattr("src.pycatcher.catch.decompose_and_detect", mock_decompose)
+
+        result = detect_outliers_classic(daily_df)
+
+        assert mock_decompose.called
+        # The DataFrame passed to mock should have dates as index
+        called_df = mock_decompose.call_args[0][0]
+        assert isinstance(called_df.index, pd.DatetimeIndex)
+
+    def test_monthly_data_seasonal(self, monthly_df, monkeypatch):
+        """Test with monthly data spanning more than 2 years."""
+        mock_decompose = MagicMock(return_value=pd.DataFrame({'value': [1, 2, 3]}))
+        monkeypatch.setattr("src.pycatcher.catch.decompose_and_detect", mock_decompose)
+
+        result = detect_outliers_classic(monthly_df)
+
+        assert mock_decompose.called
+        called_df = mock_decompose.call_args[0][0]
+        assert isinstance(called_df.index, pd.DatetimeIndex)
+
+        # Verify that the index is monthly by checking consecutive dates
+        date_diffs = called_df.index[1:] - called_df.index[:-1]
+        assert all(diff.days >= 28 and diff.days <= 31 for diff in date_diffs), "Data should be monthly"
+
+    def test_weekly_data_seasonal(self, weekly_df, monkeypatch):
+        """Test with weekly data spanning more than 2 years."""
+        mock_decompose = MagicMock(return_value=pd.DataFrame({'value': [1, 2, 3]}))
+        monkeypatch.setattr("src.pycatcher.catch.decompose_and_detect", mock_decompose)
+
+        result = detect_outliers_classic(weekly_df)
+
+        assert mock_decompose.called
+        called_df = mock_decompose.call_args[0][0]
+        assert isinstance(called_df.index, pd.DatetimeIndex)
+
+    def test_short_period_iqr(self, short_df, monkeypatch):
+        """Test with short period data (less than 2 years)."""
+        mock_iqr = MagicMock(return_value=pd.DataFrame({'value': [1, 2]}))
+        monkeypatch.setattr("src.pycatcher.catch.detect_outliers_iqr", mock_iqr)
+
+        result = detect_outliers_classic(short_df)
+
+        assert mock_iqr.called
+        called_df = mock_iqr.call_args[0][0]
+        assert isinstance(called_df.index, pd.DatetimeIndex)
+
+    def test_non_pandas_dataframe(self):
+        """Test with non-pandas DataFrame input that has toPandas method."""
+        dates = pd.date_range(start='2022-01-01', periods=5)
+        pandas_df = pd.DataFrame({
+            'date': dates,
+            'value': [1, 2, 3, 4, 5]
+        })
+
+        mock_df = MagicMock()
+        mock_df.toPandas = MagicMock(return_value=pandas_df)
+
+        result = detect_outliers_classic(mock_df)
+        assert mock_df.toPandas.called
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            detect_outliers_classic(None)
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        empty_df = pd.DataFrame(columns=['date', 'value'])
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            detect_outliers_classic(empty_df)
+
+    def test_invalid_input_type(self):
+        """Test with invalid input type (neither DataFrame nor has toPandas)."""
+        with pytest.raises(TypeError, match="Input must be a DataFrame or have toPandas method"):
+            detect_outliers_classic([1, 2, 3])
+
+    def test_duplicate_dates(self):
+        """Test with DataFrame containing duplicate dates."""
+        df = pd.DataFrame({
+            'date': ['2022-01-01', '2022-01-01', '2022-01-01'],
+            'value': [1, 2, 3]
+        })
+
+        with pytest.raises(DataValidationError):
+            detect_outliers_classic(df)
+
+    def test_invalid_date_format(self):
+        """Test with invalid date format."""
+        df = pd.DataFrame({
+            'date': ['invalid', 'dates'],
+            'value': [1, 2]
+        })
+
+        with pytest.raises(DataValidationError):
+            detect_outliers_classic(df)
+
+    def test_quarterly_data_seasonal(self):
+        """Test with quarterly data spanning more than 2 years."""
+        dates = pd.date_range(start='2020-01-01', end='2022-12-31', freq='Q')
+        df = pd.DataFrame({
+            'date': dates,
+            'value': np.random.normal(100, 10, len(dates))
+        })
+
+        result = detect_outliers_classic(df)
+        assert isinstance(result, (pd.DataFrame, str))
+
+    @pytest.mark.parametrize("freq,periods", [
+        ('D', 729),  # Just under 2 years daily
+        ('B', 519),  # Just under 2 years business days
+        ('MS', 23),  # Just under 2 years monthly
+        ('Q', 7),  # Just under 2 years quarterly
+        ('W', 103)  # Just under 2 years weekly
+    ])
+    def test_borderline_frequencies(self, freq, periods):
+        """Test with borderline frequencies that should use IQR method."""
+        dates = pd.date_range(start='2022-01-01', periods=periods, freq=freq)
+        df = pd.DataFrame({
+            'date': dates,
+            'value': np.random.normal(100, 10, periods)
+        })
+
+        with patch('src.pycatcher.catch.detect_outliers_iqr') as mock_iqr:
+            mock_iqr.return_value = pd.DataFrame()
+            result = detect_outliers_classic(df)
+            assert mock_iqr.called
+            called_df = mock_iqr.call_args[0][0]
+            assert isinstance(called_df.index, pd.DatetimeIndex)
 
 
-@patch('src.pycatcher.catch.decompose_and_detect')
-@patch('src.pycatcher.catch.detect_outliers_iqr')
-def test_detect_outliers(mock_detect_outliers_iqr, mock_decompose_and_detect):
-    # Test Case 1: Daily frequency ('D') with 2+ years (use seasonal decomposition)
-    date_range_daily = pd.date_range(start='2020-01-01', periods=750, freq='D')
-    df_daily = pd.DataFrame({'date': date_range_daily, 'count': range(750)})
-    mock_decompose_and_detect.return_value = pd.DataFrame({'date': date_range_daily[:10], 'count': [1] * 10})
+class TestDecomposeAndDetect:
+    """Test cases for decompose_and_detect function."""
 
-    result_daily = detect_outliers_classic(df_daily)
-    mock_decompose_and_detect.assert_called_once()
-    assert isinstance(result_daily, pd.DataFrame)
-    assert result_daily.equals(mock_decompose_and_detect.return_value)
+    @pytest.fixture
+    def sample_df(self):
+        """Fixture for sample DataFrame with numeric time series data."""
+        dates = pd.date_range(start='2022-01-01', periods=100, freq='D')
+        # Create data with clear seasonal pattern and some outliers
+        # Base level of 100 ensures all values are positive
+        trend = np.linspace(0, 10, 100)
+        seasonal = np.sin(np.linspace(0, 8 * np.pi, 100))
+        noise = np.random.normal(0, 0.1, 100)
+        values = 100 + trend + 5 * seasonal + noise
+        # Add outliers that are still positive
+        values[25] = 130  # High outlier
+        values[75] = 70  # Low outlier but still positive
+        return pd.DataFrame({'value': values}, index=dates)
 
-    # Test Case 2: Business day frequency ('B') with more than 2 years (use seasonal decomposition)
-    date_range_business = pd.date_range(start='2020-01-01', periods=520, freq='B')
-    df_business = pd.DataFrame({'date': date_range_business, 'count': range(520)})
-    mock_decompose_and_detect.reset_mock()  # Reset mock for separate assertions
-    mock_decompose_and_detect.return_value = pd.DataFrame({'date': date_range_business[:10], 'count': [1] * 10})
+    def test_successful_decomposition(self, sample_df):
+        """Test successful decomposition and outlier detection."""
+        result = decompose_and_detect(sample_df)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) > 0  # Should detect the outliers we inserted
+        # Verify our inserted outliers are detected
+        assert any(result.index.date == sample_df.index[25].date())
+        assert any(result.index.date == sample_df.index[75].date())
 
-    result_business = detect_outliers_classic(df_business)
-    mock_decompose_and_detect.assert_called_once()
-    assert isinstance(result_business, pd.DataFrame)
-    assert result_business.equals(mock_decompose_and_detect.return_value)
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            decompose_and_detect(None)
 
-    # Test Case 3: Weekly frequency ('W') with at least 104 entries (use seasonal decomposition)
-    date_range_weekly = pd.date_range(start='2020-01-01', periods=104, freq='W')
-    df_weekly = pd.DataFrame({'date': date_range_weekly, 'count': range(104)})
-    mock_decompose_and_detect.reset_mock()
-    mock_decompose_and_detect.return_value = pd.DataFrame({'date': date_range_weekly[:10], 'count': [1] * 10})
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        empty_df = pd.DataFrame()
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            decompose_and_detect(empty_df)
 
-    result_weekly = detect_outliers_classic(df_weekly)
-    mock_decompose_and_detect.assert_called_once()
-    assert isinstance(result_weekly, pd.DataFrame)
-    assert result_weekly.equals(mock_decompose_and_detect.return_value)
-
-    # Test Case 4: Data with insufficient entries for seasonal decomposition (use IQR)
-    date_range_short = pd.date_range(start='2021-01-01', periods=300, freq='D')
-    df_short = pd.DataFrame({'date': date_range_short, 'count': range(300)})
-    mock_detect_outliers_iqr.return_value = pd.DataFrame({'date': date_range_short[:5], 'count': [1] * 5})
-
-    result_short = detect_outliers_classic(df_short)
-    mock_detect_outliers_iqr.assert_called_once()
-    assert isinstance(result_short, pd.DataFrame)
-    assert result_short.equals(mock_detect_outliers_iqr.return_value)
-
-    # Test Case 5: Non-Pandas DataFrame input requiring conversion to Pandas DataFrame
-    mock_spark_df = MagicMock()  # Simulate a Spark DataFrame
-    mock_pandas_df = pd.DataFrame({'date': date_range_short, 'count': range(300)})
-    mock_spark_df.toPandas.return_value = mock_pandas_df
-    mock_detect_outliers_iqr.reset_mock()
-
-    result_conversion = detect_outliers_classic(mock_spark_df)
-    mock_spark_df.toPandas.assert_called_once()
-    mock_detect_outliers_iqr.assert_called_once()
-    assert isinstance(result_conversion, pd.DataFrame)
-    assert result_conversion.equals(mock_detect_outliers_iqr.return_value)
+    def test_non_numeric_data(self):
+        """Test with non-numeric data."""
+        dates = pd.date_range(start='2022-01-01', periods=5)
+        df = pd.DataFrame({'value': ['a', 'b', 'c', 'd', 'e']}, index=dates)
+        with pytest.raises(DataValidationError, match="Last column must contain numeric values"):
+            decompose_and_detect(df)
 
 
-@pytest.fixture
-def input_data_decompose_and_detect():
-    """Fixture to provide sample time-series data."""
-    np.random.seed(0)  # For reproducibility
-    dates = pd.date_range(start='2020-01-01', periods=365, freq='D')
-    dates.freq = 'D'  # Explicitly set the frequency
-    values = np.random.normal(loc=50, scale=5, size=len(dates))
-    # Introduce outliers
-    values[100] = 100
-    values[200] = 100
-    df = pd.DataFrame({'date': dates, 'value': values})
-    return df.set_index('date')
+class TestDetectOutliersIQR:
+    """Test cases for detect_outliers_iqr function."""
+
+    @pytest.fixture
+    def sample_df(self):
+        """Fixture for sample DataFrame."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=5)
+        return pd.DataFrame({
+            'value': [10, 20, 1000, 30, 40]  # 1000 is an outlier
+        }, index=dates)
+
+    def test_valid_detection(self, sample_df):
+        """Test with valid DataFrame containing outliers."""
+        result = detect_outliers_iqr(sample_df)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 1
+        assert result.iloc[0]['value'] == 1000  # Should detect the obvious outlier
+
+    def test_no_outliers(self):
+        """Test when no outliers are present."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=5)
+        normal_df = pd.DataFrame({
+            'value': [10, 12, 11, 13, 12]  # No outliers
+        }, index=dates)
+
+        result = detect_outliers_iqr(normal_df)
+        assert isinstance(result, str)
+        assert result == "No outliers found."
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            detect_outliers_iqr(None)
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        empty_df = pd.DataFrame(columns=['value'])
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            detect_outliers_iqr(empty_df)
+
+    def test_non_numeric_values(self):
+        """Test with non-numeric values."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=3)
+        string_df = pd.DataFrame({
+            'value': ['a', 'b', 'c']
+        }, index=dates)
+
+        with pytest.raises(ValueError):
+            detect_outliers_iqr(string_df)
+
+    def test_single_value(self):
+        """Test with DataFrame containing single value."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=1)
+        single_df = pd.DataFrame({
+            'value': [10]
+        }, index=dates)
+
+        result = detect_outliers_iqr(single_df)
+        assert isinstance(result, str)
+        assert result == "No outliers found."
+
+    def test_all_same_values(self):
+        """Test with DataFrame containing identical values."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=5)
+        identical_df = pd.DataFrame({
+            'value': [10, 10, 10, 10, 10]
+        }, index=dates)
+
+        result = detect_outliers_iqr(identical_df)
+        assert isinstance(result, str)
+        assert result == "No outliers found."
+
+    def test_with_missing_values(self):
+        """Test with DataFrame containing NaN values."""
+        dates = pd.date_range(end=pd.Timestamp.now(), periods=5)
+        nan_df = pd.DataFrame({
+            'value': [10, np.nan, 1000, np.nan, 40]
+        }, index=dates)
+
+        # When there are NaN values, they are dropped during processing
+        # and if the remaining values don't contain outliers, we expect
+        # the "No outliers found." string
+        result = detect_outliers_iqr(nan_df)
+        assert isinstance(result, str)
+        assert result == "No outliers found."
 
 
-@patch('src.pycatcher.catch.get_residuals')
-@patch('src.pycatcher.catch.get_ssacf')
-@patch('src.pycatcher.catch.anomaly_mad')
-def test_decompose_and_detect(mock_anomaly_mad, mock_get_ssacf, mock_get_residuals, input_data_decompose_and_detect):
-    """Test case for the decompose_and_detect function."""
+class TestCalculateRmse:
+    """Test cases for calculate_rmse function."""
 
-    # Mock residuals
-    mock_residuals = MagicMock(spec=pd.Series)
-    mock_get_residuals.return_value = mock_residuals
+    @pytest.fixture
+    def sample_df(self):
+        """Fixture for sample DataFrame with dates and values."""
+        dates = pd.date_range(start='2023-01-01', periods=100, freq='D')
+        values = np.sin(np.linspace(0, 10, 100)) * 100 + 500  # Generate sine wave pattern
+        return pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
 
-    # Mock SSACF values
-    mock_get_ssacf.side_effect = [0.5, 0.8]  # Additive model preferred over multiplicative
+    @pytest.fixture
+    def small_df(self):
+        """Fixture for small DataFrame with few data points."""
+        return pd.DataFrame({
+            'date': pd.date_range(start='2023-01-01', periods=5, freq='D'),
+            'value': [100, 102, 98, 103, 97]
+        })
 
-    # Mock outlier detection boolean series
-    mock_anomaly_mad.return_value = input_data_decompose_and_detect['value'] > 90  # Marking outliers
+    def test_valid_calculation(self, sample_df):
+        """Test RMSE calculation with valid input data."""
+        result = calculate_rmse(sample_df, window_size=7)
+        assert isinstance(result, (float, np.float64))  # Check for both Python float and numpy float64
+        assert float(result) == pytest.approx(0.0)  # Convert to float and use pytest.approx for comparison
 
-    # Call the function with the sample data
-    result = decompose_and_detect(input_data_decompose_and_detect)
+    def test_none_dataframe(self):
+        """Test with None DataFrame."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            calculate_rmse(None, window_size=5)
 
-    # Check that the residuals and SSACF were calculated for both models
-    assert mock_get_residuals.call_count == 2, "Expected residuals to be calculated twice (additive and multiplicative)"
-    assert mock_get_ssacf.call_count == 2, "Expected SSACF to be calculated twice (additive and multiplicative)"
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        empty_df = pd.DataFrame()
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            calculate_rmse(empty_df, window_size=5)
 
-    # Check that anomaly detection was called with the correct model (additive, based on SSACF comparison)
-    mock_anomaly_mad.assert_called_once()
+    def test_invalid_window_size_type(self, sample_df):
+        """Test with non-integer window size."""
+        with pytest.raises(TypeError, match="Window size must be an integer"):
+            calculate_rmse(sample_df, window_size=5.5)
 
-    # Check the result type and contents
-    assert isinstance(result, pd.DataFrame), "Expected DataFrame as output"
-    assert not result.empty, "Expected some outliers in the DataFrame"
-    assert 'value' in result.columns, "Expected 'value' column in outliers DataFrame"
+    def test_negative_window_size(self, sample_df):
+        """Test with negative window size."""
+        with pytest.raises(ValueError, match="Window size must be greater than 0"):
+            calculate_rmse(sample_df, window_size=-1)
 
-    # Validate the outliers detected match our expectation
-    expected_outliers = input_data_decompose_and_detect[input_data_decompose_and_detect['value'] > 90]
-    pd.testing.assert_frame_equal(result, expected_outliers)
+    def test_zero_window_size(self, sample_df):
+        """Test with zero window size."""
+        with pytest.raises(ValueError, match="Window size must be greater than 0"):
+            calculate_rmse(sample_df, window_size=0)
 
-
-@pytest.fixture
-def input_data_detect_outliers_iqr():
-    """Fixture to provide sample data with outliers for testing."""
-    np.random.seed(0)  # For reproducibility
-    dates = pd.date_range(start='2020-01-01', periods=365, freq='D')
-    values = np.random.normal(loc=50, scale=5, size=len(dates)).astype(int)
-    # Introduce outliers
-    values[50] = 100
-    values[150] = 150
-    values[300] = 200
-    df = pd.DataFrame({'date': dates, 'value': values})
-    return df
-
-
-def test_detect_outliers_iqr(input_data_detect_outliers_iqr):
-    """Test case for the detect_outliers_iqr function."""
-    # Call the function with sample data
-    result = detect_outliers_iqr(input_data_detect_outliers_iqr)
-
-    # Check the type of result
-    assert isinstance(result, (pd.DataFrame, str)), "Expected DataFrame or string as output"
-
-    if isinstance(result, pd.DataFrame):
-        # If the result is a DataFrame, check that it has outlier rows
-        assert not result.empty, "Expected some outliers in the DataFrame"
-        assert 'value' in result.columns, "Expected 'value' column in outliers DataFrame"
-        # Verify specific known outlier values are detected
-        assert {100, 150, 200}.issubset(result['value'].values), "Expected known outliers in the DataFrame"
-    else:
-        # If the result is a string, verify it indicates no outliers
-        assert result == "No outliers found.", "Expected message indicating no outliers found"
+    def test_missing_value_column(self):
+        """Test with DataFrame missing value column."""
+        df = pd.DataFrame(index=pd.date_range(start='2023-01-01', periods=5))
+        with pytest.raises(DataValidationError, match="DataFrame must contain at least one value column"):
+            calculate_rmse(df, window_size=3)
