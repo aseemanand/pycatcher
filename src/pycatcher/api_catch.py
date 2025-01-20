@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import pandas as pd
 from src.pycatcher.catch import (find_outliers_iqr, detect_outliers_stl, detect_outliers_today_classic)
 
+
 # Define the FastAPI app
 app = FastAPI(
     title="Outliers Detection API",
