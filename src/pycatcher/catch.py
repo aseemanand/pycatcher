@@ -958,76 +958,100 @@ def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
 
     Returns:
         str or pd.DataFrame: A message with None found or a DataFrame with detected outliers.
+
+    Raises:
+        DataValidationError: If df is None, empty, has invalid format, or contains invalid datetime data
+        TimeSeriesError: If time series frequency cannot be determined or data is insufficient
+        TypeError: If input is not a DataFrame or cannot be converted to one
+        ValueError: If date conversion fails or index has duplicates
     """
-    logging.info("Starting outlier detection using STL")
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    # Check whether the argument is Pandas dataframe
-    if not isinstance(df, pd.DataFrame):
-        # Convert to Pandas dataframe for easy manipulation
-        df_pandas = df.toPandas()
-    else:
-        df_pandas = df
+    try:
+        logger.info("Starting outlier detection using STL")
 
-    # Ensure the first column is in datetime format and set it as index
-    df_stl = df_pandas.copy()
-    # Ensure the DataFrame is indexed correctly
-    if not isinstance(df_stl.index, pd.DatetimeIndex):
-        df_stl = df_stl.set_index(pd.to_datetime(df_stl.iloc[:, 0])).dropna()
+        # Check whether the argument is Pandas dataframe
+        df_pandas = df.toPandas() if not isinstance(df, pd.DataFrame) else df
 
-    # Ensure the datetime index is unique (no duplicate dates)
-    if df_stl.index.is_unique:
-        # Find the time frequency (daily, weekly etc.) and length of the index column
-        inferred_frequency = df_stl.index.inferred_freq
-        logging.info("Time frequency: %s", inferred_frequency)
+        if len(df_pandas.index) == 0:
+            logger.error("Input DataFrame has no rows")
+            raise DataValidationError("Input DataFrame cannot have zero rows")
 
-        length_index = len(df_stl.index)
-        logging.info("Length of time index: %.2f", length_index)
+        if len(df_pandas.columns) == 0:
+            logger.error("DataFrame has no columns")
+            raise DataValidationError("DataFrame must contain at least one value column")
 
-        # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
+        # Create a copy for STL processing
+        logger.debug("Creating DataFrame copy for STL processing")
+        df_stl = df_pandas.copy()
 
-        # Set parameter for Week check
-        regex_week_check = r'[W-Za-z]'
+        try:
+            # Ensure the first column is in datetime format and set it as index
+            # Ensure the DataFrame is indexed correctly
+            if not isinstance(df_stl.index, pd.DatetimeIndex):
+                df_stl = df_stl.set_index(pd.to_datetime(df_stl.iloc[:, 0])).dropna()
+        except Exception as e:
+            logger.error("Failed to convert to datetime index: %s", str(e))
+            raise DataValidationError("Failed to convert first column to datetime format") from e
 
-        match inferred_frequency:
-            case 'H' if length_index >= 17520:
-                # logging.info("Using seasonal trend decomposition for for outlier detection in
-                # hour level time-series.")
-                detected_period = 24  # Hourly seasonality
-            case 'D' if length_index >= 730:
-                # logging.info("Using seasonal trend decomposition for for outlier detection in
-                # day level time-series.")
-                detected_period = 365  # Yearly seasonality
-            case 'B' if length_index >= 520:
-                # logging.info("Using seasonal trend decomposition for outlier detection in business
-                # day level time-series.")
-                detected_period = 365  # Yearly seasonality
-            case 'MS' if length_index >= 24:
-                # logging.info("Using seasonal trend decomposition for for outlier detection in
-                # month level time-series.")
-                detected_period = 12
-            case 'M' if length_index >= 24:
-                # logging.info("Using seasonal trend decomposition for for outlier detection in
-                # month level time-series.")
-                detected_period = 12
-            case 'Q' if length_index >= 8:
-                # logging.info("Using seasonal trend decomposition for for outlier detection in
-                # quarter level time-series.")
-                detected_period = 4  # Quarterly seasonality
-            case 'A' if length_index >= 2:
-                # logging.info("Using seasonal trend decomposition for for outlier detection in
-                # annual level time-series.")
-                detected_period = 1  # Annual seasonality
-            case _:
-                if regex.match(regex_week_check, inferred_frequency) and length_index >= 104:
-                    detected_period = 52  # Week level seasonality
-                else:
-                    # If less than 2 years of data, Use Inter Quartile Range (IQR) or Moving Average method
-                    logging.info("Less than 2 years of data - Use Moving Average or IQR Method")
-                    logging.info("Default - Using IQR method for outlier detection.")
-                    return detect_outliers_iqr(df_pandas)
-        return detect_outliers_stl_extended(df_stl, detected_period)
-    else:
-        print("Duplicate date index values. Check your data.")
+        # Ensure the datetime index is unique (no duplicate dates)
+        if df_stl.index.is_unique:
+            # Find the time frequency (daily, weekly etc.) and length of the index column
+            inferred_frequency = df_stl.index.inferred_freq
+            logger.info("Time frequency: %s", inferred_frequency)
+
+            length_index = len(df_stl.index)
+            logger.info("Length of time index: %.2f", length_index)
+
+            # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
+            # Set parameter for Week check
+            regex_week_check = r'[W-Za-z]'
+
+            match inferred_frequency:
+                case 'H' if length_index >= 17520:
+                    # logger.info("Using seasonal trend decomposition for for outlier detection in
+                    # hour level time-series.")
+                    detected_period = 24  # Hourly seasonality
+                case 'D' if length_index >= 730:
+                    # logger.info("Using seasonal trend decomposition for for outlier detection in
+                    # day level time-series.")
+                    detected_period = 365  # Yearly seasonality
+                case 'B' if length_index >= 520:
+                    # logger.info("Using seasonal trend decomposition for outlier detection in business
+                    # day level time-series.")
+                    detected_period = 365  # Yearly seasonality
+                case 'MS' if length_index >= 24:
+                    # logger.info("Using seasonal trend decomposition for for outlier detection in
+                    # month level time-series.")
+                    detected_period = 12
+                case 'M' if length_index >= 24:
+                    # logger.info("Using seasonal trend decomposition for for outlier detection in
+                    # month level time-series.")
+                    detected_period = 12
+                case 'Q' if length_index >= 8:
+                    # logger.info("Using seasonal trend decomposition for for outlier detection in
+                    # quarter level time-series.")
+                    detected_period = 4  # Quarterly seasonality
+                case 'A' if length_index >= 2:
+                    # logger.info("Using seasonal trend decomposition for for outlier detection in
+                    # annual level time-series.")
+                    detected_period = 1  # Annual seasonality
+                case _:
+                    if regex.match(regex_week_check, inferred_frequency) and length_index >= 104:
+                        detected_period = 52  # Week level seasonality
+                    else:
+                        # If less than 2 years of data, Use Inter Quartile Range (IQR) or Moving Average method
+                        logger.info("Less than 2 years of data - Use Moving Average or IQR Method")
+                        logger.info("Default - Using IQR method for outlier detection.")
+                        return detect_outliers_iqr(df_pandas)
+            return detect_outliers_stl_extended(df_stl, detected_period)
+        else:
+            print("Duplicate date index values. Check your data.")
+    except Exception as e:
+        logger.error("Unexpected error in STL outlier detection: %s", str(e))
+        raise
 
 
 def detect_outliers_stl_extended(df, detected_period) -> Union[pd.DataFrame, str]:

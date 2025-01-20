@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 from src.pycatcher.catch import (TimeSeriesError, DataValidationError, check_and_convert_date, find_outliers_iqr,
     anomaly_mad, get_residuals, sum_of_squares, get_ssacf, detect_outliers_today_classic,
     detect_outliers_latest_classic, detect_outliers_classic, decompose_and_detect, detect_outliers_iqr,
-    calculate_rmse, calculate_optimal_window_size, detect_outliers_moving_average)
+    calculate_rmse, calculate_optimal_window_size, detect_outliers_moving_average, detect_outliers_stl)
 
 
 @pytest.fixture
@@ -852,3 +852,109 @@ class TestDetectOutliersMovingAverage:
 
         with pytest.raises(ValueError, match="Error calculating optimal window size"):
             detect_outliers_moving_average(sample_df)
+
+
+class TestDetectOutliersSTL:
+    """Test cases for detect_outliers_stl function."""
+
+    @pytest.fixture
+    def hourly_df(self):
+        """Fixture for hourly data with sufficient length."""
+        dates = pd.date_range(start='2020-01-01', periods=17520, freq='H')  # 2 years of hourly data
+        # Generate positive values: base of 100 + sine wave + small positive noise
+        values = 100 + np.sin(np.linspace(0, 100, 17520)) * 50 + np.random.uniform(0, 10, 17520)
+        values[1000] = 1000  # Insert an outlier
+        return pd.DataFrame({'date': dates, 'value': values})
+
+    @pytest.fixture
+    def daily_df(self):
+        """Fixture for daily data with sufficient length."""
+        dates = pd.date_range(start='2020-01-01', periods=730, freq='D')  # 2 years of daily data
+        # Generate positive values: base of 100 + sine wave + small positive noise
+        values = 100 + np.sin(np.linspace(0, 10, 730)) * 50 + np.random.uniform(0, 10, 730)
+        values[100] = 1000  # Insert an outlier
+        return pd.DataFrame({'date': dates, 'value': values})
+
+    @pytest.fixture
+    def monthly_df(self):
+        """Fixture for monthly data with sufficient length."""
+        dates = pd.date_range(start='2020-01-01', periods=24, freq='M')  # 2 years of monthly data
+        # Generate positive values: base of 100 + sine wave + small positive noise
+        values = 100 + np.sin(np.linspace(0, 2, 24)) * 50 + np.random.uniform(0, 10, 24)
+        values[5] = 1000  # Insert an outlier
+        return pd.DataFrame({'date': dates, 'value': values})
+
+    def test_hourly_data(self, hourly_df):
+        """Test with hourly data."""
+        result = detect_outliers_stl(hourly_df)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) > 0
+        assert 1000 in result['value'].values  # Should detect our inserted outlier
+
+    def test_daily_data(self, daily_df):
+        """Test with daily data."""
+        result = detect_outliers_stl(daily_df)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) > 0
+        assert 1000 in result['value'].values  # Should detect our inserted outlier
+
+    def test_monthly_data(self, monthly_df):
+        """Test with monthly data."""
+        result = detect_outliers_stl(monthly_df)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) > 0
+        assert 1000 in result['value'].values  # Should detect our inserted outlier
+
+    def test_insufficient_data(self):
+        """Test with insufficient data length."""
+        dates = pd.date_range(start='2020-01-01', periods=10, freq='D')
+        df = pd.DataFrame({'date': dates, 'value': np.random.uniform(1, 10, 10)})  # Positive values
+        result = detect_outliers_stl(df)
+        # Should fall back to IQR method for insufficient data
+        assert isinstance(result, (pd.DataFrame, str))
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            detect_outliers_stl(None)
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        df = pd.DataFrame()
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            detect_outliers_stl(df)
+
+    def test_invalid_date_format(self):
+        """Test with invalid date format."""
+        df = pd.DataFrame({
+            'date': ['invalid', 'dates'],
+            'value': [1, 2]
+        })
+        with pytest.raises(DataValidationError):
+            detect_outliers_stl(df)
+
+    def test_non_numeric_values(self):
+        """Test with non-numeric values."""
+        dates = pd.date_range(start='2020-01-01', periods=730, freq='D')
+        df = pd.DataFrame({
+            'date': dates,
+            'value': ['a'] * 730
+        })
+        with pytest.raises(Exception):  # Should raise some kind of error for non-numeric data
+            detect_outliers_stl(df)
+
+    @patch('src.pycatcher.catch.detect_outliers_iqr')
+    def test_fallback_to_iqr(self, mock_iqr):
+        """Test fallback to IQR method for short time series."""
+        # Create a short time series that doesn't meet any seasonal criteria
+        dates = pd.date_range(start='2020-01-01', periods=5, freq='D')
+        df = pd.DataFrame({'date': dates, 'value': np.random.uniform(1, 10, 5)})  # Positive values
+
+        # Set up the mock return value
+        mock_iqr.return_value = "IQR method used"
+
+        result = detect_outliers_stl(df)
+
+        # Verify that IQR method was called
+        mock_iqr.assert_called_once()
+        assert result == "IQR method used"
