@@ -100,4 +100,4 @@ def test_detect_outliers_today_classic_api():
         f"Expected outliers {expected_outliers}, but got {response_data['outliers']}"
     )
 
-    print("Test passed: The API detected outliers correctly.")
+print("Test passed: The API detected outliers correctly.")
