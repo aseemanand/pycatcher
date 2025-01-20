@@ -20,22 +20,19 @@ app = FastAPI(
     version="1.0"
 )
 
+
 # Define the input model using Pydantic
-
-
 class InputModel(BaseModel):
     data: list[list]  # List of lists representing the DataFrame data
     columns: list[str]  # Column names for the DataFrame
 
+
 # Define the output model
-
-
 class OutputModel(BaseModel):
     plot_image: str  # Base64-encoded image string
 
+
 # Utility function to handle plotting and encoding
-
-
 def generate_plot_response(plot_function, df: pd.DataFrame):
     try:
         # Generate the plot using the provided function
