@@ -824,28 +824,57 @@ def calculate_optimal_window_size(df: pd.DataFrame) -> str:
 
     Returns:
         str: optimal window size
+
+    Raises:
+        DataValidationError: If df is None, empty, has invalid format, or contains invalid numeric data
+        ValueError: If all RMSE values are NaN
+        TypeError: If input is not a DataFrame or cannot be converted to one
     """
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    logging.info("Starting optimal window size calculation")
+    try:
+        logger.info("Starting optimal window size calculation")
 
-    # Try different window sizes
-    window_sizes = range(2, 21)
-    rmse_values = []
+        if len(df.index) == 0:
+            logger.error("Input DataFrame has no rows")
+            raise DataValidationError("Input DataFrame cannot have zero rows")
 
-    logging.info("Starting RMSE calculation")
-    for window_size in window_sizes:
-        rmse = calculate_rmse(df, window_size)
-        rmse_values.append(rmse)
-    logging.info("RMSE calculation completed")
+        if len(df.columns) == 0:
+            logger.error("DataFrame has no columns")
+            raise DataValidationError("DataFrame must contain at least one value column")
 
-    # Check if all rmse_values are NaN
-    if np.all(np.isnan(rmse_values)):
-        raise ValueError("All RMSE values are NaN. Check your data for issues.")
+        # Try different window sizes
+        window_sizes = range(2, 21)
+        rmse_values = []
 
-    # Find the window size with the lowest RMSE
-    optimal_window_size = window_sizes[np.nanargmin(rmse_values)]
-    logging.info("Optimal Window Size: %d", optimal_window_size)
-    return optimal_window_size
+        logger.info("Starting RMSE calculation")
+
+        for window_size in window_sizes:
+            logger.debug("Calculating RMSE for window size: %d", window_size)
+            try:
+                rmse = calculate_rmse(df, window_size)
+                rmse_values.append(rmse)
+            except Exception as e:
+                logger.warning("Failed to calculate RMSE for window size %d: %s", window_size, str(e))
+                rmse_values.append(np.nan)
+
+        logger.info("RMSE calculation completed")
+
+        # Check if all rmse_values are NaN
+        if np.all(np.isnan(rmse_values)):
+            logger.error("All RMSE values are NaN")
+            raise ValueError("All RMSE values are NaN. Check your data for issues.")
+
+        # Find the window size with the lowest RMSE
+        optimal_window_size = window_sizes[np.nanargmin(rmse_values)]
+        logger.info("Optimal Window Size: %d", optimal_window_size)
+        return optimal_window_size
+
+    except Exception as e:
+        logger.error("Unexpected error in optimal window size calculation: %s", str(e))
+        raise
 
 
 def detect_outliers_moving_average(df: pd.DataFrame) -> str:
@@ -858,37 +887,64 @@ def detect_outliers_moving_average(df: pd.DataFrame) -> str:
 
      Returns:
          str: A message with None found or with detected outliers.
+
+    Raises:
+        DataValidationError: If df is None, empty, has invalid format, or contains invalid numeric data
+        TypeError: If input is not a DataFrame or cannot be converted to one
+        ValueError: If numeric conversion fails or optimal window size calculation fails
      """
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    logging.info("Starting outlier detection using Moving Average method")
+    try:
+        logger.info("Starting outlier detection using Moving Average method")
 
-    # Check whether the argument is Pandas dataframe
-    if not isinstance(df, pd.DataFrame):
-        # Convert to Pandas dataframe for easy manipulation
-        df_pandas = df.toPandas()
-    else:
-        df_pandas = df
+        # Check whether the argument is Pandas dataframe
+        df_pandas = df.toPandas() if not isinstance(df, pd.DataFrame) else df
 
-    # Calculate optimal window size
-    optimal_window_size = calculate_optimal_window_size(df_pandas)
+        if len(df_pandas.index) == 0:
+            logger.error("Input DataFrame has no rows")
+            raise DataValidationError("Input DataFrame cannot have zero rows")
 
-    # Calculate moving average
-    df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
-    df1 = df_pandas.copy()
-    df1['moving_average'] = df_pandas.iloc[:, -1].rolling(window=optimal_window_size).mean()
+        if len(df_pandas.columns) == 0:
+            logger.error("DataFrame has no columns")
+            raise DataValidationError("DataFrame must contain at least one value column")
 
-    # Call Z-score algorithm to detect anomalies
-    z_scores = anomaly_zscore(df1['moving_average'])
-    outliers = df1[np.abs(z_scores) > 2]
+        # Calculate optimal window size
+        logger.info("Calculating optimal window size")
+        optimal_window_size = calculate_optimal_window_size(df_pandas)
+        logger.info("Optimal window size calculated: %d", optimal_window_size)
 
-    if outliers.empty:
-        print("No outlier detected using Moving Average method")
-        return
-    else:
-        return_outliers = outliers.iloc[:, :2]
-        return_outliers.reset_index(drop=True, inplace=True)
-        logging.info("Outlier detection using Moving Average method completed")
-        return return_outliers
+        # Calculate moving average
+        logger.debug("Converting last column to numeric")
+        try:
+            df_pandas.iloc[:, -1] = pd.to_numeric(df_pandas.iloc[:, -1])
+        except (ValueError, TypeError) as e:
+            logger.error("Failed to convert last column to numeric: %s", str(e))
+            raise DataValidationError("Last column must be convertible to numeric values")
+
+        df1 = df_pandas.copy()
+        df1['moving_average'] = df_pandas.iloc[:, -1].rolling(window=optimal_window_size).mean()
+        logger.info("Moving average calculation completed")
+
+        # Call Z-score algorithm to detect anomalies
+        logger.debug("Calculating Z-scores for anomaly detection")
+        z_scores = anomaly_zscore(df1['moving_average'])
+        outliers = df1[np.abs(z_scores) > 2]
+
+        if outliers.empty:
+            logger.info("No outliers detected using Moving Average method")
+            print("No outlier detected using Moving Average method")
+            return
+        else:
+            return_outliers = outliers.iloc[:, :2]
+            return_outliers.reset_index(drop=True, inplace=True)
+            logger.info("Outlier detection using Moving Average method completed")
+            return return_outliers
+    except Exception as e:
+        logger.error("Unexpected error in Moving Average outlier detection: %s", str(e))
+        raise
 
 
 def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
@@ -902,76 +958,100 @@ def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
 
     Returns:
         str or pd.DataFrame: A message with None found or a DataFrame with detected outliers.
+
+    Raises:
+        DataValidationError: If df is None, empty, has invalid format, or contains invalid datetime data
+        TimeSeriesError: If time series frequency cannot be determined or data is insufficient
+        TypeError: If input is not a DataFrame or cannot be converted to one
+        ValueError: If date conversion fails or index has duplicates
     """
-    logging.info("Starting outlier detection using STL")
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    # Check whether the argument is Pandas dataframe
-    if not isinstance(df, pd.DataFrame):
-        # Convert to Pandas dataframe for easy manipulation
-        df_pandas = df.toPandas()
-    else:
-        df_pandas = df
+    try:
+        logger.info("Starting outlier detection using STL")
 
-    # Ensure the first column is in datetime format and set it as index
-    df_stl = df_pandas.copy()
-    # Ensure the DataFrame is indexed correctly
-    if not isinstance(df_stl.index, pd.DatetimeIndex):
-        df_stl = df_stl.set_index(pd.to_datetime(df_stl.iloc[:, 0])).dropna()
+        # Check whether the argument is Pandas dataframe
+        df_pandas = df.toPandas() if not isinstance(df, pd.DataFrame) else df
 
-    # Ensure the datetime index is unique (no duplicate dates)
-    if df_stl.index.is_unique:
-        # Find the time frequency (daily, weekly etc.) and length of the index column
-        inferred_frequency = df_stl.index.inferred_freq
-        logging.info("Time frequency: %s", inferred_frequency)
+        if len(df_pandas.index) == 0:
+            logger.error("Input DataFrame has no rows")
+            raise DataValidationError("Input DataFrame cannot have zero rows")
 
-        length_index = len(df_stl.index)
-        logging.info("Length of time index: %.2f", length_index)
+        if len(df_pandas.columns) == 0:
+            logger.error("DataFrame has no columns")
+            raise DataValidationError("DataFrame must contain at least one value column")
 
-        # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
+        # Create a copy for STL processing
+        logger.debug("Creating DataFrame copy for STL processing")
+        df_stl = df_pandas.copy()
 
-        # Set parameter for Week check
-        regex_week_check = r'[W-Za-z]'
+        try:
+            # Ensure the first column is in datetime format and set it as index
+            # Ensure the DataFrame is indexed correctly
+            if not isinstance(df_stl.index, pd.DatetimeIndex):
+                df_stl = df_stl.set_index(pd.to_datetime(df_stl.iloc[:, 0])).dropna()
+        except Exception as e:
+            logger.error("Failed to convert to datetime index: %s", str(e))
+            raise DataValidationError("Failed to convert first column to datetime format") from e
 
-        match inferred_frequency:
-            case 'H' if length_index >= 17520:
-                # logging.info("Using seasonal trend decomposition for for outlier detection in
-                # hour level time-series.")
-                detected_period = 24  # Hourly seasonality
-            case 'D' if length_index >= 730:
-                # logging.info("Using seasonal trend decomposition for for outlier detection in
-                # day level time-series.")
-                detected_period = 365  # Yearly seasonality
-            case 'B' if length_index >= 520:
-                # logging.info("Using seasonal trend decomposition for outlier detection in business
-                # day level time-series.")
-                detected_period = 365  # Yearly seasonality
-            case 'MS' if length_index >= 24:
-                # logging.info("Using seasonal trend decomposition for for outlier detection in
-                # month level time-series.")
-                detected_period = 12
-            case 'M' if length_index >= 24:
-                # logging.info("Using seasonal trend decomposition for for outlier detection in
-                # month level time-series.")
-                detected_period = 12
-            case 'Q' if length_index >= 8:
-                # logging.info("Using seasonal trend decomposition for for outlier detection in
-                # quarter level time-series.")
-                detected_period = 4  # Quarterly seasonality
-            case 'A' if length_index >= 2:
-                # logging.info("Using seasonal trend decomposition for for outlier detection in
-                # annual level time-series.")
-                detected_period = 1  # Annual seasonality
-            case _:
-                if regex.match(regex_week_check, inferred_frequency) and length_index >= 104:
-                    detected_period = 52  # Week level seasonality
-                else:
-                    # If less than 2 years of data, Use Inter Quartile Range (IQR) or Moving Average method
-                    logging.info("Less than 2 years of data - Use Moving Average or IQR Method")
-                    logging.info("Default - Using IQR method for outlier detection.")
-                    return detect_outliers_iqr(df_pandas)
-        return detect_outliers_stl_extended(df_stl, detected_period)
-    else:
-        print("Duplicate date index values. Check your data.")
+        # Ensure the datetime index is unique (no duplicate dates)
+        if df_stl.index.is_unique:
+            # Find the time frequency (daily, weekly etc.) and length of the index column
+            inferred_frequency = df_stl.index.inferred_freq
+            logger.info("Time frequency: %s", inferred_frequency)
+
+            length_index = len(df_stl.index)
+            logger.info("Length of time index: %.2f", length_index)
+
+            # If the dataset contains at least 2 years of data, use Seasonal Trend Decomposition
+            # Set parameter for Week check
+            regex_week_check = r'[W-Za-z]'
+
+            match inferred_frequency:
+                case 'H' if length_index >= 17520:
+                    # logger.info("Using seasonal trend decomposition for for outlier detection in
+                    # hour level time-series.")
+                    detected_period = 24  # Hourly seasonality
+                case 'D' if length_index >= 730:
+                    # logger.info("Using seasonal trend decomposition for for outlier detection in
+                    # day level time-series.")
+                    detected_period = 365  # Yearly seasonality
+                case 'B' if length_index >= 520:
+                    # logger.info("Using seasonal trend decomposition for outlier detection in business
+                    # day level time-series.")
+                    detected_period = 365  # Yearly seasonality
+                case 'MS' if length_index >= 24:
+                    # logger.info("Using seasonal trend decomposition for for outlier detection in
+                    # month level time-series.")
+                    detected_period = 12
+                case 'M' if length_index >= 24:
+                    # logger.info("Using seasonal trend decomposition for for outlier detection in
+                    # month level time-series.")
+                    detected_period = 12
+                case 'Q' if length_index >= 8:
+                    # logger.info("Using seasonal trend decomposition for for outlier detection in
+                    # quarter level time-series.")
+                    detected_period = 4  # Quarterly seasonality
+                case 'A' if length_index >= 2:
+                    # logger.info("Using seasonal trend decomposition for for outlier detection in
+                    # annual level time-series.")
+                    detected_period = 1  # Annual seasonality
+                case _:
+                    if regex.match(regex_week_check, inferred_frequency) and length_index >= 104:
+                        detected_period = 52  # Week level seasonality
+                    else:
+                        # If less than 2 years of data, Use Inter Quartile Range (IQR) or Moving Average method
+                        logger.info("Less than 2 years of data - Use Moving Average or IQR Method")
+                        logger.info("Default - Using IQR method for outlier detection.")
+                        return detect_outliers_iqr(df_pandas)
+            return detect_outliers_stl_extended(df_stl, detected_period)
+        else:
+            print("Duplicate date index values. Check your data.")
+    except Exception as e:
+        logger.error("Unexpected error in STL outlier detection: %s", str(e))
+        raise
 
 
 def detect_outliers_stl_extended(df, detected_period) -> Union[pd.DataFrame, str]:

@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 from src.pycatcher.catch import (TimeSeriesError, DataValidationError, check_and_convert_date, find_outliers_iqr,
     anomaly_mad, get_residuals, sum_of_squares, get_ssacf, detect_outliers_today_classic,
     detect_outliers_latest_classic, detect_outliers_classic, decompose_and_detect, detect_outliers_iqr,
-                                 calculate_rmse)
+    calculate_rmse, calculate_optimal_window_size, detect_outliers_moving_average, detect_outliers_stl)
 
 
 @pytest.fixture
@@ -681,3 +681,280 @@ class TestCalculateRmse:
         df = pd.DataFrame(index=pd.date_range(start='2023-01-01', periods=5))
         with pytest.raises(DataValidationError, match="DataFrame must contain at least one value column"):
             calculate_rmse(df, window_size=3)
+
+
+class TestCalculateOptimalWindowSize:
+    """Test cases for calculate_optimal_window_size function."""
+
+    @pytest.fixture
+    def sample_df(self):
+        """Fixture for sample DataFrame with clean time series data."""
+        dates = pd.date_range(start='2022-01-01', periods=100)
+        # Creating a simple time series with a trend
+        values = np.linspace(10, 100, 100) + np.random.normal(0, 5, 100)
+        return pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
+
+    def test_valid_calculation(self, sample_df):
+        """Test with valid DataFrame containing clean time series data."""
+        result = calculate_optimal_window_size(sample_df)
+        assert isinstance(result, int)
+        assert 2 <= result <= 20  # Window size should be within the range defined in the function
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            calculate_optimal_window_size(None)
+
+    def test_empty_dataframe_no_rows(self):
+        """Test with DataFrame having no rows."""
+        empty_df = pd.DataFrame(columns=['date', 'value'])
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            calculate_optimal_window_size(empty_df)
+
+    def test_empty_dataframe_no_columns(self):
+        """Test with DataFrame having no data and no columns."""
+        empty_df = pd.DataFrame()
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            calculate_optimal_window_size(empty_df)
+
+    def test_dataframe_with_rows_no_columns(self):
+        """Test with DataFrame having rows but no columns."""
+        # Create DataFrame with index but no columns
+        df = pd.DataFrame(index=range(5))
+        with pytest.raises(DataValidationError, match="DataFrame must contain at least one value column"):
+            calculate_optimal_window_size(df)
+
+    def test_small_dataset(self):
+        """Test with a small but valid dataset."""
+        # Create a dataset that's large enough for 5 splits but still relatively small
+        dates = pd.date_range(start='2022-01-01', periods=25)
+        # Creating simple linear trend with some noise
+        values = np.linspace(1, 25, 25) + np.random.normal(0, 0.5, 25)
+        small_df = pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
+        result = calculate_optimal_window_size(small_df)
+        assert isinstance(result, int)
+        assert 2 <= result <= 20  # Window size should be within the defined range
+
+    def test_minimum_size_dataset(self):
+        """Test with a dataset at the minimum size that should work."""
+        # TimeSeriesSplit with n_splits=5 requires at least n_splits + 2 samples
+        dates = pd.date_range(start='2022-01-01', periods=7)
+        values = range(1, 8)  # Simple increasing sequence
+        min_df = pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
+        with pytest.raises(ValueError, match="All RMSE values are NaN"):
+            calculate_optimal_window_size(min_df)
+
+    def test_constant_values(self):
+        """Test with constant values where RMSE might be all zero."""
+        dates = pd.date_range(start='2022-01-01', periods=50)
+        constant_df = pd.DataFrame({
+            'date': dates,
+            'value': [10] * 50
+        })
+        result = calculate_optimal_window_size(constant_df)
+        assert isinstance(result, int)
+        assert 2 <= result <= 20
+
+    @patch('src.pycatcher.catch.calculate_rmse')
+    def test_all_nan_rmse_values(self, mock_calculate_rmse):
+        """Test handling of all NaN RMSE values."""
+        mock_calculate_rmse.return_value = np.nan
+        dates = pd.date_range(start='2022-01-01', periods=50)
+        df = pd.DataFrame({
+            'date': dates,
+            'value': np.random.normal(0, 1, 50)
+        })
+        with pytest.raises(ValueError, match="All RMSE values are NaN"):
+            calculate_optimal_window_size(df)
+
+    def test_non_numeric_values(self):
+        """Test with non-numeric values in the value column."""
+        df = pd.DataFrame({
+            'date': pd.date_range(start='2022-01-01', periods=10),
+            'value': ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
+        })
+        with pytest.raises(Exception):  # Should raise an error when trying to calculate RMSE
+            calculate_optimal_window_size(df)
+
+    def test_highly_seasonal_data(self):
+        """Test with highly seasonal data."""
+        dates = pd.date_range(start='2022-01-01', periods=100)
+        # Create seasonal pattern with period of 7
+        seasonal = np.sin(np.linspace(0, 10 * np.pi, 100)) * 10
+        values = seasonal + np.random.normal(0, 1, 100)
+        seasonal_df = pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
+        result = calculate_optimal_window_size(seasonal_df)
+        assert isinstance(result, int)
+        assert 2 <= result <= 20
+
+
+class TestDetectOutliersMovingAverage:
+    """Test cases for detect_outliers_moving_average function."""
+
+    @pytest.fixture
+    def sample_df(self):
+        """Fixture for sample DataFrame with time series data."""
+        dates = pd.date_range(start='2023-01-01', periods=10, freq='D')
+        return pd.DataFrame({
+            'date': dates,
+            'value': [10, 12, 11, 13, 100, 11, 12, 13, 11, 12]  # 100 is an outlier
+        })
+
+    def test_valid_detection(self, sample_df, monkeypatch):
+        """Test with valid DataFrame containing outliers."""
+
+        # Mock calculate_optimal_window_size to return a fixed window size
+        def mock_optimal_window(df):
+            return 3
+
+        # Mock anomaly_zscore to return known z-scores
+        def mock_zscore(series):
+            return pd.Series([0, 0, 0, 0, 5, 0, 0, 0, 0, 0])  # High z-score for outlier
+
+        monkeypatch.setattr("src.pycatcher.catch.calculate_optimal_window_size", mock_optimal_window)
+        monkeypatch.setattr("src.pycatcher.catch.anomaly_zscore", mock_zscore)
+
+        result = detect_outliers_moving_average(sample_df)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 1
+        assert result.iloc[0]['value'] == 100
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            detect_outliers_moving_average(None)
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        empty_df = pd.DataFrame(columns=['date', 'value'])
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            detect_outliers_moving_average(empty_df)
+
+    def test_optimal_window_calculation_error(self, sample_df, monkeypatch):
+        """Test handling of errors from optimal window size calculation."""
+
+        def mock_optimal_window(df):
+            raise ValueError("Error calculating optimal window size")
+
+        monkeypatch.setattr("src.pycatcher.catch.calculate_optimal_window_size", mock_optimal_window)
+
+        with pytest.raises(ValueError, match="Error calculating optimal window size"):
+            detect_outliers_moving_average(sample_df)
+
+
+class TestDetectOutliersSTL:
+    """Test cases for detect_outliers_stl function."""
+
+    @pytest.fixture
+    def hourly_df(self):
+        """Fixture for hourly data with sufficient length."""
+        dates = pd.date_range(start='2020-01-01', periods=17520, freq='H')  # 2 years of hourly data
+        # Generate positive values: base of 100 + sine wave + small positive noise
+        values = 100 + np.sin(np.linspace(0, 100, 17520)) * 50 + np.random.uniform(0, 10, 17520)
+        values[1000] = 1000  # Insert an outlier
+        return pd.DataFrame({'date': dates, 'value': values})
+
+    @pytest.fixture
+    def daily_df(self):
+        """Fixture for daily data with sufficient length."""
+        dates = pd.date_range(start='2020-01-01', periods=730, freq='D')  # 2 years of daily data
+        # Generate positive values: base of 100 + sine wave + small positive noise
+        values = 100 + np.sin(np.linspace(0, 10, 730)) * 50 + np.random.uniform(0, 10, 730)
+        values[100] = 1000  # Insert an outlier
+        return pd.DataFrame({'date': dates, 'value': values})
+
+    @pytest.fixture
+    def monthly_df(self):
+        """Fixture for monthly data with sufficient length."""
+        dates = pd.date_range(start='2020-01-01', periods=24, freq='M')  # 2 years of monthly data
+        # Generate positive values: base of 100 + sine wave + small positive noise
+        values = 100 + np.sin(np.linspace(0, 2, 24)) * 50 + np.random.uniform(0, 10, 24)
+        values[5] = 1000  # Insert an outlier
+        return pd.DataFrame({'date': dates, 'value': values})
+
+    def test_hourly_data(self, hourly_df):
+        """Test with hourly data."""
+        result = detect_outliers_stl(hourly_df)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) > 0
+        assert 1000 in result['value'].values  # Should detect our inserted outlier
+
+    def test_daily_data(self, daily_df):
+        """Test with daily data."""
+        result = detect_outliers_stl(daily_df)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) > 0
+        assert 1000 in result['value'].values  # Should detect our inserted outlier
+
+    def test_monthly_data(self, monthly_df):
+        """Test with monthly data."""
+        result = detect_outliers_stl(monthly_df)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) > 0
+        assert 1000 in result['value'].values  # Should detect our inserted outlier
+
+    def test_insufficient_data(self):
+        """Test with insufficient data length."""
+        dates = pd.date_range(start='2020-01-01', periods=10, freq='D')
+        df = pd.DataFrame({'date': dates, 'value': np.random.uniform(1, 10, 10)})  # Positive values
+        result = detect_outliers_stl(df)
+        # Should fall back to IQR method for insufficient data
+        assert isinstance(result, (pd.DataFrame, str))
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            detect_outliers_stl(None)
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        df = pd.DataFrame()
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            detect_outliers_stl(df)
+
+    def test_invalid_date_format(self):
+        """Test with invalid date format."""
+        df = pd.DataFrame({
+            'date': ['invalid', 'dates'],
+            'value': [1, 2]
+        })
+        with pytest.raises(DataValidationError):
+            detect_outliers_stl(df)
+
+    def test_non_numeric_values(self):
+        """Test with non-numeric values."""
+        dates = pd.date_range(start='2020-01-01', periods=730, freq='D')
+        df = pd.DataFrame({
+            'date': dates,
+            'value': ['a'] * 730
+        })
+        with pytest.raises(Exception):  # Should raise some kind of error for non-numeric data
+            detect_outliers_stl(df)
+
+    @patch('src.pycatcher.catch.detect_outliers_iqr')
+    def test_fallback_to_iqr(self, mock_iqr):
+        """Test fallback to IQR method for short time series."""
+        # Create a short time series that doesn't meet any seasonal criteria
+        dates = pd.date_range(start='2020-01-01', periods=5, freq='D')
+        df = pd.DataFrame({'date': dates, 'value': np.random.uniform(1, 10, 5)})  # Positive values
+
+        # Set up the mock return value
+        mock_iqr.return_value = "IQR method used"
+
+        result = detect_outliers_stl(df)
+
+        # Verify that IQR method was called
+        mock_iqr.assert_called_once()
+        assert result == "IQR method used"
