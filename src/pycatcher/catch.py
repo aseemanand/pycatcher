@@ -947,7 +947,7 @@ def detect_outliers_moving_average(df: pd.DataFrame) -> str:
         raise
 
 
-def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
+def detect_outliers_stl(df: pd.DataFrame) -> Union[pd.DataFrame, str]:
     """
     Detect outliers in a time-series dataset through Seasonal-Trend Decomposition using LOESS (STL)
 
@@ -1054,7 +1054,7 @@ def detect_outliers_stl(df) -> Union[pd.DataFrame, str]:
         raise
 
 
-def detect_outliers_stl_extended(df, detected_period) -> Union[pd.DataFrame, str]:
+def detect_outliers_stl_extended(df: pd.DataFrame, detected_period: int) -> Union[pd.DataFrame, str]:
     """
         Method for calling core outlier function to detect Seasonal-Trend Decomposition using LOESS (STL)
 
@@ -1065,35 +1065,59 @@ def detect_outliers_stl_extended(df, detected_period) -> Union[pd.DataFrame, str
 
         Returns:
             str or pd.DataFrame: A message with None found or a DataFrame with detected outliers.
+
+        Raises:
+            DataValidationError: If df is None, empty, has invalid format, or contains invalid numeric data
+            TimeSeriesError: If period is invalid or seasonal decomposition fails
+            ValueError: If data transformation or statistical calculations fail
+            TypeError: If input types are incorrect
         """
+    if df is None:
+        logger.error("Input DataFrame is None")
+        raise DataValidationError("Input DataFrame cannot be None")
 
-    derived_seasonal = detected_period + ((detected_period % 2) == 0)  # Ensure odd
-    logging.info("Detected Period: %d", detected_period)
-    logging.info("Derived Seasonal: %d", derived_seasonal)
+    try:
+        logger.info("Starting STL-based outlier detection")
 
-    # Try both additive and multiplicative models before selecting the right one
-    # Apply Box-Cox transformation for multiplicative model
-    df_box = df.copy()
-    df_box['count'] = df.iloc[:, -1].astype('float64')
-    df_box['transformed_data'], _ = stats.boxcox(df_box['count'])
-    result_mul = STL(df_box['transformed_data'], seasonal=derived_seasonal, period=detected_period).fit()
+        # Validate DataFrame
+        if len(df.index) == 0:
+            logger.error("Input DataFrame has no rows")
+            raise DataValidationError("Input DataFrame cannot have zero rows")
 
-    result_add = STL(df.iloc[:, -1], seasonal=derived_seasonal, period=detected_period).fit()
+        if len(df.columns) < 2:
+            logger.error("DataFrame must have at least two columns (date and value)")
+            raise DataValidationError("DataFrame must have at least two columns (date and value)")
 
-    # Choose the model with lower variance in residuals
-    if np.var(result_mul.resid) > np.var(result_add.resid):
-        logging.info("Multiplicative model detected")
-        type = 'multiplicative'
-        df_outliers = generate_outliers_stl(df, type, derived_seasonal, detected_period)
-    else:
-        logging.info("Additive model detected")
-        type = 'additive'
-        df_outliers = generate_outliers_stl(df, type, derived_seasonal, detected_period)
+        derived_seasonal = detected_period + ((detected_period % 2) == 0)  # Ensure odd
+        logger.info("Detected Period: %d", detected_period)
+        logger.info("Derived Seasonal: %d", derived_seasonal)
 
-    return_outliers = df_outliers.iloc[:, :2]
-    return_outliers.reset_index(drop=True, inplace=True)
-    logging.info("Completing outlier detection using STL")
-    return return_outliers
+        # Try both additive and multiplicative models before selecting the right one
+        # Apply Box-Cox transformation for multiplicative model
+        df_box = df.copy()
+        df_box['count'] = df.iloc[:, -1].astype('float64')
+        df_box['transformed_data'], _ = stats.boxcox(df_box['count'])
+        result_mul = STL(df_box['transformed_data'], seasonal=derived_seasonal, period=detected_period).fit()
+
+        result_add = STL(df.iloc[:, -1], seasonal=derived_seasonal, period=detected_period).fit()
+
+        # Choose the model with lower variance in residuals
+        if np.var(result_mul.resid) > np.var(result_add.resid):
+            logger.info("Multiplicative model detected")
+            type = 'multiplicative'
+            df_outliers = generate_outliers_stl(df, type, derived_seasonal, detected_period)
+        else:
+            logger.info("Additive model detected")
+            type = 'additive'
+            df_outliers = generate_outliers_stl(df, type, derived_seasonal, detected_period)
+
+        return_outliers = df_outliers.iloc[:, :2]
+        return_outliers.reset_index(drop=True, inplace=True)
+        logger.info("Completing outlier detection using STL")
+        return return_outliers
+    except Exception as e:
+        logger.error("Unexpected error in STL outlier detection: %s", str(e))
+        raise
 
 
 def generate_outliers_stl(df, type, seasonal, period) -> pd.DataFrame:
