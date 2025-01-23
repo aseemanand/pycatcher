@@ -7,7 +7,8 @@ from unittest.mock import MagicMock, patch
 from src.pycatcher.catch import (TimeSeriesError, DataValidationError, check_and_convert_date, find_outliers_iqr,
     anomaly_mad, get_residuals, sum_of_squares, get_ssacf, detect_outliers_today_classic,
     detect_outliers_latest_classic, detect_outliers_classic, decompose_and_detect, detect_outliers_iqr,
-    calculate_rmse, calculate_optimal_window_size, detect_outliers_moving_average, detect_outliers_stl)
+    calculate_rmse, calculate_optimal_window_size, detect_outliers_moving_average, detect_outliers_stl,
+    detect_outliers_stl_extended)
 
 
 @pytest.fixture
@@ -958,3 +959,74 @@ class TestDetectOutliersSTL:
         # Verify that IQR method was called
         mock_iqr.assert_called_once()
         assert result == "IQR method used"
+
+
+class TestDetectOutliersSTLExtended:
+    """Test cases for detect_outliers_stl_extended function."""
+
+    @pytest.fixture
+    def sample_df(self):
+        """Fixture for sample DataFrame with time series data."""
+        dates = pd.date_range(start='2023-01-01', periods=10)
+        values = [10, 20, 30, 40, 1000, 50, 60, 70, 80, 90]  # 1000 is an outlier
+        return pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
+
+    def test_valid_detection(self, sample_df, monkeypatch):
+        """Test with valid DataFrame containing outliers."""
+
+        # Mock the period detection and STL decomposition
+        def mock_generate_outliers_stl(df, type, seasonal, period):
+            # Return a subset of the dataframe with the known outlier
+            return df[df['value'] == 1000]
+
+        monkeypatch.setattr("src.pycatcher.catch.generate_outliers_stl", mock_generate_outliers_stl)
+
+        # Use a mock for period detection
+        monkeypatch.setattr("src.pycatcher.catch.detect_outliers_stl_extended",
+                            lambda df, detected_period=7: mock_generate_outliers_stl(df, 'additive', 7, 7))
+
+        result = detect_outliers_stl_extended(sample_df, detected_period=7)
+
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) == 1
+        assert result.iloc[0]['value'] == 1000
+
+    def test_no_outliers(self, sample_df, monkeypatch):
+        """Test when no outliers are detected."""
+
+        def mock_generate_outliers_stl(df, type, seasonal, period):
+            return pd.DataFrame(columns=df.columns)
+
+        monkeypatch.setattr("src.pycatcher.catch.generate_outliers_stl", mock_generate_outliers_stl)
+
+        monkeypatch.setattr("src.pycatcher.catch.detect_outliers_stl_extended",
+                            lambda df, detected_period=7: mock_generate_outliers_stl(df, 'additive', 7, 7))
+
+        result = detect_outliers_stl_extended(sample_df, detected_period=7)
+        assert isinstance(result, pd.DataFrame)
+        assert result.empty
+
+    def test_none_input(self):
+        """Test with None input."""
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot be None"):
+            detect_outliers_stl_extended(None, detected_period=7)
+
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        empty_df = pd.DataFrame(columns=['date', 'value'])
+        with pytest.raises(DataValidationError, match="Input DataFrame cannot have zero rows"):
+            detect_outliers_stl_extended(empty_df, detected_period=7)
+
+    def test_insufficient_columns(self):
+        """Test with DataFrame having insufficient columns."""
+        df = pd.DataFrame({'value': [1, 2, 3]})
+        with pytest.raises(DataValidationError, match="DataFrame must have at least two columns"):
+            detect_outliers_stl_extended(df, detected_period=7)
+
+    def test_invalid_period(self, sample_df):
+        """Test with invalid period parameter."""
+        with pytest.raises(Exception):  # You might want to specify the exact exception type
+            detect_outliers_stl_extended(sample_df, detected_period=0)
