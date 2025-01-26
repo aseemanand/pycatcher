@@ -10,7 +10,12 @@ from pycatcher.diagnostics import (
     build_iqr_plot,
     build_seasonal_plot_classic,
     build_seasonal_plot_stl,
-    build_seasonal_plot_mstl
+    build_seasonal_plot_mstl,
+    build_outliers_plot_classic,
+    build_outliers_plot_mstl,
+    build_outliers_plot_stl,
+    build_outliers_plot_esd,
+    build_outliers_plot_moving_average
 )
 
 # Define the FastAPI app
@@ -53,8 +58,6 @@ def generate_plot_response(plot_function, df: pd.DataFrame):
 
 # Endpoint for IQR plot
 @app.post("/build_iqr_plot", response_model=OutputModel, summary="Build IQR plot for a given DataFrame")
-
-
 async def build_iqr_plot_api(inputs: InputModel):
     df = pd.DataFrame(data=inputs.data, columns=inputs.columns)
     return generate_plot_response(build_iqr_plot, df)
@@ -63,8 +66,6 @@ async def build_iqr_plot_api(inputs: InputModel):
 # Endpoint for Classic Seasonal Plot
 @app.post("/build_seasonal_plot_classic", response_model=OutputModel, summary="Build Classic Seasonal plot for a "
                                                                               "given DataFrame")
-
-
 async def build_seasonal_plot_classic_api(inputs: InputModel):
     df = pd.DataFrame(data=inputs.data, columns=inputs.columns)
     return generate_plot_response(build_seasonal_plot_classic, df)
@@ -73,18 +74,55 @@ async def build_seasonal_plot_classic_api(inputs: InputModel):
 # Endpoint for STL Seasonal Plot
 @app.post("/build_seasonal_plot_stl", response_model=OutputModel, summary="Build STL Seasonal plot for a "
                                                                           "given DataFrame")
-
-
 async def build_seasonal_plot_stl_api(inputs: InputModel):
     df = pd.DataFrame(data=inputs.data, columns=inputs.columns)
     return generate_plot_response(build_seasonal_plot_stl, df)
 
 
 # Endpoint for MSTL Seasonal Plot
-@app.post("/build_seasonal_plot_mstl", response_model=OutputModel, summary="Build MSTL Seasonal plot for a"
-                                                                           " given DataFrame")
-
-
+@app.post("/build_seasonal_plot_mstl", response_model=OutputModel, summary="Build MSTL Seasonal plot for a "
+                                                                           "given DataFrame")
 async def build_seasonal_plot_mstl_api(inputs: InputModel):
     df = pd.DataFrame(data=inputs.data, columns=inputs.columns)
     return generate_plot_response(build_seasonal_plot_mstl, df)
+
+
+# Endpoint for Classic Outliers Plot
+@app.post("/build_outliers_plot_classic", response_model=OutputModel, summary="Build Classic Outliers plot for a "
+                                                                              "given DataFrame")
+async def build_outliers_plot_classic_api(inputs: InputModel):
+    df = pd.DataFrame(data=inputs.data, columns=inputs.columns)
+    return generate_plot_response(build_outliers_plot_classic, df)
+
+
+# Endpoint for MSTL Outliers Plot
+@app.post("/build_outliers_plot_mstl", response_model=OutputModel, summary="Build MSTL Outliers plot for a "
+                                                                           "given DataFrame")
+async def build_outliers_plot_mstl_api(inputs: InputModel):
+    df = pd.DataFrame(data=inputs.data, columns=inputs.columns)
+    return generate_plot_response(build_outliers_plot_mstl, df)
+
+
+# Endpoint for STL Outliers Plot
+@app.post("/build_outliers_plot_stl", response_model=OutputModel, summary="Build STL Outliers plot for a "
+                                                                          "given DataFrame")
+async def build_outliers_plot_stl_api(inputs: InputModel):
+    df = pd.DataFrame(data=inputs.data, columns=inputs.columns)
+    return generate_plot_response(build_outliers_plot_stl, df)
+
+
+# Endpoint for ESD Outliers Plot
+@app.post("/build_outliers_plot_esd", response_model=OutputModel, summary="Build ESD Outliers plot for a "
+                                                                          "given DataFrame")
+async def build_outliers_plot_esd_api(inputs: InputModel):
+    df = pd.DataFrame(data=inputs.data, columns=inputs.columns)
+    return generate_plot_response(build_outliers_plot_esd, df)
+
+
+# Endpoint for Moving Average Outliers Plot
+@app.post("/build_outliers_plot_moving_average", response_model=OutputModel, summary="Build Moving Average "
+                                                                                     "Outliers plot for a "
+                                                                                     "given DataFrame")
+async def build_outliers_plot_moving_average_api(inputs: InputModel):
+    df = pd.DataFrame(data=inputs.data, columns=inputs.columns)
+    return generate_plot_response(build_outliers_plot_moving_average, df)
