@@ -1,4 +1,3 @@
-import pytest
 from fastapi.testclient import TestClient
 from src.pycatcher.api_diagnostics import app
 
@@ -57,6 +56,3 @@ def test_build_outliers_plot_esd():
 
 #def test_build_outliers_plot_moving_average():
 #    run_endpoint_test("/build_outliers_plot_moving_average")
-
-if __name__ == "__main__":
-    pytest.main([__file__])
