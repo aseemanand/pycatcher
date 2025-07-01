@@ -25,9 +25,6 @@ jobs:
       run: |
         pip install poetry
         poetry install --with dev
-    - name: Test Library Check
-      run: |
-        poetry run python -c "import scipy; import statsmodels.api as sm; print(scipy.__version__, sm.__version__)"
     - name: Run Prospector
       run: |
         poetry run prospector --no-autodetect --profile prospector.yaml
