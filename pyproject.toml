@@ -1,9 +1,9 @@
 [tool.poetry]
 name = "pycatcher"
-version = "0.0.68"
+version = "0.0.69"
 description = "This package identifies outlier(s) for a given time-series dataset in simple steps. It supports day, week, month and quarter level time-series data."
 authors = ["Aseem Anand <aseemanand@gmail.com>"]
-maintainers = ["Jagadish Pamarthi <jagadish.vrsec@gmail.com>", "Uday Kuchimanchi <uday.kuchimanchi@gmail.com>", "Aadya Anand <aadyaanand@gmail.com>"]
+maintainers = ["Jagadish Pamarthi/Uday Kuchimanchi/Aadya Anand"]
 license = "MIT License"
 classifiers = [
     "Programming Language :: Python :: 3",
