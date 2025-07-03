@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pycatcher"
-version = "0.0.68"
+version = "0.0.69"
 description = "This package identifies outlier(s) for a given time-series dataset in simple steps. It supports day, week, month and quarter level time-series data."
 authors = ["Aseem Anand <aseemanand@gmail.com>"]
 maintainers = ["Jagadish Pamarthi <jagadish.vrsec@gmail.com>", "Uday Kuchimanchi <uday.kuchimanchi@gmail.com>", "Aadya Anand <aadyaanand@gmail.com>"]
@@ -23,6 +23,7 @@ pyspark = "^3.0.0"
 python = ">=3.9,<4.0"
 pandas = "==2.2.3"
 scipy = ">=1.9.0,<1.16.0"
+numpy = "^1.24.0"
 statsmodels = "^0.14.0"
 pyod = "==2.0.2"
 seaborn = "==0.13.2"
